@@ -1,0 +1,8 @@
+{
+  "sizeX": 32,
+  "sizeY": 64,
+  "posX": 100.0,
+  "posY": 150.0,
+  "moveSpeedX": 150.0,
+  "moveSpeedY": 500.0
+}

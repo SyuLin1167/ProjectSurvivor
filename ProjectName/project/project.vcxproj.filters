@@ -1,0 +1,491 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="GameSystem">
+      <UniqueIdentifier>{5e32d4b8-ccf1-47f5-b933-b37e9971feb1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameSystem\Window">
+      <UniqueIdentifier>{149fcd85-85c3-4248-a4bb-e57f3c4a0099}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameSystem\Library">
+      <UniqueIdentifier>{ec3d4813-de19-45ba-bec6-753d6730e484}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameSystem\Execution">
+      <UniqueIdentifier>{c75e7852-1316-4e32-b2e5-6e8ba7ce87c8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Scene">
+      <UniqueIdentifier>{5260ea1e-6acd-4989-b773-60d2e240f970}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Scene\SceneBase">
+      <UniqueIdentifier>{1b89bd47-3bc0-410d-84d2-da21b2457642}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Scene\SceneManager">
+      <UniqueIdentifier>{07d63a98-42a2-4b2a-bab6-8904a4af3aef}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Scene\Title">
+      <UniqueIdentifier>{f9c62202-2406-4061-9420-3b793822213e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameSystem\FrameRate">
+      <UniqueIdentifier>{d707a9e2-e342-498c-81b7-574e2a21601d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Scene\Play">
+      <UniqueIdentifier>{dc4b70bf-0d72-424c-8b68-5cf50eab452b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Component">
+      <UniqueIdentifier>{b91d0599-e4ce-4983-988a-a466cdefbf31}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Component\Jump">
+      <UniqueIdentifier>{a07bac33-06ca-4b30-a635-efe6fe745a9d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Collision">
+      <UniqueIdentifier>{843aef43-7aac-4e5b-ae94-255dab27a71c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="MyLib">
+      <UniqueIdentifier>{70c14614-cddd-461e-a359-388ebd48bbd1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="MyLib\Math">
+      <UniqueIdentifier>{bac0e66a-7ff7-4382-8c88-4ff6121a368e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="MyLib\Shape">
+      <UniqueIdentifier>{b08e4002-d55d-4611-8bc8-b019457c83e9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Data">
+      <UniqueIdentifier>{1f2695c7-5316-4867-aab9-5def7d8f9f71}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Asset">
+      <UniqueIdentifier>{7918a09f-162f-492e-9a37-b0e87d4052ef}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Asset\AssetBase">
+      <UniqueIdentifier>{1c3ec2bc-a45c-4af4-a116-4fc74414cc1c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Asset\AssetManager">
+      <UniqueIdentifier>{75e91600-3d5d-4ca8-9344-b2cb6544a8e1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Asset\Graph">
+      <UniqueIdentifier>{8c7481d5-13e3-4cf5-abff-cc5d35eaac7a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Asset\DivisionGraph">
+      <UniqueIdentifier>{6a82afe6-c496-48ed-863f-ecf81e4e6017}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Scene\Loading">
+      <UniqueIdentifier>{0750360c-ae6c-4b7e-90de-93385a7f945f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Component\ComponentBase">
+      <UniqueIdentifier>{59fcacae-68d2-4256-ba5f-9923c2ab7f23}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Component\ComponentManager">
+      <UniqueIdentifier>{44d41d83-db90-4f63-8b01-2d917aab1b88}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="MyLib\FileIO">
+      <UniqueIdentifier>{eddb39d9-0a36-4d53-bf02-6c186d9d9add}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="MyLib\Loading">
+      <UniqueIdentifier>{cc8dfca3-93e6-4be3-aeb0-7fa8a1cd1c5e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Collision\Collider">
+      <UniqueIdentifier>{d99e92c2-02e5-4d62-adf2-a96e9c84ff0c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Collision\TileCollider">
+      <UniqueIdentifier>{15ef6074-1d24-406f-84ee-2b0e06a01946}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Object">
+      <UniqueIdentifier>{df455804-912a-4ee0-b43c-5e1fe0f3bd14}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Object\GameObject">
+      <UniqueIdentifier>{73f077c3-5be1-4b73-94f6-ab3d970ae24d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Object\Player">
+      <UniqueIdentifier>{340e087e-8d7c-4c77-ad1e-1fed83b66f7c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Object\ObjectManager">
+      <UniqueIdentifier>{b7aa4b91-5e44-46f8-a45e-ff3715417b22}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Object\Map">
+      <UniqueIdentifier>{51bee5ae-c668-432b-8830-3d321eb72673}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Collision\RectCollider">
+      <UniqueIdentifier>{c7a520d0-a381-4831-8c8b-478e71a0b5d4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Collision\ColiderManager">
+      <UniqueIdentifier>{ed94cec9-ef93-467b-9896-33a48f1834cd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="MyLib\KeyStatus">
+      <UniqueIdentifier>{f5894192-ced3-4426-940e-cf232df9419b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Component\MoveWithKey">
+      <UniqueIdentifier>{75fa4d6f-1e8e-42ce-90da-bf951af1402b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Object\Enemy">
+      <UniqueIdentifier>{24cc6df9-54cc-4e52-b204-68832efe6e92}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Collision\CircleCollider">
+      <UniqueIdentifier>{271d3db1-ad98-4191-ba7f-86df80d7a44c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Object\Goal">
+      <UniqueIdentifier>{d3c8d47f-0e22-4b50-abea-dea5390374cc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Scene\Result">
+      <UniqueIdentifier>{7b9a6b1b-2214-437a-9789-6efd938f27d9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="UI">
+      <UniqueIdentifier>{1507b492-63d2-429f-8f3b-450680fd6fef}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="UI\UIBase">
+      <UniqueIdentifier>{504c1b1b-64c4-4942-9d6f-beb5457c8e78}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="UI\UIManager">
+      <UniqueIdentifier>{5af717ea-6674-412f-8a58-3340fab16d86}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameSystem\Camera">
+      <UniqueIdentifier>{a0cfe714-d5eb-4eff-ac8e-aff329532169}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="MyLib\MouseStatus">
+      <UniqueIdentifier>{3e10bd16-164c-4cbd-8c51-1074fef87033}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Asset\Animation">
+      <UniqueIdentifier>{9f4af2c4-e2b3-4cc3-a4bc-5300fb809f78}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="UI\Button">
+      <UniqueIdentifier>{1af4afeb-6da0-4752-83c6-b24633eb2905}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\code\main.cpp" />
+    <ClCompile Include="..\code\Component\Jump\Jump.cpp">
+      <Filter>Component\Jump</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\GameSystem\Execution\Execution.cpp">
+      <Filter>GameSystem\Execution</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\GameSystem\FrameRate\FrameRate.cpp">
+      <Filter>GameSystem\FrameRate</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\GameSystem\Library\Library.cpp">
+      <Filter>GameSystem\Library</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\GameSystem\Window\Window.cpp">
+      <Filter>GameSystem\Window</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Object\GameObject\GameObject.cpp">
+      <Filter>Object\GameObject</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Object\Map\Map.cpp">
+      <Filter>Object\Map</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Object\ObjectManager\ObjectManager.cpp">
+      <Filter>Object\ObjectManager</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Object\Character\Player\Player.cpp">
+      <Filter>Object\Player</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Scene\Play\Play.cpp">
+      <Filter>Scene\Play</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Scene\SceneManager\SceneManager.cpp">
+      <Filter>Scene\SceneManager</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Scene\Title\Title.cpp">
+      <Filter>Scene\Title</Filter>
+    </ClCompile>
+    <ClCompile Include="..\include\MyLib\KeyStatus\KeyStatus.cpp">
+      <Filter>MyLib\KeyStatus</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Asset\Graph\Graph.cpp">
+      <Filter>Asset\Graph</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Asset\DivisionGraph\DivisionGraph.cpp">
+      <Filter>Asset\DivisionGraph</Filter>
+    </ClCompile>
+    <ClCompile Include="..\include\MyLib\Loading\Loading.cpp">
+      <Filter>MyLib\Loading</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Scene\LoadingScene\LoadingScene.cpp">
+      <Filter>Scene\Loading</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Component\ComponentBase\ComponentBase.cpp">
+      <Filter>Component\ComponentBase</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Component\ComponentManager\ComponentManager.cpp">
+      <Filter>Component\ComponentManager</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Collision\Collider\Collider.cpp">
+      <Filter>Collision\Collider</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Collision\RectCollider\RectCollider.cpp">
+      <Filter>Collision\RectCollider</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Collision\TileCollider\TileCollider.cpp">
+      <Filter>Collision\TileCollider</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Collision\RectCollider\RectColliderVisitor.cpp">
+      <Filter>Collision\RectCollider</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Collision\TileCollider\TileColliderVisitor.cpp">
+      <Filter>Collision\TileCollider</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Collision\TileCollider\TileColliderResolver.cpp">
+      <Filter>Collision\TileCollider</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Collision\ColliderManager\ColliderManager.cpp">
+      <Filter>Collision\ColiderManager</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Collision\RectCollider\RectColliderResolver.cpp">
+      <Filter>Collision\RectCollider</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Collision\Collider\Collider.ixx">
+      <Filter>Collision\Collider</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Collision\Collider\ColliderDef.ixx">
+      <Filter>Collision\Collider</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Collision\Collider\ColliderFilter.ixx">
+      <Filter>Collision\Collider</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Collision\ColliderManager\ColliderManager.ixx">
+      <Filter>Collision\ColiderManager</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Collision\RectCollider\RectCollider.ixx">
+      <Filter>Collision\RectCollider</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Collision\RectCollider\RectColliderResolver.ixx">
+      <Filter>Collision\RectCollider</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Collision\RectCollider\RectColliderVisitor.ixx">
+      <Filter>Collision\RectCollider</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Collision\TileCollider\TileCollider.ixx">
+      <Filter>Collision\TileCollider</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Collision\TileCollider\TileColliderResolver.ixx">
+      <Filter>Collision\TileCollider</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Collision\TileCollider\TileColliderVisitor.ixx">
+      <Filter>Collision\TileCollider</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Collision\Collider\ColliderVisitor.ixx">
+      <Filter>Collision\Collider</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\GameSystem\Execution\Execution.ixx">
+      <Filter>GameSystem\Execution</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\GameSystem\FrameRate\FrameRate.ixx">
+      <Filter>GameSystem\FrameRate</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Object\GameObject\GameObject.ixx">
+      <Filter>Object\GameObject</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\GameSystem\Library\Library.ixx">
+      <Filter>GameSystem\Library</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Object\Map\Map.ixx">
+      <Filter>Object\Map</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Object\GameObject\ObjectTag.ixx">
+      <Filter>Object\GameObject</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Object\GameObject\ObjectState.ixx">
+      <Filter>Object\GameObject</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Object\ObjectManager\ObjectManager.ixx">
+      <Filter>Object\ObjectManager</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Object\GameObject\ObjectContext.ixx">
+      <Filter>Object</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Scene\Play\Play.ixx">
+      <Filter>Scene\Play</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Object\Character\Player\Player.ixx">
+      <Filter>Object\Player</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Scene\SceneBase\SceneBase.ixx">
+      <Filter>Scene\SceneBase</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Scene\SceneManager\SceneManager.ixx">
+      <Filter>Scene\SceneManager</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Scene\Title\Title.ixx">
+      <Filter>Scene\Title</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\GameSystem\Window\Window.ixx">
+      <Filter>GameSystem\Window</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Component\ComponentBase\ComponentBase.ixx">
+      <Filter>Component\ComponentBase</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Component\ComponentManager\ComponentManager.ixx">
+      <Filter>Component\ComponentManager</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Component\Jump\Jump.ixx">
+      <Filter>Component\Jump</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Asset\AssetBase\AssetBase.ixx">
+      <Filter>Asset\AssetBase</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Asset\Graph\Graph.ixx">
+      <Filter>Asset\Graph</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Asset\DivisionGraph\DivisionGraph.ixx">
+      <Filter>Asset\DivisionGraph</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Asset\AssetManager\AssetManager.ixx">
+      <Filter>Asset\AssetManager</Filter>
+    </ClCompile>
+    <ClCompile Include="..\include\MyLib\KeyStatus\KeyTag.ixx">
+      <Filter>MyLib\KeyStatus</Filter>
+    </ClCompile>
+    <ClCompile Include="..\include\MyLib\KeyStatus\KeyStatus.ixx">
+      <Filter>MyLib\KeyStatus</Filter>
+    </ClCompile>
+    <ClCompile Include="..\include\MyLib\Loading\Loading.ixx">
+      <Filter>MyLib\Loading</Filter>
+    </ClCompile>
+    <ClCompile Include="..\include\MyLib\Loading\LoadingContext.ixx">
+      <Filter>MyLib\Loading</Filter>
+    </ClCompile>
+    <ClCompile Include="..\include\MyLib\Math\PropVector2.ixx">
+      <Filter>MyLib\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="..\include\MyLib\Math\Vector2.ixx">
+      <Filter>MyLib\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="..\include\MyLib\Shape\Rect.ixx">
+      <Filter>MyLib\Shape</Filter>
+    </ClCompile>
+    <ClCompile Include="..\include\MyLib\FileSystem\FileIO\MemMapFile.cpp">
+      <Filter>MyLib\FileIO</Filter>
+    </ClCompile>
+    <ClCompile Include="..\include\MyLib\FileSystem\FileIO\MemMapFile.ixx">
+      <Filter>MyLib\FileIO</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\GameSystem\AppContext.ixx">
+      <Filter>GameSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\include\MyLib\Shape\Circle.ixx">
+      <Filter>MyLib\Shape</Filter>
+    </ClCompile>
+    <ClCompile Include="..\include\MyLib\Coroutine.ixx">
+      <Filter>MyLib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\include\MyLib\FileSystem\FileIO\CsvIO.ixx">
+      <Filter>MyLib\FileIO</Filter>
+    </ClCompile>
+    <ClCompile Include="..\include\MyLib\FileSystem\FileIO\JsonIO.ixx">
+      <Filter>MyLib\FileIO</Filter>
+    </ClCompile>
+    <ClCompile Include="..\include\MyLib\FileSystem\FileSystem.ixx">
+      <Filter>MyLib\FileIO</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Scene\LoadingScene\LoadingScene.ixx">
+      <Filter>Scene\Loading</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Object\Map\MapInfo.ixx">
+      <Filter>Object\Map</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Component\Move\MoveWithKey\MoveWithKey.ixx">
+      <Filter>Component\MoveWithKey</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Component\Move\MoveWithKey\MoveWithKey.cpp">
+      <Filter>Component\MoveWithKey</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Object\Character\Player\PlayerData.ixx">
+      <Filter>Data</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Object\Character\Enemy\Enemy.cpp">
+      <Filter>Object\Enemy</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Object\Character\Enemy\Enemy.ixx">
+      <Filter>Object\Enemy</Filter>
+    </ClCompile>
+    <ClCompile Include="..\include\MyLib\TileChunkUtil.ixx">
+      <Filter>MyLib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Collision\CircleColldier\CircleCollider.ixx">
+      <Filter>Collision\CircleCollider</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Collision\CircleColldier\CircleCollider.cpp">
+      <Filter>Collision\CircleCollider</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Collision\CircleColldier\CircleColliderVisitor.ixx">
+      <Filter>Collision\CircleCollider</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Collision\CircleColldier\CircleColliderResolver.cpp">
+      <Filter>Collision\CircleCollider</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Collision\CircleColldier\CircleColliderResolver.ixx">
+      <Filter>Collision\CircleCollider</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Collision\CircleColldier\CircleColliderVisitor.cpp">
+      <Filter>Collision\CircleCollider</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Object\Goal\Goal.ixx">
+      <Filter>Object\Goal</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Scene\Result\Result.ixx">
+      <Filter>Scene\Result</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Scene\Result\Result.cpp">
+      <Filter>Scene\Result</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\UI\UIBase\UIBase.ixx">
+      <Filter>UI\UIBase</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\UI\UIManager\UIManager.cpp">
+      <Filter>UI\UIManager</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\UI\UIManager\UIManager.ixx">
+      <Filter>UI\UIManager</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\UI\Button\Button.cpp">
+      <Filter>UI\Button</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\UI\Button\Button.ixx">
+      <Filter>UI\Button</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\GameSystem\Camera\Camera.ixx">
+      <Filter>GameSystem\Camera</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\GameSystem\Camera\Camera.cpp">
+      <Filter>GameSystem\Camera</Filter>
+    </ClCompile>
+    <ClCompile Include="..\include\MyLib\MouseStatus\MouseStatus.cpp">
+      <Filter>MyLib\MouseStatus</Filter>
+    </ClCompile>
+    <ClCompile Include="..\include\MyLib\MouseStatus\MouseStatus.ixx">
+      <Filter>MyLib\MouseStatus</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Asset\Animation\Animation.cpp">
+      <Filter>Asset\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Asset\Animation\Animation.ixx">
+      <Filter>Asset\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Asset\Animation\AnimationDef.ixx">
+      <Filter>Asset\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\Asset\Sound\Sound.cpp" />
+    <ClCompile Include="..\code\Asset\Sound\Sound.ixx" />
+    <ClCompile Include="..\code\Asset\Sound\SoundDef.ixx" />
+    <ClCompile Include="..\code\Component\Animator\Animator.cpp" />
+    <ClCompile Include="..\code\Component\Animator\Animator.ixx" />
+    <ClCompile Include="..\code\Component\AudioSource\AudioSource.cpp" />
+    <ClCompile Include="..\code\Component\AudioSource\AudioSource.ixx" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="resource.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\resources\data\PlayerData.json">
+      <Filter>Data</Filter>
+    </None>
+    <None Include="..\resources\data\MapData.json">
+      <Filter>Data</Filter>
+    </None>
+    <None Include="..\resources\data\MapTip.csv">
+      <Filter>Data</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="project.rc" />
+  </ItemGroup>
+</Project>
