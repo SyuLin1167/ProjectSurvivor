@@ -1,0 +1,305 @@
+
+  モジュール依存関係のソースをスキャンしています...
+  コンパイルしています...
+  optional
+  typeindex
+  filesystem
+  chrono
+  unordered_map
+  queue
+  string
+  thread
+  functional
+  memory
+  vector
+  future
+  variant
+  algorithm
+  charconv
+  coroutine
+  cstdint
+  array
+  ComponentBase.ixx
+  Library.ixx
+  MemMapFile.ixx
+  stack
+  json.hpp
+  iostream
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winnt.h(1059,1): message : 申し訳ございません: 認識できない 'C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winnt.h(1064,5)' の式またはステートメントのため、'ULONGLONG Int64ShllMod32(ULONGLONG,DWORD)' の 'inline' 関数定義をモジュールに書き込めませんでした。 [<REPO>\ProjectName\project\project.vcxproj]
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winnt.h(1059,1): message : 可能な場合は、こちらで再現を提供してください: https://developercommunity.visualstudio.com [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Component\ComponentBase\ComponentBase.ixx(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  (ソース ファイル '../include/MyLib/FileSystem/FileIO/MemMapFile.ixx' をコンパイルしています)
+
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winnt.h(1075,1): message : 申し訳ございません: 認識できない 'C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winnt.h(1080,5)' の式またはステートメントのため、'LONGLONG Int64ShraMod32(LONGLONG,DWORD)' の 'inline' 関数定義をモジュールに書き込めませんでした。 [<REPO>\ProjectName\project\project.vcxproj]
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winnt.h(1075,1): message : 可能な場合は、こちらで再現を提供してください: https://developercommunity.visualstudio.com [<REPO>\ProjectName\project\project.vcxproj]
+  (ソース ファイル '../include/MyLib/FileSystem/FileIO/MemMapFile.ixx' をコンパイルしています)
+
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winnt.h(1091,1): message : 申し訳ございません: 認識できない 'C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winnt.h(1096,5)' の式またはステートメントのため、'ULONGLONG Int64ShrlMod32(ULONGLONG,DWORD)' の 'inline' 関数定義をモジュールに書き込めませんでした。 [<REPO>\ProjectName\project\project.vcxproj]
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winnt.h(1091,1): message : 可能な場合は、こちらで再現を提供してください: https://developercommunity.visualstudio.com [<REPO>\ProjectName\project\project.vcxproj]
+  (ソース ファイル '../include/MyLib/FileSystem/FileIO/MemMapFile.ixx' をコンパイルしています)
+
+  Execution.ixx
+  Vector2.ixx
+  ComponentManager.ixx
+  SoundDef.ixx
+  FrameRate.ixx
+<REPO>\ProjectName\code\Component\ComponentManager\ComponentManager.ixx(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Asset\Sound\SoundDef.ixx(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  Jump.ixx
+  AssetBase.ixx
+  ColliderFilter.ixx
+<REPO>\ProjectName\code\Component\Jump\Jump.ixx(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+c:\users\amayu\.codex\.chatgpt-projects\g-p-6ac895843a70819186a6aa9b94b43139\projectsurvivor\projectname\include\nlohmann\json.hpp(3795,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winnt.h(1059,1): message : 申し訳ございません: 認識できない 'C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winnt.h(1064,5)' の式またはステートメントのため、'ULONGLONG Int64ShllMod32(ULONGLONG,DWORD)' の 'inline' 関数定義をモジュールに書き込めませんでした。 [<REPO>\ProjectName\project\project.vcxproj]
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winnt.h(1059,1): message : 可能な場合は、こちらで再現を提供してください: https://developercommunity.visualstudio.com [<REPO>\ProjectName\project\project.vcxproj]
+  (ソース ファイル '../code/Asset/AssetBase/AssetBase.ixx' をコンパイルしています)
+
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winnt.h(1075,1): message : 申し訳ございません: 認識できない 'C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winnt.h(1080,5)' の式またはステートメントのため、'LONGLONG Int64ShraMod32(LONGLONG,DWORD)' の 'inline' 関数定義をモジュールに書き込めませんでした。 [<REPO>\ProjectName\project\project.vcxproj]
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winnt.h(1075,1): message : 可能な場合は、こちらで再現を提供してください: https://developercommunity.visualstudio.com [<REPO>\ProjectName\project\project.vcxproj]
+  (ソース ファイル '../code/Asset/AssetBase/AssetBase.ixx' をコンパイルしています)
+
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winnt.h(1091,1): message : 申し訳ございません: 認識できない 'C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winnt.h(1096,5)' の式またはステートメントのため、'ULONGLONG Int64ShrlMod32(ULONGLONG,DWORD)' の 'inline' 関数定義をモジュールに書き込めませんでした。 [<REPO>\ProjectName\project\project.vcxproj]
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winnt.h(1091,1): message : 可能な場合は、こちらで再現を提供してください: https://developercommunity.visualstudio.com [<REPO>\ProjectName\project\project.vcxproj]
+  (ソース ファイル '../code/Asset/AssetBase/AssetBase.ixx' をコンパイルしています)
+
+  Library.cpp
+  ObjectTag.ixx
+  Loading.ixx
+  KeyTag.ixx
+  AnimationDef.ixx
+<REPO>\ProjectName\code\Asset\Animation\AnimationDef.ixx(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winnt.h(1059,1): message : 申し訳ございません: 認識できない 'C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winnt.h(1064,5)' の式またはステートメントのため、'ULONGLONG Int64ShllMod32(ULONGLONG,DWORD)' の 'inline' 関数定義をモジュールに書き込めませんでした。 [<REPO>\ProjectName\project\project.vcxproj]
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winnt.h(1059,1): message : 可能な場合は、こちらで再現を提供してください: https://developercommunity.visualstudio.com [<REPO>\ProjectName\project\project.vcxproj]
+  (ソース ファイル '../include/MyLib/KeyStatus/KeyTag.ixx' をコンパイルしています)
+
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winnt.h(1075,1): message : 申し訳ございません: 認識できない 'C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winnt.h(1080,5)' の式またはステートメントのため、'LONGLONG Int64ShraMod32(LONGLONG,DWORD)' の 'inline' 関数定義をモジュールに書き込めませんでした。 [<REPO>\ProjectName\project\project.vcxproj]
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winnt.h(1075,1): message : 可能な場合は、こちらで再現を提供してください: https://developercommunity.visualstudio.com [<REPO>\ProjectName\project\project.vcxproj]
+  (ソース ファイル '../include/MyLib/KeyStatus/KeyTag.ixx' をコンパイルしています)
+
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winnt.h(1091,1): message : 申し訳ございません: 認識できない 'C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winnt.h(1096,5)' の式またはステートメントのため、'ULONGLONG Int64ShrlMod32(ULONGLONG,DWORD)' の 'inline' 関数定義をモジュールに書き込めませんでした。 [<REPO>\ProjectName\project\project.vcxproj]
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winnt.h(1091,1): message : 可能な場合は、こちらで再現を提供してください: https://developercommunity.visualstudio.com [<REPO>\ProjectName\project\project.vcxproj]
+  (ソース ファイル '../include/MyLib/KeyStatus/KeyTag.ixx' をコンパイルしています)
+
+  ColliderDef.ixx
+<REPO>\ProjectName\code\Collision\Collider\ColliderDef.ixx(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  ComponentManager.cpp
+  AssetManager.ixx
+  ObjectState.ixx
+  MoveWithKey.ixx
+<REPO>\ProjectName\code\Component\Move\MoveWithKey\MoveWithKey.ixx(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  FrameRate.cpp
+  Window.ixx
+  DivisionGraph.ixx
+  Graph.ixx
+<REPO>\ProjectName\code\Asset\DivisionGraph\DivisionGraph.ixx(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  main.cpp
+  CircleColliderResolver.ixx
+  MapInfo.ixx
+<REPO>\ProjectName\code\Collision\CircleColldier\CircleColliderResolver.ixx(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  UIBase.ixx
+  PropVector2.ixx
+  Sound.ixx
+  ColliderVisitor.ixx
+  Animation.ixx
+<REPO>\ProjectName\code\Asset\Sound\Sound.ixx(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Collision\Collider\ColliderVisitor.ixx(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Asset\Animation\Animation.ixx(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  MouseStatus.ixx
+  Circle.ixx
+  Rect.ixx
+  RectColliderResolver.ixx
+  Window.cpp
+<REPO>\ProjectName\code\Collision\RectCollider\RectColliderResolver.ixx(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+c:\users\amayu\.codex\.chatgpt-projects\g-p-6ac895843a70819186a6aa9b94b43139\projectsurvivor\projectname\include\nlohmann\json.hpp(9118,24): warning C5260: 定数の変数 'nlohmann::json_abi_v3_12_0::detail::pow5_128_smallest_power' には包含された ヘッダー ファイル コンテキスト内に内部リンケージがありますが、インポートされたヘッダー ユニット コンテキストでは外部リンケージがあります; 翻訳単位間で共有される場合は 'inline' を宣言することを同様に検討してください。または、この翻訳単位に対してローカルで使用する意図を表す場合は 'static' を宣言することを検討してください [<REPO>\ProjectName\project\project.vcxproj]
+  KeyStatus.ixx
+  TileChunkUtil.ixx
+  Collider.ixx
+<REPO>\ProjectName\code\Collision\Collider\Collider.ixx(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+c:\users\amayu\.codex\.chatgpt-projects\g-p-6ac895843a70819186a6aa9b94b43139\projectsurvivor\projectname\include\nlohmann\json.hpp(9119,24): warning C5260: 定数の変数 'nlohmann::json_abi_v3_12_0::detail::pow5_128_largest_power' には包含された ヘッダー ファイル コンテキスト内に内部リンケージがありますが、インポートされたヘッダー ユニット コンテキストでは外部リンケージがあります; 翻訳単位間で共有される場合は 'inline' を宣言することを同様に検討してください。または、この翻訳単位に対してローカルで使用する意図を表す場合は 'static' を宣言することを検討してください [<REPO>\ProjectName\project\project.vcxproj]
+  RectColliderVisitor.ixx
+<REPO>\ProjectName\include\nlohmann\json.hpp(3795,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  (ソース ファイル '../code/Object/Map/MapInfo.ixx' をコンパイルしています)
+
+  Button.ixx
+  UIManager.ixx
+  Loading.cpp
+  KeyStatus.cpp
+<REPO>\ProjectName\include\MyLib\Loading\Loading.cpp(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  LoadingContext.ixx
+  MouseStatus.cpp
+  CircleCollider.ixx
+  Collider.cpp
+<REPO>\ProjectName\code\Collision\Collider\Collider.cpp(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  RectCollider.ixx
+<REPO>\ProjectName\code\Collision\RectCollider\RectCollider.ixx(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  Button.cpp
+  UIManager.cpp
+  RectCollider.cpp
+  RectColliderResolver.cpp
+  Coroutine.ixx
+  RectColliderVisitor.cpp
+<REPO>\ProjectName\code\Collision\RectCollider\RectColliderResolver.cpp(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  CsvIO.ixx
+<REPO>\ProjectName\code\Collision\RectCollider\RectColliderVisitor.cpp(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  JsonIO.ixx
+  MemMapFile.cpp
+  TileCollider.ixx
+  CircleColliderResolver.cpp
+  CircleColliderVisitor.ixx
+<REPO>\ProjectName\code\Collision\TileCollider\TileCollider.ixx(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Collision\CircleColldier\CircleColliderResolver.cpp(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  CircleCollider.cpp
+  CircleColliderVisitor.cpp
+  ColliderManager.ixx
+<REPO>\ProjectName\code\Collision\CircleColldier\CircleCollider.cpp(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  TileColliderResolver.ixx
+<REPO>\ProjectName\code\Collision\CircleColldier\CircleColliderVisitor.cpp(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Collision\TileCollider\TileColliderResolver.ixx(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  TileColliderResolver.cpp
+  TileColliderVisitor.ixx
+  ColliderManager.cpp
+<REPO>\ProjectName\code\Collision\TileCollider\TileColliderVisitor.ixx(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Collision\TileCollider\TileColliderResolver.cpp(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  FileSystem.ixx
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winnt.h(1059,1): message : 申し訳ございません: 認識できない 'C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winnt.h(1064,5)' の式またはステートメントのため、'ULONGLONG Int64ShllMod32(ULONGLONG,DWORD)' の 'inline' 関数定義をモジュールに書き込めませんでした。 [<REPO>\ProjectName\project\project.vcxproj]
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winnt.h(1059,1): message : 可能な場合は、こちらで再現を提供してください: https://developercommunity.visualstudio.com [<REPO>\ProjectName\project\project.vcxproj]
+  (ソース ファイル '../include/MyLib/FileSystem/FileSystem.ixx' をコンパイルしています)
+
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winnt.h(1075,1): message : 申し訳ございません: 認識できない 'C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winnt.h(1080,5)' の式またはステートメントのため、'LONGLONG Int64ShraMod32(LONGLONG,DWORD)' の 'inline' 関数定義をモジュールに書き込めませんでした。 [<REPO>\ProjectName\project\project.vcxproj]
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winnt.h(1075,1): message : 可能な場合は、こちらで再現を提供してください: https://developercommunity.visualstudio.com [<REPO>\ProjectName\project\project.vcxproj]
+  (ソース ファイル '../include/MyLib/FileSystem/FileSystem.ixx' をコンパイルしています)
+
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winnt.h(1091,1): message : 申し訳ございません: 認識できない 'C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winnt.h(1096,5)' の式またはステートメントのため、'ULONGLONG Int64ShrlMod32(ULONGLONG,DWORD)' の 'inline' 関数定義をモジュールに書き込めませんでした。 [<REPO>\ProjectName\project\project.vcxproj]
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winnt.h(1091,1): message : 可能な場合は、こちらで再現を提供してください: https://developercommunity.visualstudio.com [<REPO>\ProjectName\project\project.vcxproj]
+  (ソース ファイル '../include/MyLib/FileSystem/FileSystem.ixx' をコンパイルしています)
+
+  TileColliderVisitor.cpp
+<REPO>\ProjectName\code\Collision\TileCollider\TileColliderVisitor.cpp(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  AppContext.ixx
+  Sound.cpp
+  TileCollider.cpp
+  DivisionGraph.cpp
+  PlayerData.ixx
+  Animation.cpp
+<REPO>\ProjectName\code\Asset\DivisionGraph\DivisionGraph.cpp(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Asset\Sound\Sound.cpp(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  GameObject.ixx
+  Graph.cpp
+<REPO>\ProjectName\code\Asset\Animation\Animation.cpp(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Object\GameObject\GameObject.ixx(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Asset\Animation\Animation.cpp(54,81): warning C4244: '=': 'int' から 'float' への変換です。データが失われる可能性があります。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\include\nlohmann\json.hpp(3795,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  (ソース ファイル '../code/Collision/TileCollider/TileCollider.cpp' をコンパイルしています)
+
+<REPO>\ProjectName\include\nlohmann\json.hpp(3795,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  (ソース ファイル '../code/Object/Character/Player/PlayerData.ixx' をコンパイルしています)
+
+<REPO>\ProjectName\code\Collision\TileCollider\TileCollider.cpp(145,28): warning C4244: '初期化中': 'uint64_t' から 'size_t' への変換です。データが失われる可能性があります。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Asset\DivisionGraph\DivisionGraph.cpp(20,31): warning C4018: '<': signed/unsigned の不一致 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Asset\DivisionGraph\DivisionGraph.cpp(130,27): warning C4018: '<': signed/unsigned の不一致 [<REPO>\ProjectName\project\project.vcxproj]
+  MoveWithKey.cpp
+  GameObject.cpp
+  Camera.ixx
+  ComponentBase.cpp
+  Map.ixx
+<REPO>\ProjectName\code\Component\Move\MoveWithKey\MoveWithKey.cpp(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  Jump.cpp
+  Player.ixx
+<REPO>\ProjectName\code\Component\Jump\Jump.cpp(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  Animator.ixx
+  Enemy.ixx
+  ObjectManager.ixx
+<REPO>\ProjectName\code\Object\Character\Player\Player.ixx(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  AudioSource.ixx
+<REPO>\ProjectName\code\Component\Animator\Animator.ixx(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Component\AudioSource\AudioSource.ixx(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  Camera.cpp
+  Map.cpp
+  Goal.ixx
+  Enemy.cpp
+<REPO>\ProjectName\code\Object\Character\Enemy\Enemy.cpp(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Object\Map\Map.cpp(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Object\Goal\Goal.ixx(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  Player.cpp
+  AudioSource.cpp
+  SceneBase.ixx
+<REPO>\ProjectName\code\Object\Character\Player\Player.cpp(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  Animator.cpp
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winnt.h(1059,1): message : 申し訳ございません: 認識できない 'C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winnt.h(1064,5)' の式またはステートメントのため、'ULONGLONG Int64ShllMod32(ULONGLONG,DWORD)' の 'inline' 関数定義をモジュールに書き込めませんでした。 [<REPO>\ProjectName\project\project.vcxproj]
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winnt.h(1059,1): message : 可能な場合は、こちらで再現を提供してください: https://developercommunity.visualstudio.com [<REPO>\ProjectName\project\project.vcxproj]
+  ObjectManager.cpp
+  (ソース ファイル '../code/Object/Goal/Goal.ixx' をコンパイルしています)
+
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winnt.h(1075,1): message : 申し訳ございません: 認識できない 'C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winnt.h(1080,5)' の式またはステートメントのため、'LONGLONG Int64ShraMod32(LONGLONG,DWORD)' の 'inline' 関数定義をモジュールに書き込めませんでした。 [<REPO>\ProjectName\project\project.vcxproj]
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winnt.h(1075,1): message : 可能な場合は、こちらで再現を提供してください: https://developercommunity.visualstudio.com [<REPO>\ProjectName\project\project.vcxproj]
+  (ソース ファイル '../code/Object/Goal/Goal.ixx' をコンパイルしています)
+
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winnt.h(1091,1): message : 申し訳ございません: 認識できない 'C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winnt.h(1096,5)' の式またはステートメントのため、'ULONGLONG Int64ShrlMod32(ULONGLONG,DWORD)' の 'inline' 関数定義をモジュールに書き込めませんでした。 [<REPO>\ProjectName\project\project.vcxproj]
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winnt.h(1091,1): message : 可能な場合は、こちらで再現を提供してください: https://developercommunity.visualstudio.com [<REPO>\ProjectName\project\project.vcxproj]
+  (ソース ファイル '../code/Object/Goal/Goal.ixx' をコンパイルしています)
+
+<REPO>\ProjectName\code\Component\AudioSource\AudioSource.cpp(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Object\ObjectManager\ObjectManager.cpp(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Component\Animator\Animator.cpp(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Object\Character\Enemy\Enemy.cpp(56,98): warning C4244: '引数': 'float' から 'int' への変換です。データが失われる可能性があります。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\include\nlohmann\json.hpp(3795,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  (ソース ファイル '../code/Object/Map/Map.cpp' をコンパイルしています)
+
+<REPO>\ProjectName\include\nlohmann\json.hpp(3795,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  (ソース ファイル '../code/Object/Character/Player/Player.cpp' をコンパイルしています)
+
+<REPO>\ProjectName\code\Object\Map\Map.cpp(153,45): warning C4244: '引数': 'uint64_t' から 'const unsigned int' への変換です。データが失われる可能性があります。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Object\Character\Player\Player.cpp(36,121): warning C4244: '引数': 'T' から 'const int' への変換です。データが失われる可能性があります。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Object\Character\Player\Player.cpp(36,121): warning C4244:         with [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Object\Character\Player\Player.cpp(36,121): warning C4244:         [ [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Object\Character\Player\Player.cpp(36,121): warning C4244:             T=float [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Object\Character\Player\Player.cpp(36,121): warning C4244:         ] [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Object\Character\Player\Player.cpp(36,107): warning C4244: '引数': 'T' から 'const int' への変換です。データが失われる可能性があります。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Object\Character\Player\Player.cpp(36,107): warning C4244:         with [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Object\Character\Player\Player.cpp(36,107): warning C4244:         [ [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Object\Character\Player\Player.cpp(36,107): warning C4244:             T=float [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Object\Character\Player\Player.cpp(36,107): warning C4244:         ] [<REPO>\ProjectName\project\project.vcxproj]
+  Title.ixx
+  Result.ixx
+  Play.ixx
+  LoadingScene.ixx
+  SceneManager.ixx
+  Result.cpp
+  Play.cpp
+  LoadingScene.cpp
+  Title.cpp
+  Execution.cpp
+  SceneManager.cpp
+<REPO>\ProjectName\code\GameSystem\Execution\Execution.cpp(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(97,64): warning C4244: '引数': 'const T' から 'int' への変換です。データが失われる可能性があります。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(97,64): warning C4244:         with [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(97,64): warning C4244:         [ [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(97,64): warning C4244:             T=float [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(97,64): warning C4244:         ] [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(97,43): warning C4244: '引数': 'const T' から 'int' への変換です。データが失われる可能性があります。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(97,43): warning C4244:         with [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(97,43): warning C4244:         [ [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(97,43): warning C4244:             T=float [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(97,43): warning C4244:         ] [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,138): warning C4244: '引数': 'T' から 'int' への変換です。データが失われる可能性があります。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,138): warning C4244:         with [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,138): warning C4244:         [ [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,138): warning C4244:             T=float [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,138): warning C4244:         ] [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,84): warning C4244: '引数': 'T' から 'int' への変換です。データが失われる可能性があります。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,84): warning C4244:         with [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,84): warning C4244:         [ [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,84): warning C4244:             T=float [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,84): warning C4244:         ] [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,58): warning C4244: '引数': 'T' から 'int' への変換です。データが失われる可能性があります。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,58): warning C4244:         with [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,58): warning C4244:         [ [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,58): warning C4244:             T=float [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,58): warning C4244:         ] [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,34): warning C4244: '引数': 'const T' から 'int' への変換です。データが失われる可能性があります。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,34): warning C4244:         with [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,34): warning C4244:         [ [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,34): warning C4244:             T=float [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,34): warning C4244:         ] [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Play\Play.cpp(112,23): warning C4018: '>': signed/unsigned の不一致 [<REPO>\ProjectName\project\project.vcxproj]
+LINK : fatal error LNK1104: ファイル 'box2d.lib' を開くことができません。 [<REPO>\ProjectName\project\project.vcxproj]
