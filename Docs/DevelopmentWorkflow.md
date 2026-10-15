@@ -48,3 +48,12 @@ Phase 0〜4はGameDesign §7に一致させる。Readyから優先度、依存�
 - 着手、障害発生、PR作成、検証結果変更、承認回答、マージ、Phase完了を更新契機とする。PR作成だけでDoneにしない。
 - 自動ワークフローは補助。Issue close/PR merge後も完了条件を照合し、重複・中止は成果として数えない。
 - Phase完了報告には達成条件、対象Issue/PR、検証結果、未確定事項、残不具合、次にReadyとなるタスクを含める。
+
+## Project設定（2026-10-15確認）
+
+- Status: Backlog / Ready / In Progress / In Review / Blocked / Done。
+- Phase: Phase 0〜4、Priority: P0/P1/P2。各Issueにも分類を記載する。
+- タスク一覧とステータス別ボードを使用する。
+- 対象リポジトリのopenなIssues/PRを自動追加し、追加時はBacklog。
+- PRがIssueにリンクされた場合のIn Progressと、PRマージ後のDoneは補助的な自動更新。In Reviewへの移動とIssueの完了条件確認は管理担当が行う。
+- Auto-close issue、Item closed→Doneは無効。中止・重複・未マージCloseを開発完了と誤認しない。
