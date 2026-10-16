@@ -1,0 +1,4 @@
+Configuration: Debug x64; sandbox; exit code 1
+c:\program files\microsoft visual studio\18\community\vc\tools\msvc\14.44.35207\include\string(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [<REPO>\ProjectName\project\project.vcxproj]
+Configuration: Debug x86; sandbox; exit code 1
+c:\program files\microsoft visual studio\18\community\vc\tools\msvc\14.51.36231\include\typeindex(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [<REPO>\ProjectName\project\project.vcxproj]

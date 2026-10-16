@@ -1,0 +1,16 @@
+Debug x64 / baseline cbdc755a6f8e21033cdd2641939efb4d2ff3512b / 2026-10-15 JST
+Observation after 8 seconds: HasExited=False; WindowTitle=2DGame; Responding=True
+UI and exit code not verified. Following excerpt is from DxLib Log.txt; hardware inventory omitted.
+13:		ＤＸライブラリ Ver3.24f
+14:		ＯＳ  Windows11 ( Build 26200  )
+823:	標準描画用の頂点バッファの作成.... 成功
+824:	シェーダーコード関係の初期化.... 成功
+1180:ＤＸライブラリの初期化処理終了
+8927:Direct3D11 のオブジェクト数を出力
+8927:Direct3D11 のオブジェクト合計数 : 0
+8928:DirectInput 関連の終了処理... 完了
+8929:サウンド関連の終了処理... 完了
+8937:ウィンドウ関連の終了処理... 完了
+9016:ウインドウが破棄されようとしています
+9018:ソフトを終了する準備が整いました
+9157:	Total size:0(0.000kb)  Alloc num:0
