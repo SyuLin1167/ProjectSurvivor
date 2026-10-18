@@ -4,6 +4,7 @@ module;
 #include <fstream>
 #include <functional>
 #include <algorithm>
+#include "../../Phase1Config.h"
 
 module Object.Map;
 
@@ -21,8 +22,15 @@ using namespace math;
 
 namespace object
 {
-    Map::Map()
+    Map::Map(bool prototype) : m_prototype(prototype)
     {
+        if (m_prototype)
+        {
+            // An empty fixed stage needs neither tile assets nor a TileCollider.
+            m_mapInfo.mapSize = { 128, 32 };
+            m_mapInfo.tileSize = { phase1::GridSize, phase1::GridSize };
+            return;
+        }
         // マップ構成読み込み
         auto path = AppCtx::FileSystem().Resolve("data://MapTip.csv");
         auto mapDataArray = AppCtx::FileSystem().csvIO.CreateArray<size_t>(path);
@@ -81,6 +89,7 @@ namespace object
 
     Map::~Map()
     {
+        if (m_prototype) return;
         // タイルコライダーを破棄
         if (auto* mgr = ColMgrPtr())
         {
@@ -100,12 +109,15 @@ namespace object
         };
         gameSystem::Camera::Instance().SetWorldSize(worldSize);
 
+        if (m_prototype) return;
+
         // 衝突マスク追加
         ColMgr().AddMask(colID, col2d::RECT, PLAYER);
     }
 
     void Map::OnAttach()
     {
+        if (m_prototype) return;
         // 当たり判定生成(Loading中のコンストラクターから呼ばれる)
         col2d::ColliderDef def{};
         def.isActive = true;
@@ -114,6 +126,34 @@ namespace object
 
     void Map::Draw()
     {
+        if (m_prototype)
+        {
+            auto& camera = Camera::Instance();
+            const auto offset = camera.GetOffset();
+            const auto screen = Window::GetWindowData()->SIZE;
+            const int spacing = phase1::GridSize;
+            const int startX = (std::max)(0, static_cast<int>(offset.x) / spacing * spacing);
+            const int startY = (std::max)(0, static_cast<int>(offset.y) / spacing * spacing);
+            const int endX = static_cast<int>((std::min)(phase1::WorldWidth, offset.x + screen.x));
+            const int endY = static_cast<int>((std::min)(phase1::WorldHeight, offset.y + screen.y));
+            for (int x = startX; x <= endX; x += spacing)
+            {
+                const auto p = camera.WorldToScreen(static_cast<float>(x), 0);
+                DrawLine(static_cast<int>(p.x), 0, static_cast<int>(p.x),
+                    static_cast<int>(screen.y), GetColor(45, 55, 65));
+            }
+            for (int y = startY; y <= endY; y += spacing)
+            {
+                const auto p = camera.WorldToScreen(0, static_cast<float>(y));
+                DrawLine(0, static_cast<int>(p.y), static_cast<int>(screen.x),
+                    static_cast<int>(p.y), GetColor(45, 55, 65));
+            }
+            const auto origin = camera.WorldToScreen(0, 0);
+            const auto end = camera.WorldToScreen(phase1::WorldWidth - 1, phase1::WorldHeight - 1);
+            DrawBox(static_cast<int>(origin.x), static_cast<int>(origin.y),
+                static_cast<int>(end.x), static_cast<int>(end.y), GetColor(220, 220, 220), false);
+            return;
+        }
         // マップ未生成なら描画しない
         if (m_mapData.empty())
         {

@@ -17,6 +17,12 @@ export constexpr struct KeyType
     const int SPACE = KEY_INPUT_SPACE;      //SPACEキー
     const int LEFT = KEY_INPUT_LEFT;        //左キー
     const int RIGHT = KEY_INPUT_RIGHT;      //右キー
+    const int UP = KEY_INPUT_UP;
+    const int DOWN = KEY_INPUT_DOWN;
+    const int W = KEY_INPUT_W;
+    const int A = KEY_INPUT_A;
+    const int S = KEY_INPUT_S;
+    const int D = KEY_INPUT_D;
 }keyType;
 
 
@@ -31,4 +37,6 @@ export const std::vector<int> KEYS =
     keyType.SPACE,
     keyType.LEFT,
     keyType.RIGHT,
+    keyType.UP, keyType.DOWN,
+    keyType.W, keyType.A, keyType.S, keyType.D,
 };

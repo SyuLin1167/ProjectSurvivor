@@ -28,6 +28,13 @@ namespace gameSystem
         // ウィンドウサイズ取得
         auto winSize = Window::GetWindowData()->SIZE;
 
+        if (m_centered)
+        {
+            m_pos = *m_target - winSize / 2;
+            ClampPosition();
+            return;
+        }
+
         // スクロールするターゲットの座標
         Vector2f target = *m_target - winSize / 3;
 

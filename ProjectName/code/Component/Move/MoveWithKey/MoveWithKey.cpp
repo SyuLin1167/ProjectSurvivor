@@ -1,3 +1,6 @@
+module;
+#include "MovementMath.h"
+
 module Component.MoveWithKey;
 
 import MyLib.KeyStatus;
@@ -38,33 +41,19 @@ namespace component
 
     void MoveWithKey::Update(const float& deltaTime)
     {
-        Vector2f direction{};
-
-        //移動処理
+        const auto held = [](int primary, int alternative)
+        {
+            return KeyStatus::CheckKey(primary, ON_PRESS | PRESSING) ||
+                (alternative >= 0 && KeyStatus::CheckKey(alternative, ON_PRESS | PRESSING));
+        };
+        const auto direction = movement::ResolveDirection(
+            m_canMoveX && held(m_leftKey, m_altLeft),
+            m_canMoveX && held(m_rightKey, m_altRight),
+            m_canMoveY && held(m_upKey, m_altUp),
+            m_canMoveY && held(m_downKey, m_altDown), m_normalizeDiagonal);
         if (m_canMoveX)
-        {
-            if (KeyStatus::CheckKey(m_leftKey, ON_PRESS | PRESSING))
-            {
-                direction -= 1.0f;
-            }
-            if (KeyStatus::CheckKey(m_rightKey, ON_PRESS | PRESSING))
-            {
-                direction += 1.0f;
-            }
             m_owner->AccessVel().Assign(PropVector2<float>::X, direction.x * m_moveSpeed.x * deltaTime);
-        }
         if (m_canMoveY)
-        {
-            if (KeyStatus::CheckKey(m_upKey, ON_PRESS | PRESSING))
-            {
-                direction.y -= 1.0f;
-            }
-
-            if (KeyStatus::CheckKey(m_downKey, ON_PRESS | PRESSING))
-            {
-                direction.y += 1.0f;
-            }
-            m_owner->AccessVel().Assign(PropVector2<float>::Y, direction.y * m_moveSpeed.x * deltaTime);
-        }
+            m_owner->AccessVel().Assign(PropVector2<float>::Y, direction.y * m_moveSpeed.y * deltaTime);
     }
 }

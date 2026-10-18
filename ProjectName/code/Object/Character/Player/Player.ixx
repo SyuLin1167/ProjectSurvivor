@@ -19,7 +19,7 @@ export namespace object
         /// <summary>
         /// コンストラクタ
         /// </summary>
-        Player();
+        explicit Player(bool prototype = false);
 
         /// <summary>
         /// デストラクタ
@@ -66,5 +66,8 @@ export namespace object
 
         PlayerData pData; // プレイヤー情報
         col2d::ColliderID id;   // コライダーの識別子
+    private:
+        bool m_prototype;
+        math::Vector2f m_cameraCenter{};
     };
 }

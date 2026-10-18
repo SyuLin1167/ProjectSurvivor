@@ -2,6 +2,8 @@ module;
 #include <fstream>
 #include <DxLib.h>
 #include <json.hpp>
+#include "../../../Phase1Config.h"
+#include "../../../Component/Move/MoveWithKey/MovementMath.h"
 
 module Object.Player;
 
@@ -25,9 +27,18 @@ using namespace col2d;
 
 namespace object
 {
-    Player::Player()
+    Player::Player(bool prototype)
         :id()
+        , m_prototype(prototype)
     {
+        if (m_prototype)
+        {
+            pData.size = { phase1::PlayerSize, phase1::PlayerSize };
+            pData.pos = { phase1::PlayerCenterX - phase1::PlayerSize / 2,
+                          phase1::PlayerCenterY - phase1::PlayerSize / 2 };
+            pData.moveSpeed = { phase1::PlayerSpeed, phase1::PlayerSpeed };
+            return;
+        }
         // プレイヤー初期データ読み込み
         json data = AppCtx::FileSystem().jsonIO.Load(AppCtx::FileSystem().GetDataDir() / "PlayerData");
         pData.Input(data);
@@ -49,12 +60,15 @@ namespace object
     {
         // カメラ追従を解除(自分が登録した場合のみ)
         gameSystem::Camera::Instance().ClearTarget(&m_pos);
+        gameSystem::Camera::Instance().ClearTarget(&m_cameraCenter);
 
         // コライダーを破棄(イベントも同時に削除される)
         if (auto* mgr = ColMgrPtr())
         {
             mgr->Destroy(id);
         }
+
+        if (m_prototype) return;
 
         // プレイヤー画像削除
         AppCtx::AssetMgr().Fetch<asset::Animation>()->DeleteHandle("Player");
@@ -78,6 +92,22 @@ namespace object
         // 移動機能追加
         auto move = m_compMgr->AddComponent<component::MoveWithKey>(this);
         move->SetHorizontal(keyType.LEFT, keyType.RIGHT, pData.moveSpeed.x);
+
+        if (m_prototype)
+        {
+            move->SetVertical(keyType.UP, keyType.DOWN, pData.moveSpeed.y);
+            move->SetAlternativeKeys(keyType.A, keyType.D, keyType.W, keyType.S);
+            move->SetNormalizeDiagonal(true);
+            m_cameraCenter = m_pos + pData.size.Half();
+            Camera::Instance().SetTarget(&m_cameraCenter, true);
+            Camera::Instance().Update();
+            ColliderDef def{};
+            def.localPos = m_pos;
+            def.isActive = true;
+            id = ColMgr().CreateRectCollider(&def, pData.size, MyObjectTag());
+            // No tile/player masks: the empty prototype stage uses explicit world bounds.
+            return;
+        }
 
         // ジャンプ機能追加
         auto jump = m_compMgr->AddComponent<component::Jump>(
@@ -127,6 +157,16 @@ namespace object
 
     void Player::Update()
     {
+        if (m_prototype)
+        {
+            // Clamp the proposed displacement, then let ColliderManager::Step apply it once.
+            m_velocity.x = movement::BoundedDisplacement(m_pos.x, m_velocity.x,
+                pData.size.x, phase1::WorldWidth);
+            m_velocity.y = movement::BoundedDisplacement(m_pos.y, m_velocity.y,
+                pData.size.y, phase1::WorldHeight);
+            ColMgr().GetCollider(id)->SetVelocity(m_velocity);
+            return;
+        }
         // 速度反映
         ColMgr().GetCollider(id)->SetVelocity(m_velocity);
 
@@ -149,10 +189,20 @@ namespace object
 
         // 速度更新
         m_velocity = ColMgr().GetCollider(id)->GetVelocity();
+        if (m_prototype) m_cameraCenter = m_pos + pData.size.Half();
     }
 
     void Player::Draw()
     {
-        // 処理なし
+        if (!m_prototype) return;
+        const auto p = Camera::Instance().WorldToScreen(m_pos);
+        DrawBox(static_cast<int>(p.x), static_cast<int>(p.y),
+            static_cast<int>(p.x + pData.size.x), static_cast<int>(p.y + pData.size.y),
+            GetColor(40, 140, 255), true);
+        DrawString(static_cast<int>(p.x + 10), static_cast<int>(p.y + 6),
+            "P", GetColor(255, 255, 255));
+        DrawFormatString(16, 40, GetColor(255, 255, 255),
+            "P center: (%.2f, %.2f) u   speed: %.0f u/s",
+            m_cameraCenter.x, m_cameraCenter.y, pData.moveSpeed.x);
     }
 }

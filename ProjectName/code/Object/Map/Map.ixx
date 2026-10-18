@@ -25,7 +25,7 @@ export namespace object
         /// <summary>
         /// コンストラクタ
         /// </summary>
-        Map();
+        explicit Map(bool prototype = false);
 
         /// <summary>
         /// デストラクタ
@@ -65,6 +65,7 @@ export namespace object
         }
 
     private:
+        bool m_prototype;
         MapInfo m_mapInfo;                  // マップ情報
         std::unordered_map<size_t, std::vector<size_t>> m_mapData;   //マップデータ
 

@@ -22,9 +22,16 @@ using namespace gameSystem;
 
 namespace scene
 {
-    Play::Play()
+    Play::Play(bool prototype)
         : m_cleared(false)
+        , m_prototype(prototype)
     {
+        if (m_prototype)
+        {
+            m_objManager->AddObject(new object::Player(true));
+            m_objManager->AddObject(new object::Map(true));
+            return;
+        }
         //オブジェクト追加
         m_objManager->AddObject(new object::Player);
         m_objManager->AddObject(new object::Enemy);
@@ -37,6 +44,7 @@ namespace scene
 
     Play::~Play()
     {
+        if (m_prototype) return;
         // 背景画像ハンドル削除
         gameSystem::AppCtx::AssetMgr().DeleteHandle<asset::Graph>("background");
     }
@@ -51,6 +59,9 @@ namespace scene
         // オブジェクト更新
         m_objManager->Update();
 
+        if (m_prototype && input::KeyStatus::CheckKey(keyType.R, ON_PRESS))
+            return CmdReplace{ []() { return std::make_shared<Title>(); } };
+
         // クリア後の画面へ移動
         if (m_cleared)
         {
@@ -63,8 +74,11 @@ namespace scene
 
     void Play::Draw()
     {
-        DrawScrollingBackground();
+        if (!m_prototype) DrawScrollingBackground();
         m_objManager->Draw();
+        if (m_prototype)
+            DrawString(16, 16, "Phase 1 / WASD or arrows: move / R: return to title",
+                GetColor(255, 255, 255));
     }
 
     void Play::DrawScrollingBackground(float parallax)
