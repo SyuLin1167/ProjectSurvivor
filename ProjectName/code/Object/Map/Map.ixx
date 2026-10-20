@@ -1,5 +1,7 @@
 ﻿export module Object.Map;
 
+import Phase1.Config;
+
 import Object.GameObject;
 import Object.MapInfo;
 import Asset.AssetManager;
@@ -65,7 +67,8 @@ export namespace object
         }
 
     private:
-        bool m_prototype;
+        bool m_prototype; // Phase 1試作経路の選択
+        phase1::Config m_phase1Config{}; // JSONから読み込んだ試作設定
         MapInfo m_mapInfo;                  // マップ情報
         std::unordered_map<size_t, std::vector<size_t>> m_mapData;   //マップデータ
 

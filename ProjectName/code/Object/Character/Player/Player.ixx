@@ -1,4 +1,6 @@
-export module Object.Player;
+﻿export module Object.Player;
+
+import Phase1.Config;
 
 import <future>;
 
@@ -67,7 +69,8 @@ export namespace object
         PlayerData pData; // プレイヤー情報
         col2d::ColliderID id;   // コライダーの識別子
     private:
-        bool m_prototype;
+        bool m_prototype; // Phase 1試作経路の選択
+        phase1::Config m_phase1Config{}; // JSONから読み込んだ試作設定
         math::Vector2f m_cameraCenter{};
     };
 }

@@ -2,7 +2,7 @@
 
 実装基準: main 689dfc6865d4837b413f1d374a18292e9cfd2721。ブランチ: issue/4-player-stage。
 検証日: 2026-10-19 JST。対象の成果コミットはPRに記録する。
-状態: **実装・ビルド・計算テスト済み、目視/操作結果待ち。Issueは未完了、PRはDraft。**
+状態: **実装・ビルド・計算テスト済み、目視/操作結果待ち。Issueは未完了、PRはレビュー中（未マージ）。**
 
 ## 承認範囲と今回の変更
 
@@ -39,12 +39,10 @@ json.hpp SHA-256: 16a9185f661eadb85cde13b5b995e9c54f92c71044a743dc6d0e1b4346666a
 計算テストの再現（リポジトリルート、x64 Native Tools Command Prompt / v143）:
 
 ```bat
-mkdir .verification
-cl /nologo /EHsc /std:c++20 /utf-8 Tests\MovementTests.cpp /Fo.verification\MovementTests.obj /Fe.verification\MovementTests.exe
-.verification\MovementTests.exe
+Tests\RunMovementTests.cmd
 ```
 
-[MovementTests.cpp](../Tests/MovementTests.cpp)はゲームが使用するMovementMath.hを直接テストする。OSのキー取得、Collider Stepそのもの、描画はこのテストの対象外。
+[MovementTests.cpp](../Tests/MovementTests.cpp)はゲームが使用するMovementMath.ixxとPhase1Config.ixxをコンパイルして直接テストする。OSのキー取得、Collider Stepそのもの、描画はこのテストの対象外。
 
 ## ユーザー確認手順
 
@@ -64,4 +62,17 @@ PRのブランチを新しい作業コピーで取得し、[BuildBaseline](Build
 | U9 | R→Title→Exit | ウィンドウが閉じ、例外表示なし。取得可能なら終了コードも報告（AIの終了要求時は1、未解消） |
 
 回答時は対象コミット、U1～U9の成功/失敗/未実施、失敗した操作と表示座標、画像、終了コードを記録してください。未実施を成功扱いにせず、結果反映後にIssue #4の完了条件を再判定する。
-目視・操作結果待ちの間はIssue #4をBlocked、PRをDraftとし、#5以降は先行Issue完了待ちのBacklog。ユーザー承認なしにマージしない。
+目視・操作結果待ちの間はIssue #4をBlocked、PRは未マージで維持し、#5以降は先行Issue完了待ちのBacklog。ユーザー承認なしにマージしない。
+
+## PR #27 レビュー対応（2026-10-19～20）
+
+- MovementMathを.ixxへ移し、利用側をimportへ変更。独自Directionと斜め定数を廃止し、基盤のmath::Vector2f / Normを再利用した。
+- Phase1Config.hの定数は`ProjectName/resources/data/Phase1Config.json`へ移した。Player/Mapは既存FileSystem/JsonIOで読み、Phase1Config.ixxで型・欠損・非有限値・寸法・初期配置を検証する。不正設定は例外とし、無断の既定値補完は行わない。
+- 承認初期値はすべて維持。速度調整は行っていない。JSONを変更可能にしたことは、委任範囲外の仕様変更の承認を意味しない。
+- 設定はPlay生成時に読む。起動時に基盤が元resourcesをexe横へコピーするため、編集対象は元のJSONとし、変更後はアプリを再起動する。exe横だけの編集は上書きされる。
+- Mapのワールド寸法はJSONから直接Cameraへ渡し、表示グリッド数への丸めによる境界との不一致を避けた。
+- 入力・境界・中心変換・カメラ更新・グリッド描画・テストへ説明コメントを追加。AGENTS.mdとDevelopmentWorkflow.mdにモジュール優先/要所の説明コメント方針を追記。
+- `alternative >= 0`は維持。int型のキー番号の有効域を直接表す判定であり、負数は未設定。std::signbitに変えてもこの整数に対する挙動上の利点はないため、レビュー返信で理由を提示する。
+
+今回の再検証結果はPRへ記録する。以前の起動観測はレビュー前の実装に対する結果であり、今回のJSON読込を含むStart後の実操作は引き続き未検証。U1～U9、終了コード1の切分け、旧サンプル経路の操作回帰は未完了。
+再検証: 2026-10-20 JST、x64 Debug / v143ビルド成功（終了0、C4819/C4244等の警告あり）。[レビュービルドログ](Verification/Issue4/review-build-debug-x64.txt)。制限内C1902は制限外で再実行。追加コメントの誤読による構文エラーは変更ソースのUTF-8 BOMで解消した。移動・JSON設定テストは成功（2026-10-19、終了0、[ログ](Verification/Issue4/review-tests.txt)）。新規モジュールも本体とテストの両方でコンパイル済み。今回の起動・実操作確認は未実施。

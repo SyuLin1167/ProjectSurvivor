@@ -1,0 +1,78 @@
+
+  モジュール依存関係のソースをスキャンしています...
+  Phase1Config.ixx
+  MovementMath.ixx
+  Player.cpp
+  MoveWithKey.cpp
+  Player.ixx
+  KeyTag.ixx
+  Map.cpp
+  Map.ixx
+  コンパイルしています...
+  Phase1Config.ixx
+  MovementMath.ixx
+  KeyTag.ixx
+<REPO>\ProjectName\include\nlohmann\json.hpp(3795,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  (ソース ファイル '../code/Phase1Config.ixx' をコンパイルしています)
+
+  KeyStatus.ixx
+  Player.ixx
+  Map.ixx
+  Title.cpp
+  KeyStatus.cpp
+  SceneManager.cpp
+  Player.cpp
+  MoveWithKey.cpp
+  Execution.cpp
+  Result.cpp
+  Map.cpp
+<REPO>\ProjectName\code\GameSystem\Execution\Execution.cpp(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  Play.cpp
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(97,64): warning C4244: '引数': 'const T' から 'int' への変換です。データが失われる可能性があります。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(97,64): warning C4244:         with [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(97,64): warning C4244:         [ [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(97,64): warning C4244:             T=float [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(97,64): warning C4244:         ] [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(97,43): warning C4244: '引数': 'const T' から 'int' への変換です。データが失われる可能性があります。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(97,43): warning C4244:         with [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(97,43): warning C4244:         [ [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(97,43): warning C4244:             T=float [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(97,43): warning C4244:         ] [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,138): warning C4244: '引数': 'T' から 'int' への変換です。データが失われる可能性があります。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,138): warning C4244:         with [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,138): warning C4244:         [ [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,138): warning C4244:             T=float [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,138): warning C4244:         ] [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,84): warning C4244: '引数': 'T' から 'int' への変換です。データが失われる可能性があります。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,84): warning C4244:         with [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,84): warning C4244:         [ [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,84): warning C4244:             T=float [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,84): warning C4244:         ] [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,58): warning C4244: '引数': 'T' から 'int' への変換です。データが失われる可能性があります。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,58): warning C4244:         with [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,58): warning C4244:         [ [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,58): warning C4244:             T=float [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,58): warning C4244:         ] [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,34): warning C4244: '引数': 'const T' から 'int' への変換です。データが失われる可能性があります。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,34): warning C4244:         with [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,34): warning C4244:         [ [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,34): warning C4244:             T=float [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,34): warning C4244:         ] [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Play\Play.cpp(126,23): warning C4018: '>': signed と unsigned の数値を比較しようとしました。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\include\nlohmann\json.hpp(3795,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  (ソース ファイル '../code/Object/Map/Map.cpp' をコンパイルしています)
+
+<REPO>\ProjectName\include\nlohmann\json.hpp(3795,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  (ソース ファイル '../code/Object/Character/Player/Player.cpp' をコンパイルしています)
+
+<REPO>\ProjectName\code\Object\Character\Player\Player.cpp(52,121): warning C4244: '引数': 'T' から 'const int' への変換です。データが失われる可能性があります。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Object\Character\Player\Player.cpp(52,121): warning C4244:         with [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Object\Character\Player\Player.cpp(52,121): warning C4244:         [ [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Object\Character\Player\Player.cpp(52,121): warning C4244:             T=float [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Object\Character\Player\Player.cpp(52,121): warning C4244:         ] [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Object\Character\Player\Player.cpp(52,107): warning C4244: '引数': 'T' から 'const int' への変換です。データが失われる可能性があります。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Object\Character\Player\Player.cpp(52,107): warning C4244:         with [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Object\Character\Player\Player.cpp(52,107): warning C4244:         [ [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Object\Character\Player\Player.cpp(52,107): warning C4244:             T=float [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Object\Character\Player\Player.cpp(52,107): warning C4244:         ] [<REPO>\ProjectName\project\project.vcxproj]
+  project.vcxproj -> <REPO>\ProjectName\x64\Debug\project.exe

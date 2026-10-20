@@ -1,11 +1,12 @@
-module;
+﻿module;
 #include <fstream>
 #include <DxLib.h>
 #include <json.hpp>
-#include "../../../Phase1Config.h"
-#include "../../../Component/Move/MoveWithKey/MovementMath.h"
 
 module Object.Player;
+
+import Phase1.Config;
+import Component.MovementMath;
 
 import MyLib.File.FileSystem;
 import MyLib.KeyStatus;
@@ -33,10 +34,14 @@ namespace object
     {
         if (m_prototype)
         {
-            pData.size = { phase1::PlayerSize, phase1::PlayerSize };
-            pData.pos = { phase1::PlayerCenterX - phase1::PlayerSize / 2,
-                          phase1::PlayerCenterY - phase1::PlayerSize / 2 };
-            pData.moveSpeed = { phase1::PlayerSpeed, phase1::PlayerSpeed };
+            // 既存JsonIOで試作値を読み込む。欠損・不正な設定は例外として報告する。
+            m_phase1Config = phase1::Config::FromJson(AppCtx::FileSystem().jsonIO.Load(
+                AppCtx::FileSystem().GetDataDir() / "Phase1Config"));
+            // 承認値は中心座標。既存RectColliderに合わせて左上へ変換する。
+            pData.size = { m_phase1Config.PlayerSize, m_phase1Config.PlayerSize };
+            pData.pos = { m_phase1Config.PlayerCenterX - m_phase1Config.PlayerSize / 2,
+                          m_phase1Config.PlayerCenterY - m_phase1Config.PlayerSize / 2 };
+            pData.moveSpeed = { m_phase1Config.PlayerSpeed, m_phase1Config.PlayerSpeed };
             return;
         }
         // プレイヤー初期データ読み込み
@@ -105,7 +110,7 @@ namespace object
             def.localPos = m_pos;
             def.isActive = true;
             id = ColMgr().CreateRectCollider(&def, pData.size, MyObjectTag());
-            // No tile/player masks: the empty prototype stage uses explicit world bounds.
+            // 空き地では衝突マスクを使わず、Updateで矩形全体をマップ境界に制限する。
             return;
         }
 
@@ -159,11 +164,11 @@ namespace object
     {
         if (m_prototype)
         {
-            // Clamp the proposed displacement, then let ColliderManager::Step apply it once.
+            // 移動予定量だけを制限し、座標更新はColliderManager::Stepに一度だけ任せる。
             m_velocity.x = movement::BoundedDisplacement(m_pos.x, m_velocity.x,
-                pData.size.x, phase1::WorldWidth);
+                pData.size.x, m_phase1Config.WorldWidth);
             m_velocity.y = movement::BoundedDisplacement(m_pos.y, m_velocity.y,
-                pData.size.y, phase1::WorldHeight);
+                pData.size.y, m_phase1Config.WorldHeight);
             ColMgr().GetCollider(id)->SetVelocity(m_velocity);
             return;
         }
@@ -189,6 +194,7 @@ namespace object
 
         // 速度更新
         m_velocity = ColMgr().GetCollider(id)->GetVelocity();
+        // 衝突更新後の実座標から追従中心を更新し、描画とカメラのずれを防ぐ。
         if (m_prototype) m_cameraCenter = m_pos + pData.size.Half();
     }
 

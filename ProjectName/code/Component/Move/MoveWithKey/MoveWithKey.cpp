@@ -1,7 +1,6 @@
-module;
-#include "MovementMath.h"
+﻿module Component.MoveWithKey;
 
-module Component.MoveWithKey;
+import Component.MovementMath;
 
 import MyLib.KeyStatus;
 import Object.GameObject;
@@ -41,6 +40,7 @@ namespace component
 
     void MoveWithKey::Update(const float& deltaTime)
     {
+        // 代替キーは負数なら未設定。同方向の二つのキーをORにして重複加速を防ぐ。
         const auto held = [](int primary, int alternative)
         {
             return KeyStatus::CheckKey(primary, ON_PRESS | PRESSING) ||

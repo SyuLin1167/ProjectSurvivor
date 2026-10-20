@@ -1,12 +1,13 @@
-module;
+﻿module;
 #include <DxLib.h>
 #include <json.hpp>
 #include <fstream>
 #include <functional>
 #include <algorithm>
-#include "../../Phase1Config.h"
 
 module Object.Map;
+
+import Phase1.Config;
 
 import <future>;
 
@@ -26,9 +27,10 @@ namespace object
     {
         if (m_prototype)
         {
-            // An empty fixed stage needs neither tile assets nor a TileCollider.
-            m_mapInfo.mapSize = { 128, 32 };
-            m_mapInfo.tileSize = { phase1::GridSize, phase1::GridSize };
+            // 既存JsonIOで試作値を読み込む。欠損・不正な設定は例外として報告する。
+            m_phase1Config = phase1::Config::FromJson(AppCtx::FileSystem().jsonIO.Load(
+                AppCtx::FileSystem().GetDataDir() / "Phase1Config"));
+            // 空き地にはタイル画像・TileColliderが不要。ワールド寸法はInitで直接設定する。
             return;
         }
         // マップ構成読み込み
@@ -101,6 +103,12 @@ namespace object
 
     void Map::Init()
     {
+        // 試作ではJSONのワールド寸法をそのまま使用し、グリッド数への丸めを避ける。
+        if (m_prototype)
+        {
+            Camera::Instance().SetWorldSize({m_phase1Config.WorldWidth, m_phase1Config.WorldHeight});
+            return;
+        }
         // ワールドサイズ設定
         Vector2f worldSize
         {
@@ -108,8 +116,6 @@ namespace object
             m_mapInfo.mapSize.y * m_mapInfo.tileSize.y
         };
         gameSystem::Camera::Instance().SetWorldSize(worldSize);
-
-        if (m_prototype) return;
 
         // 衝突マスク追加
         ColMgr().AddMask(colID, col2d::RECT, PLAYER);
@@ -128,14 +134,15 @@ namespace object
     {
         if (m_prototype)
         {
+            // 画面内のグリッドだけ描画し、大きなワールドでも描画本数を抑える。
             auto& camera = Camera::Instance();
             const auto offset = camera.GetOffset();
             const auto screen = Window::GetWindowData()->SIZE;
-            const int spacing = phase1::GridSize;
+            const int spacing = m_phase1Config.GridSize;
             const int startX = (std::max)(0, static_cast<int>(offset.x) / spacing * spacing);
             const int startY = (std::max)(0, static_cast<int>(offset.y) / spacing * spacing);
-            const int endX = static_cast<int>((std::min)(phase1::WorldWidth, offset.x + screen.x));
-            const int endY = static_cast<int>((std::min)(phase1::WorldHeight, offset.y + screen.y));
+            const int endX = static_cast<int>((std::min)(m_phase1Config.WorldWidth, offset.x + screen.x));
+            const int endY = static_cast<int>((std::min)(m_phase1Config.WorldHeight, offset.y + screen.y));
             for (int x = startX; x <= endX; x += spacing)
             {
                 const auto p = camera.WorldToScreen(static_cast<float>(x), 0);
@@ -149,7 +156,7 @@ namespace object
                     static_cast<int>(p.y), GetColor(45, 55, 65));
             }
             const auto origin = camera.WorldToScreen(0, 0);
-            const auto end = camera.WorldToScreen(phase1::WorldWidth - 1, phase1::WorldHeight - 1);
+            const auto end = camera.WorldToScreen(m_phase1Config.WorldWidth - 1, m_phase1Config.WorldHeight - 1);
             DrawBox(static_cast<int>(origin.x), static_cast<int>(origin.y),
                 static_cast<int>(end.x), static_cast<int>(end.y), GetColor(220, 220, 220), false);
             return;
