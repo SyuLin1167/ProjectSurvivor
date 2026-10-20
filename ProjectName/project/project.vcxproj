@@ -169,6 +169,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\code\Phase1Config.ixx" />
+    <ClCompile Include="..\code\Component\Move\MoveWithKey\MovementMath.ixx" />
     <ClCompile Include="..\code\Asset\Animation\Animation.cpp" />
     <ClCompile Include="..\code\Asset\Animation\Animation.ixx" />
     <ClCompile Include="..\code\Asset\Animation\AnimationDef.ixx" />
@@ -600,6 +602,7 @@
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\resources\data\Phase1Config.json" />
     <None Include="..\resources\data\MapData.json" />
     <None Include="..\resources\data\MapTip.csv" />
     <None Include="..\resources\data\PlayerData.json" />

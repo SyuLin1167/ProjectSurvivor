@@ -1,0 +1,10 @@
+**********************************************************************
+** Visual Studio 2026 Developer Command Prompt v18.10.3
+** Copyright (c) 2026 Microsoft Corporation
+**********************************************************************
+[vcvarsall.bat] Environment initialized for: 'x64'
+Vector2.ixx
+Phase1Config.ixx
+MovementMath.ixx
+MovementTests.cpp
+PASS: JSON config validation, 16 input combinations, 30/60/120fps distances, bounds, slide, stop, legacy

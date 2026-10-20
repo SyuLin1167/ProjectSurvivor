@@ -17,7 +17,7 @@ export namespace scene
         /// <summary>
         /// コンストラクタ
         /// </summary>
-        Play();
+        explicit Play(bool prototype = true);
 
         /// <summary>
         /// デストラクタ
@@ -47,5 +47,6 @@ export namespace scene
         void DrawScrollingBackground(float parallax = 0.5f);
 
         bool m_cleared;     // クリアフラグ
+        bool m_prototype;
     };
 }

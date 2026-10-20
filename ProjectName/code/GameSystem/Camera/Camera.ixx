@@ -28,9 +28,10 @@ export namespace gameSystem
         /// 追尾ターゲット設定
         /// </summary>
         /// <param name="target">追尾対象のゲームオブジェクト</param>
-        void SetTarget(Vector2f* target)
+        void SetTarget(Vector2f* target, bool centered = false)
         {
             m_target = target;
+            m_centered = centered;
         }
 
         /// <summary>
@@ -104,5 +105,6 @@ export namespace gameSystem
         Vector2f m_pos;              // カメラ位置（オフセット）
         Vector2f m_worldSize;        // ワールド全体サイズ
         float m_followStrength;      // 追尾強度
+        bool m_centered = false;     // Prototype: direct center follow, no frame-based smoothing.
     };
 }

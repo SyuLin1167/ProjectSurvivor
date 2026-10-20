@@ -1,0 +1,7 @@
+2026-10-19 JST / x64 Debug / current Issue #4 source
+After 5 seconds: HasExited=False, Responding=True, WindowTitle=2DGame.
+CloseMainWindow requested. ExitedAfterCloseRequest=True, ExitCode=1.
+Only process/window responsiveness was observed; no screenshot or gameplay input.
+Exit code 1 is NOT recorded as successful normal exit.
+Existing Execution::Run returns _CrtDumpMemoryLeaks() before Execution destruction.
+The relationship to this exit code has not been isolated; no exit-path changes made.

@@ -1,0 +1,242 @@
+
+  モジュール依存関係のソースをスキャンしています...
+  コンパイルしています...
+  memory
+  future
+  queue
+  functional
+  typeindex
+  vector
+  string
+  unordered_map
+  filesystem
+  optional
+  chrono
+  thread
+  cstdint
+  algorithm
+  array
+  iostream
+  coroutine
+  charconv
+  json.hpp
+  stack
+  variant
+  ComponentBase.ixx
+<REPO>\ProjectName\code\Component\ComponentBase\ComponentBase.ixx(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  Vector2.ixx
+  Library.ixx
+  MemMapFile.ixx
+  AssetBase.ixx
+  SoundDef.ixx
+<REPO>\ProjectName\code\Asset\Sound\SoundDef.ixx(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  AnimationDef.ixx
+  ColliderFilter.ixx
+<REPO>\ProjectName\code\Asset\Animation\AnimationDef.ixx(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+c:\users\amayu\.codex\.chatgpt-projects\g-p-6ac895843a70819186a6aa9b94b43139\projectsurvivor-issue4\projectname\include\nlohmann\json.hpp(3795,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  ColliderDef.ixx
+  ComponentManager.ixx
+<REPO>\ProjectName\code\Collision\Collider\ColliderDef.ixx(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  Jump.ixx
+<REPO>\ProjectName\code\Component\ComponentManager\ComponentManager.ixx(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Component\Jump\Jump.ixx(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  MoveWithKey.ixx
+<REPO>\ProjectName\code\Component\Move\MoveWithKey\MoveWithKey.ixx(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  Execution.ixx
+  FrameRate.ixx
+  Window.ixx
+  ObjectState.ixx
+  ObjectTag.ixx
+  MapInfo.ixx
+  KeyTag.ixx
+  UIBase.ixx
+  PropVector2.ixx
+  Loading.ixx
+  MouseStatus.ixx
+  Circle.ixx
+  Rect.ixx
+  TileChunkUtil.ixx
+  CircleColliderResolver.ixx
+<REPO>\ProjectName\code\Collision\CircleColldier\CircleColliderResolver.ixx(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  RectColliderResolver.ixx
+  ColliderVisitor.ixx
+<REPO>\ProjectName\code\Collision\Collider\ColliderVisitor.ixx(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Collision\RectCollider\RectColliderResolver.ixx(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\include\nlohmann\json.hpp(3795,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  (ソース ファイル '../code/Object/Map/MapInfo.ixx' をコンパイルしています)
+
+  ComponentManager.cpp
+  FrameRate.cpp
+c:\users\amayu\.codex\.chatgpt-projects\g-p-6ac895843a70819186a6aa9b94b43139\projectsurvivor-issue4\projectname\include\nlohmann\json.hpp(9118,24): warning C5260: 定数の変数 'nlohmann::json_abi_v3_12_0::detail::pow5_128_smallest_power' には包含された ヘッダー ファイル コンテキスト内に内部リンケージがありますが、インポートされたヘッダー ユニット コンテキストでは外部リンケージがあります; 翻訳単位間で共有される場合は 'inline' を宣言することを同様に検討してください。または、この翻訳単位に対してローカルで使用する意図を表す場合は 'static' を宣言することを検討してください [<REPO>\ProjectName\project\project.vcxproj]
+c:\users\amayu\.codex\.chatgpt-projects\g-p-6ac895843a70819186a6aa9b94b43139\projectsurvivor-issue4\projectname\include\nlohmann\json.hpp(9119,24): warning C5260: 定数の変数 'nlohmann::json_abi_v3_12_0::detail::pow5_128_largest_power' には包含された ヘッダー ファイル コンテキスト内に内部リンケージがありますが、インポートされたヘッダー ユニット コンテキストでは外部リンケージがあります; 翻訳単位間で共有される場合は 'inline' を宣言することを同様に検討してください。または、この翻訳単位に対してローカルで使用する意図を表す場合は 'static' を宣言することを検討してください [<REPO>\ProjectName\project\project.vcxproj]
+  AssetManager.ixx
+  DivisionGraph.ixx
+  Graph.ixx
+<REPO>\ProjectName\code\Asset\DivisionGraph\DivisionGraph.ixx(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  main.cpp
+  Window.cpp
+<REPO>\ProjectName\code\Asset\DivisionGraph\DivisionGraph.ixx(97,50): warning C4267: 'return': 'size_t' から 'int' に変換しました。データが失われているかもしれません。 [<REPO>\ProjectName\project\project.vcxproj]
+  CircleColliderVisitor.ixx
+  RectColliderVisitor.ixx
+  Library.cpp
+  Collider.ixx
+<REPO>\ProjectName\code\Collision\Collider\Collider.ixx(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  Button.ixx
+  Sound.ixx
+<REPO>\ProjectName\code\Asset\Sound\Sound.ixx(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  UIManager.ixx
+  Animation.ixx
+<REPO>\ProjectName\code\Asset\Animation\Animation.ixx(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  Coroutine.ixx
+  MemMapFile.cpp
+  MouseStatus.cpp
+  LoadingContext.ixx
+  Collider.cpp
+  CircleCollider.ixx
+  Loading.cpp
+<REPO>\ProjectName\code\Collision\Collider\Collider.cpp(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\include\MyLib\Loading\Loading.cpp(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  RectCollider.ixx
+  Button.cpp
+<REPO>\ProjectName\code\Collision\RectCollider\RectCollider.ixx(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  UIManager.cpp
+  CsvIO.ixx
+  JsonIO.ixx
+  KeyStatus.ixx
+  KeyStatus.cpp
+  CircleColliderVisitor.cpp
+  RectColliderVisitor.cpp
+<REPO>\ProjectName\code\Collision\CircleColldier\CircleColliderVisitor.cpp(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  CircleCollider.cpp
+  RectColliderResolver.cpp
+<REPO>\ProjectName\code\Collision\RectCollider\RectColliderVisitor.cpp(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  RectCollider.cpp
+<REPO>\ProjectName\code\Collision\CircleColldier\CircleCollider.cpp(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  CircleColliderResolver.cpp
+<REPO>\ProjectName\code\Collision\RectCollider\RectColliderResolver.cpp(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Collision\CircleColldier\CircleColliderResolver.cpp(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  TileCollider.ixx
+<REPO>\ProjectName\code\Collision\TileCollider\TileCollider.ixx(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  ColliderManager.ixx
+  TileColliderResolver.ixx
+<REPO>\ProjectName\code\Collision\TileCollider\TileColliderResolver.ixx(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  TileColliderResolver.cpp
+  TileColliderVisitor.ixx
+  ColliderManager.cpp
+<REPO>\ProjectName\code\Collision\TileCollider\TileColliderResolver.cpp(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Collision\TileCollider\TileColliderVisitor.ixx(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  TileColliderVisitor.cpp
+<REPO>\ProjectName\code\Collision\TileCollider\TileColliderVisitor.cpp(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  FileSystem.ixx
+  AppContext.ixx
+  Animation.cpp
+  Graph.cpp
+  PlayerData.ixx
+  Sound.cpp
+  TileCollider.cpp
+  GameObject.ixx
+  DivisionGraph.cpp
+<REPO>\ProjectName\code\Object\GameObject\GameObject.ixx(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Asset\Sound\Sound.cpp(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Asset\Animation\Animation.cpp(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Asset\DivisionGraph\DivisionGraph.cpp(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\include\nlohmann\json.hpp(3795,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  (ソース ファイル '../code/Collision/TileCollider/TileCollider.cpp' をコンパイルしています)
+
+<REPO>\ProjectName\include\nlohmann\json.hpp(3795,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  (ソース ファイル '../code/Object/Character/Player/PlayerData.ixx' をコンパイルしています)
+
+<REPO>\ProjectName\code\Asset\Animation\Animation.cpp(54,81): warning C4244: '=': 'int' から 'float' への変換です。データが失われる可能性があります。 [<REPO>\ProjectName\project\project.vcxproj]
+  Enemy.ixx
+  MoveWithKey.cpp
+  Player.ixx
+  ObjectManager.ixx
+  Camera.ixx
+  Animator.ixx
+<REPO>\ProjectName\code\Component\Move\MoveWithKey\MoveWithKey.cpp(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Object\Character\Player\Player.ixx(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  ComponentBase.cpp
+<REPO>\ProjectName\code\Component\Animator\Animator.ixx(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  Map.ixx
+  Jump.cpp
+  AudioSource.ixx
+  GameObject.cpp
+<REPO>\ProjectName\code\Component\Jump\Jump.cpp(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Component\AudioSource\AudioSource.ixx(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  Goal.ixx
+  Map.cpp
+  SceneBase.ixx
+  AudioSource.cpp
+<REPO>\ProjectName\code\Object\Map\Map.cpp(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Object\Goal\Goal.ixx(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  Camera.cpp
+<REPO>\ProjectName\code\Component\AudioSource\AudioSource.cpp(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  Animator.cpp
+  ObjectManager.cpp
+<REPO>\ProjectName\code\Component\Animator\Animator.cpp(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  Player.cpp
+  Enemy.cpp
+<REPO>\ProjectName\code\Object\ObjectManager\ObjectManager.cpp(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Object\Character\Enemy\Enemy.cpp(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Object\Character\Player\Player.cpp(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Object\Character\Enemy\Enemy.cpp(56,98): warning C4244: '引数': 'float' から 'int' への変換です。データが失われる可能性があります。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\include\nlohmann\json.hpp(3795,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  (ソース ファイル '../code/Object/Map/Map.cpp' をコンパイルしています)
+
+<REPO>\ProjectName\include\nlohmann\json.hpp(3795,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  (ソース ファイル '../code/Object/Character/Player/Player.cpp' をコンパイルしています)
+
+<REPO>\ProjectName\code\Object\Character\Player\Player.cpp(47,121): warning C4244: '引数': 'T' から 'const int' への変換です。データが失われる可能性があります。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Object\Character\Player\Player.cpp(47,121): warning C4244:         with [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Object\Character\Player\Player.cpp(47,121): warning C4244:         [ [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Object\Character\Player\Player.cpp(47,121): warning C4244:             T=float [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Object\Character\Player\Player.cpp(47,121): warning C4244:         ] [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Object\Character\Player\Player.cpp(47,107): warning C4244: '引数': 'T' から 'const int' への変換です。データが失われる可能性があります。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Object\Character\Player\Player.cpp(47,107): warning C4244:         with [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Object\Character\Player\Player.cpp(47,107): warning C4244:         [ [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Object\Character\Player\Player.cpp(47,107): warning C4244:             T=float [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Object\Character\Player\Player.cpp(47,107): warning C4244:         ] [<REPO>\ProjectName\project\project.vcxproj]
+  Play.ixx
+  Title.ixx
+  LoadingScene.ixx
+  Result.ixx
+  SceneManager.ixx
+  Execution.cpp
+  SceneManager.cpp
+  Result.cpp
+  Title.cpp
+<REPO>\ProjectName\code\GameSystem\Execution\Execution.cpp(1,1): warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。 [<REPO>\ProjectName\project\project.vcxproj]
+  Play.cpp
+  LoadingScene.cpp
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(97,64): warning C4244: '引数': 'const T' から 'int' への変換です。データが失われる可能性があります。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(97,64): warning C4244:         with [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(97,64): warning C4244:         [ [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(97,64): warning C4244:             T=float [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(97,64): warning C4244:         ] [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(97,43): warning C4244: '引数': 'const T' から 'int' への変換です。データが失われる可能性があります。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(97,43): warning C4244:         with [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(97,43): warning C4244:         [ [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(97,43): warning C4244:             T=float [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(97,43): warning C4244:         ] [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,138): warning C4244: '引数': 'T' から 'int' への変換です。データが失われる可能性があります。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,138): warning C4244:         with [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,138): warning C4244:         [ [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,138): warning C4244:             T=float [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,138): warning C4244:         ] [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,84): warning C4244: '引数': 'T' から 'int' への変換です。データが失われる可能性があります。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,84): warning C4244:         with [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,84): warning C4244:         [ [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,84): warning C4244:             T=float [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,84): warning C4244:         ] [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,58): warning C4244: '引数': 'T' から 'int' への変換です。データが失われる可能性があります。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,58): warning C4244:         with [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,58): warning C4244:         [ [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,58): warning C4244:             T=float [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,58): warning C4244:         ] [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,34): warning C4244: '引数': 'const T' から 'int' への変換です。データが失われる可能性があります。 [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,34): warning C4244:         with [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,34): warning C4244:         [ [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,34): warning C4244:             T=float [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Title\Title.cpp(98,34): warning C4244:         ] [<REPO>\ProjectName\project\project.vcxproj]
+<REPO>\ProjectName\code\Scene\Play\Play.cpp(126,23): warning C4018: '>': signed と unsigned の数値を比較しようとしました。 [<REPO>\ProjectName\project\project.vcxproj]
+  project.vcxproj -> <REPO>\ProjectName\x64\Debug\project.exe

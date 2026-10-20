@@ -37,6 +37,15 @@ export namespace component
         /// <param name="moveSpeed">移動速度</param>
         void SetVertical(const int upKey, const int downKey, float moveSpeed);
 
+        // Alternative keys are ORed per direction, so duplicate presses do not accelerate.
+        void SetAlternativeKeys(int left, int right, int up, int down)
+        {
+            m_altLeft = left; m_altRight = right;
+            m_altUp = up; m_altDown = down;
+        }
+
+        void SetNormalizeDiagonal(bool enabled) { m_normalizeDiagonal = enabled; }
+
         /// <summary>
         /// 更新
         /// </summary>
@@ -62,6 +71,11 @@ export namespace component
         }
 
     private:
+        int m_altLeft = -1;
+        int m_altRight = -1;
+        int m_altUp = -1;
+        int m_altDown = -1;
+        bool m_normalizeDiagonal = false;
         int m_leftKey;
         int m_rightKey;
         int m_upKey;
