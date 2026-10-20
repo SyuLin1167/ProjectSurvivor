@@ -10,4 +10,10 @@ if errorlevel 1 exit /b 1
 cl /nologo /EHsc /std:c++20 /utf-8 /I ProjectName\include\nlohmann /ifcSearchDir .verification Tests\MovementTests.cpp .verification\Vector2.obj .verification\Phase1Config.obj .verification\MovementMath.obj /Fo.verification\MovementTests.obj /Fe.verification\MovementTests.exe
 if errorlevel 1 exit /b 1
 .verification\MovementTests.exe
+if errorlevel 1 exit /b 1
+cl /nologo /c /EHsc /std:c++20 /utf-8 /ifcSearchDir .verification ProjectName\code\Object\MovingBase\BaseMotion.ixx /ifcOutput .verification\ /Fo.verification\BaseMotion.obj
+if errorlevel 1 exit /b 1
+cl /nologo /EHsc /std:c++20 /utf-8 /I ProjectName\include\nlohmann /ifcSearchDir .verification Tests\BaseMotionTests.cpp .verification\Vector2.obj .verification\Phase1Config.obj .verification\BaseMotion.obj /Fo.verification\BaseMotionTests.obj /Fe.verification\BaseMotionTests.exe
+if errorlevel 1 exit /b 1
+.verification\BaseMotionTests.exe
 exit /b %errorlevel%

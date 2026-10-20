@@ -11,6 +11,7 @@ import Object.ObjectManager;
 import Object.Player;
 import Object.Enemy;
 import Object.Map;
+import Object.MovingBase;
 import Object.Goal;
 import GameSystem.Camera;
 import Asset.Graph;
@@ -30,6 +31,7 @@ namespace scene
         {
             m_objManager->AddObject(new object::Player(true));
             m_objManager->AddObject(new object::Map(true));
+            m_objManager->AddObject(new object::MovingBase(m_trialFinished));
             return;
         }
         //オブジェクト追加
@@ -58,6 +60,10 @@ namespace scene
     {
         // オブジェクト更新
         m_objManager->Update();
+
+        // LateUpdate後に試行終端を判定。既存SceneCmdでTitleへ戻して次の試行で初期化する。
+        if (m_prototype && m_trialFinished)
+            return CmdReplace{ []() { return std::make_shared<Title>(); } };
 
         if (m_prototype && input::KeyStatus::CheckKey(keyType.R, ON_PRESS))
             return CmdReplace{ []() { return std::make_shared<Title>(); } };

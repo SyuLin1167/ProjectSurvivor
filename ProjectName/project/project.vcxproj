@@ -170,6 +170,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\code\Phase1Config.ixx" />
+    <ClCompile Include="..\code\Object\MovingBase\BaseMotion.ixx" />
+    <ClCompile Include="..\code\Object\MovingBase\MovingBase.ixx" />
+    <ClCompile Include="..\code\Object\MovingBase\MovingBase.cpp" />
     <ClCompile Include="..\code\Component\Move\MoveWithKey\MovementMath.ixx" />
     <ClCompile Include="..\code\Asset\Animation\Animation.cpp" />
     <ClCompile Include="..\code\Asset\Animation\Animation.ixx" />
