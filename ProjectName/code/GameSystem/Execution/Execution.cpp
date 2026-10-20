@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include <Dxlib.h>
 #include <filesystem>
 
@@ -46,7 +46,8 @@ namespace gameSystem
         //ゲームループ
         m_scene->GameLoop();
 
-        //ソフトの正常終了
-        return _CrtDumpMemoryLeaks();
+        // ここではシーンとDxLibが生存中。メモリー診断はmainで設定したCRT終了時検査に任せる。
+        // 初期化失敗(-1)と区別し、ゲームループ終了を返す。
+        return 0;
     }
 }

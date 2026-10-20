@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="project.vcxproj" />
+  <PropertyGroup>
+    <ProjectGuid>{179D6914-F8D1-49B1-AC06-3B1FF7DC2828}</ProjectGuid>
+    <IntDir>$(ProjectDir)..\..\.verification\exit-obj\</IntDir>
+    <OutDir>$(ProjectDir)..\x64\Debug\</OutDir>
+    <TargetName>ExitDiagnostics</TargetName>
+    <TargetPath>$(OutDir)$(TargetName).exe</TargetPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <ClCompile Remove="..\code\main.cpp" />
+    <ClCompile Include="..\..\Tests\ExitDiagnostics.cpp" />
+  </ItemGroup>
+  <ItemDefinitionGroup>
+    <Link><SubSystem>Console</SubSystem></Link>
+  </ItemDefinitionGroup>
+</Project>
