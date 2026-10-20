@@ -5,5 +5,11 @@
   "playerSpeed": 240,
   "playerCenterX": 512,
   "playerCenterY": 2048,
-  "gridSize": 128
+  "gridSize": 128,
+  "baseWidth": 96,
+  "baseHeight": 64,
+  "baseSpeed": 80,
+  "baseCenterX": 768,
+  "baseCenterY": 2048,
+  "trialEndX": 15000
 }

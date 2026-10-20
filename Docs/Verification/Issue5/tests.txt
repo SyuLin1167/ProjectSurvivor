@@ -1,0 +1,17 @@
+**********************************************************************
+** Visual Studio 2026 Developer Command Prompt v18.10.3
+** Copyright (c) 2026 Microsoft Corporation
+**********************************************************************
+[vcvarsall.bat] Environment initialized for: 'x64'
+Vector2.ixx
+Phase1Config.ixx
+MovementMath.ixx
+MovementTests.cpp
+PASS: JSON config validation, 16 input combinations, 30/60/120fps distances, bounds, slide, stop, legacy
+BaseMotion.ixx
+BaseMotionTests.cpp
+30fps 60s: distance=4799.96 expected=4800 error=0.0410156u
+60fps 60s: distance=4800.08 expected=4800 error=0.0820312u
+120fps 60s: distance=4799.84 expected=4800 error=0.164062u
+stop 10s gap=1056.01u, catch-up=6.61667s, expected=6.60008s
+PASS: base motion, catch-up, endpoint, JSON values and rejection

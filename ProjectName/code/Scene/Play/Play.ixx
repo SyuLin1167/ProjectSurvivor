@@ -48,5 +48,6 @@ export namespace scene
 
         bool m_cleared;     // クリアフラグ
         bool m_prototype;
+        bool m_trialFinished = false; // Phase 1試行の終端。正式な勝敗とは分離
     };
 }

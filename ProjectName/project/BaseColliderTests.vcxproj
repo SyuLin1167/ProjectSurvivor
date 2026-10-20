@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!-- ゲームと同じソース・依存・構成で実Colliderを検証し、エントリーだけ差し替える。 -->
+  <Import Project="project.vcxproj" />
+  <PropertyGroup>
+    <ProjectGuid>{C2390922-2E31-4B6A-9376-543A6B8705F0}</ProjectGuid>
+    <IntDir>$(ProjectDir)..\..\.verification\collider-obj\</IntDir>
+    <OutDir>$(ProjectDir)..\..\.verification\</OutDir>
+    <TargetName>BaseColliderTests</TargetName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ClCompile Remove="..\code\main.cpp" />
+    <ClCompile Include="..\..\Tests\BaseColliderTests.cpp" />
+  </ItemGroup>
+  <ItemDefinitionGroup>
+    <Link>
+      <SubSystem>Console</SubSystem>
+    </Link>
+  </ItemDefinitionGroup>
+</Project>
