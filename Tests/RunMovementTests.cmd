@@ -7,9 +7,11 @@ cl /nologo /c /EHsc /std:c++20 /utf-8 /I ProjectName\include\nlohmann ProjectNam
 if errorlevel 1 exit /b 1
 cl /nologo /c /EHsc /std:c++20 /utf-8 /ifcSearchDir .verification ProjectName\code\Component\Move\MoveWithKey\MovementMath.ixx /ifcOutput .verification\ /Fo.verification\MovementMath.obj
 if errorlevel 1 exit /b 1
+cl /nologo /c /EHsc /std:c++20 /utf-8 /ifcSearchDir .verification ProjectName\include\MyLib\Shape\Rect.ixx /ifcOutput .verification\ /Fo.verification\Rect.obj
+if errorlevel 1 exit /b 1
 cl /nologo /c /EHsc /std:c++20 /utf-8 /ifcSearchDir .verification ProjectName\code\GameSystem\Camera\CameraGeometry.ixx /ifcOutput .verification\ /Fo.verification\CameraGeometry.obj
 if errorlevel 1 exit /b 1
-cl /nologo /EHsc /std:c++20 /utf-8 /I ProjectName\include\nlohmann /ifcSearchDir .verification Tests\MovementTests.cpp .verification\Vector2.obj .verification\Phase1Config.obj .verification\MovementMath.obj .verification\CameraGeometry.obj /Fo.verification\MovementTests.obj /Fe.verification\MovementTests.exe
+cl /nologo /EHsc /std:c++20 /utf-8 /I ProjectName\include\nlohmann /ifcSearchDir .verification Tests\MovementTests.cpp .verification\Vector2.obj .verification\Phase1Config.obj .verification\MovementMath.obj .verification\CameraGeometry.obj .verification\Rect.obj /Fo.verification\MovementTests.obj /Fe.verification\MovementTests.exe
 if errorlevel 1 exit /b 1
 .verification\MovementTests.exe
 if errorlevel 1 exit /b 1

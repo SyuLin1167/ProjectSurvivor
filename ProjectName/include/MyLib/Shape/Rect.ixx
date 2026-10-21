@@ -74,6 +74,7 @@ export namespace shape
             return pos.y + size.y;
         }
 
+        /// <summary>境界を含めて点が矩形内にあるか判定する。</summary>
         bool IsInside(const Vector2f& point) const
         {
             return (point.x >= Left() &&

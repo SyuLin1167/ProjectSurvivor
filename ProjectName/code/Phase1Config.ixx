@@ -7,7 +7,7 @@ export module Phase1.Config;
 
 export namespace phase1
 {
-    // DEC-01の試作値。JSONを正本とし、未読込時の値をゲームへ流さない。
+    /// <summary>DEC-01の試作値。JSONを正本とし、未読込の値をゲームへ流さない。</summary>
     struct Config
     {
         float WorldWidth{};    // マップ横幅(u)
@@ -24,6 +24,7 @@ export namespace phase1
         float BaseCenterY{};   // 拠点の初期中心Y(u)
         float TrialEndX{};     // 試行終了の中心X(u)。正式なクリア条件ではない
 
+        /// <summary>JSONを読み込み、寸法・初期位置・承認された速度範囲を検証する。不正時は例外を送出する。</summary>
         static Config FromJson(const nlohmann::json& data)
         {
             Config c;

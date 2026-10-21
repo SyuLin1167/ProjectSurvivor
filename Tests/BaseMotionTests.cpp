@@ -1,4 +1,4 @@
-#include <cmath>
+﻿#include <cmath>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
@@ -7,11 +7,13 @@
 import Object.BaseMotion;
 import Phase1.Config;
 
+/// <summary>回帰条件に失敗した場合は理由を表示してテストを終了する。</summary>
 void require(bool condition, const char* message)
 {
     if (!condition) { std::cerr << message << '\n'; std::exit(1); }
 }
 
+/// <summary>既存処理を用いて、このテストが担当する回帰条件を検証する。</summary>
 int main()
 {
     std::ifstream input("ProjectName/resources/data/Phase1Config.json");

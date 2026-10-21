@@ -3,6 +3,7 @@
 #include <memory>
 import GameSystem.Execution;
 
+/// <summary>Debugの終了時メモリー診断を設定し、ゲームの実行結果を返す。</summary>
 int WINAPI WinMain(_In_ HINSTANCE hInst, _In_opt_ HINSTANCE hInstPrev, _In_ PSTR cmdline, _In_ int cmdshow)
 {
 #ifdef _DEBUG

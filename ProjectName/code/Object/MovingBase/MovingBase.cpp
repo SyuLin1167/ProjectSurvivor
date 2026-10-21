@@ -7,6 +7,7 @@ import MyLib.File.FileSystem;
 import GameSystem.Camera;
 import GameSystem.CameraGeometry;
 import GameSystem.Window;
+import MyLib.Shape.Rect;
 import Collider;
 
 namespace object
@@ -24,12 +25,10 @@ namespace object
 
     void MovingBase::GetReferenceObject(std::function<std::vector<std::shared_ptr<GameObject>>(uint32_t)> referenceObj)
     {
-        for (const auto& candidate : referenceObj(ObjectTag::PLAYER))
-            if (auto player = std::dynamic_pointer_cast<Player>(candidate))
-            {
-                m_player = player;
-                break;
-            }
+        const auto players = referenceObj(ObjectTag::PLAYER);
+        // Phase 1はプレイヤー1体。空の配列ではfront()を呼ばない。
+        m_player = players.empty() ? std::shared_ptr<Player>{} :
+            std::dynamic_pointer_cast<Player>(players.front());
     }
 
     void MovingBase::Init()
@@ -61,12 +60,20 @@ namespace object
 
     void MovingBase::Draw()
     {
-        const auto p = gameSystem::Camera::Instance().WorldToScreen(m_pos);
-        DrawBox(static_cast<int>(p.x), static_cast<int>(p.y),
-            static_cast<int>(p.x + m_config.BaseWidth), static_cast<int>(p.y + m_config.BaseHeight),
-            GetColor(255, 155, 40), true);
-        DrawString(static_cast<int>(p.x + 8), static_cast<int>(p.y + 24),
-            "BASE ->", GetColor(0, 0, 0));
+        const math::Vector2f size{m_config.BaseWidth, m_config.BaseHeight};
+        const auto screen = gameSystem::Window::GetWindowData()->SIZE;
+        const shape::Rect viewport{{0, 0}, {static_cast<float>(screen.x), static_cast<float>(screen.y)}};
+        const shape::Rect baseRect{gameSystem::Camera::Instance().WorldToScreen(m_pos), size};
+        const auto marker = cameraGeometry::BaseMarker(baseRect, viewport);
+        // 描画だけを省く。Update/LateUpdateと進行値・距離の表示は画面外でも継続する。
+        if (!marker.offscreen)
+        {
+            DrawBox(static_cast<int>(baseRect.Left()), static_cast<int>(baseRect.Top()),
+                static_cast<int>(baseRect.Right()), static_cast<int>(baseRect.Bottom()),
+                GetColor(255, 155, 40), true);
+            DrawString(static_cast<int>(baseRect.Left() + 8), static_cast<int>(baseRect.Top() + 24),
+                "BASE ->", GetColor(0, 0, 0));
+        }
         // 画面外でも更新される実座標で進行を観測する。
         DrawFormatString(16, 64, GetColor(255, 190, 80),
             "BASE center: (%.2f, %.2f) u   speed: %.0f u/s   trial end X: %.0f",
@@ -75,14 +82,9 @@ namespace object
 
         if (const auto player = m_player.lock())
         {
-            const math::Vector2f half{m_config.BaseWidth / 2, m_config.BaseHeight / 2};
-            const auto center = m_pos + half;
+            const auto center = shape::Rect{m_pos, size}.Center();
             const auto delta = center - player->Center();
             const float distance = delta.Length();
-            const auto screen = gameSystem::Window::GetWindowData()->SIZE;
-            const auto marker = cameraGeometry::BaseMarker(
-                gameSystem::Camera::Instance().WorldToScreen(center), half,
-                {static_cast<float>(screen.x), static_cast<float>(screen.y)});
             // 128uはDEC-01の測定目安。勝敗・衝突・拠点速度には使用しない。
             DrawBox(12, 86, 720, 114, GetColor(15, 20, 25), true);
             DrawFormatString(16, 90, GetColor(255, 190, 80),

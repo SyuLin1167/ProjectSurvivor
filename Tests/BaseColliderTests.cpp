@@ -9,16 +9,33 @@ import Object.BaseMotion;
 import GameSystem.Camera;
 import GameSystem.CameraGeometry;
 import MyLib.Math.Vector2;
+import MyLib.Shape.Rect;
 
+/// <summary>回帰条件に失敗した場合は理由を表示してテストを終了する。</summary>
 void require(bool condition, const char* message)
 {
     if (!condition) { std::cerr << message << '\n'; std::exit(1); }
 }
 
+/// <summary>既存処理を用いて、このテストが担当する回帰条件を検証する。</summary>
 int main()
 {
+    // clampの回帰はテスト用の関数へ切り出さず、実Cameraに対して確認する。
+    auto& boundaryCamera = gameSystem::Camera::Instance();
+    math::Vector2f farCenter{16960, 4540};
+    boundaryCamera.SetTarget(&farCenter, true);
+    boundaryCamera.SetWorldSize({16384, 4096});
+    boundaryCamera.Update();
+    require(boundaryCamera.GetOffset().x == 14464 && boundaryCamera.GetOffset().y == 3016,
+        "Actual camera far boundary clamp");
+    boundaryCamera.SetWorldSize({640, 480});
+    boundaryCamera.Update();
+    require(boundaryCamera.GetOffset().x == 0 && boundaryCamera.GetOffset().y == 0,
+        "Actual camera small map clamp");
+    boundaryCamera.ClearTarget(&farCenter);
+
     // 実際のRectCollider/Stepを使い、停止・遠方・重なり・追跡で基盤の移動反映を測る。
-    // ObjectManager、実キー入力、描画、シーン遷移の確認は別途必要。
+    // TODO(#6/#7): ObjectManager経由の実操作・描画・シーン遷移を手動確認する。
     for (int fps : {30, 60, 120})
     {
         for (int scenario = 0; scenario < 3; ++scenario)
@@ -46,7 +63,7 @@ int main()
                 playerCenter = manager.GetCollider(player)->GetColliderDef()->localPos + math::Vector2f{16, 16};
                 camera.Update();
                 const auto baseCenter = b->GetColliderDef()->localPos + math::Vector2f{48, 32};
-                if (cameraGeometry::BaseMarker(camera.WorldToScreen(baseCenter), {48, 32}, {1920, 1080}).offscreen)
+                if (cameraGeometry::BaseMarker({camera.WorldToScreen(baseCenter) - math::Vector2f{48, 32}, {96, 64}}, {{0, 0}, {1920, 1080}}).offscreen)
                     ++offscreenFrames;
             }
             const auto position = manager.GetCollider(base)->GetColliderDef()->localPos;

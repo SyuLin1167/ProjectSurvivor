@@ -1,38 +1,30 @@
-module;
+﻿module;
 #include <algorithm>
 #include <cmath>
 
 export module GameSystem.CameraGeometry;
 import MyLib.Math.Vector2;
+import MyLib.Shape.Rect;
 
 export namespace cameraGeometry
 {
-    // Same world-to-screen offset contract as Camera; a small world stays at origin.
-    inline math::Vector2f ClampOffset(math::Vector2f offset, math::Vector2f world,
-        math::Vector2f viewport)
-    {
-        return {std::clamp(offset.x, 0.0f, (std::max)(0.0f, world.x - viewport.x)),
-                std::clamp(offset.y, 0.0f, (std::max)(0.0f, world.y - viewport.y))};
-    }
-
+    /// <summary>画面外判定と、矢印を置く画面内座標。</summary>
     struct Marker { bool offscreen; math::Vector2f position; };
 
-    inline Marker BaseMarker(math::Vector2f screenCenter, math::Vector2f baseHalfSize,
-        math::Vector2f viewport)
+    /// <summary>画面座標の拠点矩形から、画面端に余白を確保したマーカーを求める。</summary>
+    inline Marker BaseMarker(const shape::Rect& base, const shape::Rect& viewport)
     {
-        // Keep the real rectangle until it is entirely outside the viewport.
-        const bool outside = screenCenter.x + baseHalfSize.x <= 0 ||
-            screenCenter.y + baseHalfSize.y <= 0 ||
-            screenCenter.x - baseHalfSize.x >= viewport.x ||
-            screenCenter.y - baseHalfSize.y >= viewport.y;
-        const auto half = viewport.Half();
-        const auto ray = screenCenter - half;
-        // Intersect a center-to-target ray with an inset viewport. Space is reserved
-        // for the arrow and label; scale >= 1 also handles a zero-length ray safely.
+        // Rectの契約に合わせ、辺が接する場合も表示対象に含める。
+        const bool outside = !base.AABB(viewport);
+        const auto center = viewport.Center();
+        const auto ray = base.Center() - center;
+        // 画面中心から拠点への半直線を、矢印と文字用に48px縮めた矩形へ収める。
+        // 軸別clampだけでは斜め方向が変わるため、同じ倍率で両軸を縮める。
+        const auto half = viewport.size.Half();
         const math::Vector2f extent{(std::max)(1.0f, half.x - 48.0f),
                                    (std::max)(1.0f, half.y - 48.0f)};
         const float scale = (std::max)({1.0f, std::abs(ray.x) / extent.x,
                                             std::abs(ray.y) / extent.y});
-        return {outside, half + ray / scale};
+        return {outside, center + ray / scale};
     }
 }

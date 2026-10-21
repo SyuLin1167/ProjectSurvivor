@@ -48,7 +48,7 @@ export namespace object
         /// </summary>
         void Draw() override;
 
-        // 表示にはLateUpdate後の実座標を使用。移動座標を変更しない。
+        /// <summary>LateUpdate後の中心座標を表示用に返す。移動座標は変更しない。</summary>
         math::Vector2f Center() const { return m_pos + pData.size.Half(); }
 
         /// <summary>

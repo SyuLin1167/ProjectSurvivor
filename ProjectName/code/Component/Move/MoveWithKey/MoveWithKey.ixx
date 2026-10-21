@@ -1,4 +1,4 @@
-export module Component.MoveWithKey;
+﻿export module Component.MoveWithKey;
 
 import Component;
 export import MyLib.Math.Vector2;
@@ -7,6 +7,7 @@ export using namespace math;
 
 export namespace component
 {
+    /// <summary>キー入力を所有オブジェクトの移動量へ変換するコンポーネント。</summary>
     export class MoveWithKey final :public ComponentBase
     {
     public:
@@ -37,13 +38,14 @@ export namespace component
         /// <param name="moveSpeed">移動速度</param>
         void SetVertical(const int upKey, const int downKey, float moveSpeed);
 
-        // Alternative keys are ORed per direction, so duplicate presses do not accelerate.
+        /// <summary>代替キーを方向ごとにORで扱い、同時押しによる加速を防ぐ。</summary>
         void SetAlternativeKeys(int left, int right, int up, int down)
         {
             m_altLeft = left; m_altRight = right;
             m_altUp = up; m_altDown = down;
         }
 
+        /// <summary>斜め入力時の速度正規化を有効・無効にする。</summary>
         void SetNormalizeDiagonal(bool enabled) { m_normalizeDiagonal = enabled; }
 
         /// <summary>
