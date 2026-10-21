@@ -1,4 +1,4 @@
-#include <cmath>
+﻿#include <cmath>
 #include <cstdlib>
 #include <iostream>
 #include <fstream>
@@ -6,6 +6,8 @@
 
 import Component.MovementMath;
 import Phase1.Config;
+import GameSystem.CameraGeometry;
+import MyLib.Math.Vector2;
 
 void require(bool condition, const char* message)
 {
@@ -14,6 +16,25 @@ void require(bool condition, const char* message)
 
 int main()
 {
+    // 表示計算の回帰: 長距離/境界/小マップと、矩形が完全に画面外になる切替。
+    const math::Vector2f viewport{1920, 1080}, baseHalf{48, 32};
+    const auto edge = cameraGeometry::ClampOffset({16000, 4000}, {16384, 4096}, viewport);
+    require(edge.x == 14464 && edge.y == 3016, "Camera far boundary clamp");
+    const auto small = cameraGeometry::ClampOffset({100, -10}, {640, 480}, viewport);
+    require(small.x == 0 && small.y == 0, "Small map has no negative offset");
+    require(!cameraGeometry::BaseMarker({-47, 540}, baseHalf, viewport).offscreen,
+        "Partially visible base keeps its real rectangle");
+    require(cameraGeometry::BaseMarker({-48, 540}, baseHalf, viewport).offscreen,
+        "Fully offscreen base shows indicator");
+    for (auto center : {math::Vector2f{-16000, 540}, {16000, 540}, {960, -4000}, {960, 4000}, {16000, 4000}})
+    {
+        const auto marker = cameraGeometry::BaseMarker(center, baseHalf, viewport);
+        require(marker.offscreen && marker.position.x >= 47.99f && marker.position.x <= 1872.01f &&
+            marker.position.y >= 47.99f && marker.position.y <= 1032.01f, "Long-distance marker stays inset");
+    }
+    require(!cameraGeometry::BaseMarker({960, 540}, baseHalf, viewport).offscreen,
+        "Center / reunion has no offscreen marker");
+
     // ゲームと同じJSONと変換関数で承認初期値と不正データの拒否を確認する。
     std::ifstream input("ProjectName/resources/data/Phase1Config.json");
     require(input.is_open(), "Open config from repository root");

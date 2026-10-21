@@ -2,6 +2,7 @@
 
 import <algorithm>;
 import GameSystem.FrameRate;
+import GameSystem.CameraGeometry;
 import MyLib.Math.Vector2;
 import GameSystem.Window;
 
@@ -56,12 +57,8 @@ namespace gameSystem
             return;
         }
 
-        // カメラ位置をワールドサイズ内にクランプ
-        float maxX = std::max(0.0f, m_worldSize.x - winSize.x);
-        float maxY = std::max(0.0f, m_worldSize.y - winSize.y);
-
-        // クランプ実行
-        m_pos.x = std::clamp(m_pos.x, 0.0f, maxX);
-        m_pos.y = std::clamp(m_pos.y, 0.0f, maxY);
+        // 描画と同じviewportで制限し、小さいマップでも負のoffsetにしない。
+        m_pos = cameraGeometry::ClampOffset(m_pos, m_worldSize,
+            {static_cast<float>(winSize.x), static_cast<float>(winSize.y)});
     }
 }

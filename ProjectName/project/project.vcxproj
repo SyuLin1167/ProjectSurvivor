@@ -170,6 +170,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\code\Phase1Config.ixx" />
+    <ClCompile Include="..\code\GameSystem\Camera\CameraGeometry.ixx" />
     <ClCompile Include="..\code\Object\MovingBase\BaseMotion.ixx" />
     <ClCompile Include="..\code\Object\MovingBase\MovingBase.ixx" />
     <ClCompile Include="..\code\Object\MovingBase\MovingBase.cpp" />
