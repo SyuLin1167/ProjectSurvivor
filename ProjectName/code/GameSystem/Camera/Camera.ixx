@@ -28,6 +28,7 @@ export namespace gameSystem
         /// 追尾ターゲット設定
         /// </summary>
         /// <param name="target">追尾対象のゲームオブジェクト</param>
+        /// <param name="centered">trueなら対象座標へ中央追従する。境界制限は維持する。</param>
         void SetTarget(Vector2f* target, bool centered = false)
         {
             m_target = target;
@@ -64,6 +65,7 @@ export namespace gameSystem
         /// <summary>
         /// 現在のオフセット
         /// </summary>
+        /// <returns>ワールド座標から画面座標への変換時に減算するオフセット（u）。</returns>
         Vector2f GetOffset() const
         {
             return m_pos;
@@ -105,6 +107,6 @@ export namespace gameSystem
         Vector2f m_pos;              // カメラ位置（オフセット）
         Vector2f m_worldSize;        // ワールド全体サイズ
         float m_followStrength;      // 追尾強度
-        bool m_centered = false;     // Prototype: direct center follow, no frame-based smoothing.
+        bool m_centered = false;     // 試作では中央へ直接追従し、フレーム単位の補間を行わない。
     };
 }

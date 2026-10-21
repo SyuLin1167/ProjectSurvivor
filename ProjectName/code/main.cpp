@@ -3,6 +3,12 @@
 #include <memory>
 import GameSystem.Execution;
 
+/// <summary>Debugの終了時メモリー診断を設定し、ゲームの実行結果を返す。</summary>
+/// <param name="hInst">現在のアプリケーションインスタンス（本処理では未使用）。</param>
+/// <param name="hInstPrev">以前のインスタンス。Windowsでは常にNULL（未使用）。</param>
+/// <param name="cmdline">実行ファイル名を除いたコマンドライン（未使用）。</param>
+/// <param name="cmdshow">初期表示状態の指定（未使用）。</param>
+/// <returns>Execution::Runの終了コード。通常終了は0。</returns>
 int WINAPI WinMain(_In_ HINSTANCE hInst, _In_opt_ HINSTANCE hInstPrev, _In_ PSTR cmdline, _In_ int cmdshow)
 {
 #ifdef _DEBUG

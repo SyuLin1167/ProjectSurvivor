@@ -84,3 +84,18 @@ PR #27はユーザー承認でマージ済みだが、U1〜U9と終了コード1
 #5のPRはユーザー検証待ちの間Draft/Blocked。#6以降へ進まず、ユーザー承認後のマージと結果を待つ。#7のPhase 1統合報告では#28を再確認する。
 
 ログ: [本体ビルド](Verification/Issue5/build.txt)、[移動・JSONテスト](Verification/Issue5/tests.txt)、[実Colliderテストのビルド](Verification/Issue5/collider-build.txt)、[実Collider結果](Verification/Issue5/collider-tests.txt)。
+
+## Issue #6: 方向・距離表示の操作確認
+
+DEC-01の中央追従・固定ズーム・境界clampを維持し、画面外BASEを橙の矢印とBASE文字で表示。距離はPとBASEの中心間（u）。NEARは128u以内の測定目安であり、防衛範囲や勝敗条件ではない。詳細結果・対象SHAはIssue #6 / 対応PRを正本とする。
+
+x64 Debug、初期JSON値で次を確認し、SHA・成功/失敗・問題箇所をIssue #6へ記録する。AIによるネイティブ操作・目視は未実施。
+
+| ID | 操作 | 期待 |
+|---|---|---|
+| C1 | Start後にPを約20秒停止し、その後BASEを追う | 画面外でもBASEのX・距離が増加。矢印がBASEの方向を示し、追うと距離が減る。128u以内でNEAR、実体が画面に戻ると矢印が消える |
+| C2 | Pを上下へ離脱し、BASEを追い越して左右関係も反転させる | 斜め・上下・左右の矢印が切れず、文字と距離が読める。相互通過しても表示が破綻しない |
+| C3 | 外周と右端まで移動し、終端X15000まで試行する | 端ではカメラのみ停止しPは境界内。グリッド・P・BASEがずれず、表示が飛ばない。BASE到達でTitleへ戻る |
+| C4 | 遠方からR→Startで再試行する | 古い追従先や矢印が残らず、初期位置と中心間距離256uへ戻る |
+
+既存のRunMovementTests.cmdへ画面外矩形切替・長距離マーカーの回帰を追加。矩形の辺が接する場合も既存Rectの契約に合わせて表示対象とする。BaseColliderTestsでは実Cameraの境界・小マップclampを確認し、毎フレーム更新して、画面外の期間を含む30/60/120fps相当・60秒の拠点変位を比較する。専用テストプロジェクトや詳細ログは追加しない。

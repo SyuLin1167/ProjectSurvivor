@@ -21,6 +21,7 @@ export namespace object
         /// <summary>
         /// コンストラクタ
         /// </summary>
+        /// <param name="prototype">trueならPhase 1の見下ろし試作設定と移動を使用する。</param>
         explicit Player(bool prototype = false);
 
         /// <summary>
@@ -47,6 +48,10 @@ export namespace object
         /// 描画処理
         /// </summary>
         void Draw() override;
+
+        /// <summary>LateUpdate後の中心座標を表示用に返す。移動座標は変更しない。</summary>
+        /// <returns>プレイヤー矩形のワールド中心座標（u）。</returns>
+        math::Vector2f Center() const { return m_pos + pData.size.Half(); }
 
         /// <summary>
         /// 自身のタグ

@@ -74,6 +74,9 @@ export namespace shape
             return pos.y + size.y;
         }
 
+        /// <summary>境界を含めて点が矩形内にあるか判定する。</summary>
+        /// <param name="point">矩形と同じ座標系の判定対象点。</param>
+        /// <returns>点が境界を含む矩形内にあればtrue。</returns>
         bool IsInside(const Vector2f& point) const
         {
             return (point.x >= Left() &&
@@ -85,6 +88,8 @@ export namespace shape
         /// <summary>
         /// 矩形の衝突判定
         /// </summary>
+        /// <param name="other">同じ座標系の判定対象矩形。</param>
+        /// <returns>矩形が重なる、または辺で接していればtrue。</returns>
         bool AABB(const Rect& other) const
         {
             return (Left() <= other.Right() &&

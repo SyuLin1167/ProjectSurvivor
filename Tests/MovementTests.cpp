@@ -1,4 +1,4 @@
-#include <cmath>
+﻿#include <cmath>
 #include <cstdlib>
 #include <iostream>
 #include <fstream>
@@ -6,14 +6,39 @@
 
 import Component.MovementMath;
 import Phase1.Config;
+import GameSystem.CameraGeometry;
+import MyLib.Math.Vector2;
+import MyLib.Shape.Rect;
 
+/// <summary>回帰条件に失敗した場合は理由を表示してテストを終了する。</summary>
+/// <param name="condition">成立を期待する検証条件。</param>
+/// <param name="message">条件不成立時に表示する理由。</param>
 void require(bool condition, const char* message)
 {
     if (!condition) { std::cerr << message << '\n'; std::exit(1); }
 }
 
+/// <summary>既存処理を用いて、このテストが担当する回帰条件を検証する。</summary>
+/// <returns>全条件が成功すると0。不成立時はrequireから終了コード1で終了する。</returns>
 int main()
 {
+    // 矩形判定は基盤Rectの接触込み契約を使用し、長距離でもマーカーの余白を保つ。
+    const shape::Rect viewport{{0, 0}, {1920, 1080}};
+    require(!cameraGeometry::BaseMarker({{-95, 508}, {96, 64}}, viewport).offscreen,
+        "Partially visible base keeps its real rectangle");
+    require(!cameraGeometry::BaseMarker({{-96, 508}, {96, 64}}, viewport).offscreen,
+        "Rect touching viewport edge remains visible");
+    require(cameraGeometry::BaseMarker({{-97, 508}, {96, 64}}, viewport).offscreen,
+        "Disjoint rectangle shows indicator");
+    for (auto center : {math::Vector2f{-16000, 540}, {16000, 540}, {960, -4000}, {960, 4000}, {16000, 4000}})
+    {
+        const auto marker = cameraGeometry::BaseMarker({center - math::Vector2f{48, 32}, {96, 64}}, viewport);
+        require(marker.offscreen && marker.position.x >= 47.99f && marker.position.x <= 1872.01f &&
+            marker.position.y >= 47.99f && marker.position.y <= 1032.01f, "Long-distance marker stays inset");
+    }
+    require(!cameraGeometry::BaseMarker({{912, 508}, {96, 64}}, viewport).offscreen,
+        "Center / reunion has no offscreen marker");
+
     // ゲームと同じJSONと変換関数で承認初期値と不正データの拒否を確認する。
     std::ifstream input("ProjectName/resources/data/Phase1Config.json");
     require(input.is_open(), "Open config from repository root");
