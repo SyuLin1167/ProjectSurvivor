@@ -12,6 +12,9 @@ export namespace cameraGeometry
     struct Marker { bool offscreen; math::Vector2f position; };
 
     /// <summary>画面座標の拠点矩形から、画面端に余白を確保したマーカーを求める。</summary>
+    /// <param name="base">画面座標の拠点矩形。</param>
+    /// <param name="viewport">表示領域の矩形（px）。</param>
+    /// <returns>画面外フラグと、余白内に収めたマーカーの画面座標。</returns>
     inline Marker BaseMarker(const shape::Rect& base, const shape::Rect& viewport)
     {
         // Rectの契約に合わせ、辺が接する場合も表示対象に含める。

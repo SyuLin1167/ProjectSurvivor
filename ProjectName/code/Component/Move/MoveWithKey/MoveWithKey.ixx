@@ -39,6 +39,10 @@ export namespace component
         void SetVertical(const int upKey, const int downKey, float moveSpeed);
 
         /// <summary>代替キーを方向ごとにORで扱い、同時押しによる加速を防ぐ。</summary>
+        /// <param name="left">左方向の代替キーコード。-1で無効。</param>
+        /// <param name="right">右方向の代替キーコード。-1で無効。</param>
+        /// <param name="up">上方向の代替キーコード。-1で無効。</param>
+        /// <param name="down">下方向の代替キーコード。-1で無効。</param>
         void SetAlternativeKeys(int left, int right, int up, int down)
         {
             m_altLeft = left; m_altRight = right;
@@ -46,6 +50,7 @@ export namespace component
         }
 
         /// <summary>斜め入力時の速度正規化を有効・無効にする。</summary>
+        /// <param name="enabled">trueなら斜め入力による速度増加を防ぐ。</param>
         void SetNormalizeDiagonal(bool enabled) { m_normalizeDiagonal = enabled; }
 
         /// <summary>

@@ -12,12 +12,15 @@ import MyLib.Math.Vector2;
 import MyLib.Shape.Rect;
 
 /// <summary>回帰条件に失敗した場合は理由を表示してテストを終了する。</summary>
+/// <param name="condition">成立を期待する検証条件。</param>
+/// <param name="message">条件不成立時に表示する理由。</param>
 void require(bool condition, const char* message)
 {
     if (!condition) { std::cerr << message << '\n'; std::exit(1); }
 }
 
 /// <summary>既存処理を用いて、このテストが担当する回帰条件を検証する。</summary>
+/// <returns>全条件が成功すると0。不成立時はrequireから終了コード1で終了する。</returns>
 int main()
 {
     // clampの回帰はテスト用の関数へ切り出さず、実Cameraに対して確認する。

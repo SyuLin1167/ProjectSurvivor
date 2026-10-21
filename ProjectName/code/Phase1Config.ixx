@@ -25,6 +25,8 @@ export namespace phase1
         float TrialEndX{};     // 試行終了の中心X(u)。正式なクリア条件ではない
 
         /// <summary>JSONを読み込み、寸法・初期位置・承認された速度範囲を検証する。不正時は例外を送出する。</summary>
+        /// <param name="data">Phase1Config.jsonの設定オブジェクト。</param>
+        /// <returns>承認範囲と寸法・位置を検証済みの試作設定。</returns>
         static Config FromJson(const nlohmann::json& data)
         {
             Config c;
