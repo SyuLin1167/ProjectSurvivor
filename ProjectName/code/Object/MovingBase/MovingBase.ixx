@@ -31,7 +31,7 @@ export namespace object
 
         /// <summary>追跡対象として現在の中心位置を返す。</summary>
         /// <returns>キャラバン中心のワールド座標（u）。</returns>
-        math::Vector2f Center() const { return m_pos + math::Vector2f{m_config.BaseWidth / 2, m_config.BaseHeight / 2}; }
+        math::Vector2f Center() const { return m_pos + m_config.BaseSize.Half(); }
     private:
         std::weak_ptr<Player> m_player; // ObjectManager所有。参照で寿命を延ばさない。
         phase1::Config m_config{}; // Phase 1試作設定（u / u/s）

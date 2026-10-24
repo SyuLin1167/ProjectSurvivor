@@ -41,7 +41,7 @@ export namespace gameSystem
         /// <summary>
         /// デルタタイム取得
         /// </summary>
-        /// <returns>デルタタイム</returns>
+        /// <returns>直前フレームからの非負の経過秒数。負の時刻差は0として扱う。</returns>
         static const float& GetDeltaTime()
         {
             return Instance().m_deltaTime;
@@ -70,6 +70,7 @@ export namespace gameSystem
         /// </summary>
         FrameRate();
 
+        /// <summary>時刻差から非負の経過秒数と表示用FPSを更新する。</summary>
         void CalcFrameRateImpl();
 
         inline static constexpr float MICRO_SEC = 1000000.0f;     //マイクロ秒

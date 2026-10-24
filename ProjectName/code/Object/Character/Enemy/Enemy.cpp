@@ -76,12 +76,12 @@ namespace object
             if (const auto base = m_base.lock(); base && !(base->NowState() & MainState::DEAD))
             {
                 const auto delta = base->Center() - m_pos;
-                const float distance = delta.Length();
+                const float distance = base->Center().Distance(m_pos);
                 if (distance > 0.0f)
                 {
                     const auto direction = delta.Norm();
                     // Colliderへ渡す値はu/sではなく変位(u)。中心の通過による往復を防ぐ。
-                    const float step = m_speed * (std::max)(0.0f, m_deltaTime);
+                    const float step = m_speed * m_deltaTime;
                     m_velocity = direction * (std::min)(distance, step);
                 }
             }
