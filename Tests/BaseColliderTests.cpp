@@ -12,6 +12,8 @@ import GameSystem.CameraGeometry;
 import MyLib.Math.Vector2;
 import MyLib.Shape.Rect;
 import Object.Enemy;
+import Object.EnemyConfig;
+import MyLib.File.FileSystem;
 import Object.MovingBase;
 import Object.ObjectManager;
 import GameSystem.FrameRate;
@@ -62,25 +64,42 @@ void VerifyEnemyPursuit()
     // テスト中だけ実体は非constの時間値を固定し、本番用の時間注入APIを増やさない。
     auto& dt = const_cast<float&>(gameSystem::FrameRate::GetDeltaTime());
     const float previousDt = dt;
-    for (int fps : {30, 60, 120})
+    const auto source = files.jsonIO.Load("ProjectName/resources/data/EnemyConfig.json");
+    const auto initial = phase2::EnemyConfig::FromJson(source);
+    require(initial.Health == 30 && initial.Radius == 16 && initial.Speed == 120 &&
+        initial.SpawnCenters.size() == 3, "Committed JSON matches approved defaults");
+    auto invalid = source;
+    invalid["speed"] = 141;
+    bool rejected = false;
+    try { phase2::EnemyConfig::FromJson(invalid); }
+    catch (const std::exception&) { rejected = true; }
+    require(rejected, "JSON rejects speed outside delegated range");
+    for (int scenario = 0; scenario < 4; ++scenario)
     {
+        // 最後の60fpsではメモリ上のJSONだけを変更し、速度と配置の反映を実Enemyで測る。
+        auto data = source;
+        const bool changed = scenario == 3;
+        const int fps = scenario == 0 ? 30 : scenario == 2 ? 120 : 60;
+        if (changed) { data["speed"] = 140; data["spawnCenters"][0]["x"] = 1344; }
+        const auto config = phase2::EnemyConfig::FromJson(data);
         dt = 1.0f / fps;
         bool finished = false;
         object::ObjectManager objects;
         auto* base = new object::MovingBase(finished);
         objects.AddObject(base);
-        for (auto position : {math::Vector2f{1280, 2048}, {1024, 1728}, {1024, 2368}})
-            objects.AddObject(new object::Enemy(position));
+        for (auto position : config.SpawnCenters)
+            objects.AddObject(new object::Enemy(position, config));
         objects.InitBeforeUpdate();
         auto enemies = objects.GetObjForTag(object::ENEMY);
         std::weak_ptr<object::GameObject> removed = enemies.front();
         const auto start = enemies.front()->AccessPos().NowPos();
+        require(start == config.SpawnCenters.front(), "JSON spawn center reaches actual Enemy");
         for (int frame = 0; frame < fps; ++frame) objects.Update();
         const auto end = enemies.front()->AccessPos().NowPos();
         const float displacement = (end - start).Length();
-        require(std::abs(displacement - 120) < 0.1f, "Enemy speed uses elapsed seconds");
+        require(std::abs(displacement - config.Speed) < 0.1f, "Enemy speed uses elapsed seconds");
         require(std::abs(base->Center().x - 848) < 0.1f, "Enemy does not obstruct caravan");
-        std::cout << "Enemy " << fps << "fps first-second displacement=" << displacement << "u\n";
+        std::cout << "Enemy " << fps << "fps configured=" << config.Speed << " first-second displacement=" << displacement << "u\n";
         for (int frame = 0; frame < fps * 9; ++frame) objects.Update();
         for (const auto& enemy : enemies)
             require((enemy->AccessPos().NowPos() - base->Center()).Length() < 5, "Three enemies converge on moving caravan");
@@ -101,7 +120,7 @@ void VerifyEnemyPursuit()
 
 /// <summary>既存処理を用いて、このテストが担当する回帰条件を検証する。</summary>
 /// <returns>全条件が成功すると0。不成立時はrequireから終了コード1で終了する。</returns>
-int main()
+int main() try
 {
     VerifyCategoryLifetime();
     VerifyEnemyPursuit();
@@ -168,4 +187,10 @@ int main()
         }
     }
     std::cout << "PASS: real ColliderManager::Step, stationary/distant/overlap player, destruction\n";
+}
+
+catch (const std::exception& error)
+{
+    std::cerr << "Unexpected test exception: " << error.what() << '\n';
+    return 1;
 }

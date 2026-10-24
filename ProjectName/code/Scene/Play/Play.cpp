@@ -10,6 +10,8 @@ import Scene.Result;
 import Object.ObjectManager;
 import Object.Player;
 import Object.Enemy;
+import Object.EnemyConfig;
+import MyLib.File.FileSystem;
 import Object.Map;
 import Object.MovingBase;
 import Object.Goal;
@@ -33,8 +35,10 @@ namespace scene
             m_objManager->AddObject(new object::Map(true));
             m_objManager->AddObject(new object::MovingBase(m_trialFinished));
             // DEC-02: 前方・上下側方の固定3体。継続出現や攻撃はこのIssueで追加しない。
-            for (const auto center : {math::Vector2f{1280, 2048}, {1024, 1728}, {1024, 2368}})
-                m_objManager->AddObject(new object::Enemy(center));
+            auto& files = AppCtx::FileSystem();
+            const auto enemies = phase2::EnemyConfig::FromJson(files.jsonIO.Load(files.GetDataDir() / "EnemyConfig"));
+            for (const auto center : enemies.SpawnCenters)
+                m_objManager->AddObject(new object::Enemy(center, enemies));
             return;
         }
         //オブジェクト追加
