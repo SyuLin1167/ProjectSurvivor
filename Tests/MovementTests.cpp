@@ -46,7 +46,7 @@ int main()
     const auto config = phase1::Config::FromJson(data);
     require(config.PlayerSpeed == 240 && config.PlayerSize == 32 &&
         config.WorldWidth == 16384 && config.WorldHeight == 4096 &&
-        config.PlayerCenterX == 512 && config.PlayerCenterY == 2048 && config.GridSize == 128,
+        config.PlayerCenter.x == 512 && config.PlayerCenter.y == 2048 && config.GridSize == 128,
         "Approved DEC-01 initial values");
     const auto rejected = [](const nlohmann::json& invalid) {
         try { phase1::Config::FromJson(invalid); }

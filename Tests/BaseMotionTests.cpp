@@ -24,14 +24,14 @@ int main()
     const auto data = nlohmann::json::parse(input);
     const auto c = phase1::Config::FromJson(data);
     require(c.BaseSpeed == 80 && c.BaseSize.x == 96 && c.BaseSize.y == 64 &&
-        c.BaseCenterX == 768 && c.BaseCenterY == 2048 && c.TrialEndX == 15000,
+        c.BaseCenter.x == 768 && c.BaseCenter.y == 2048 && c.TrialEndX == 15000,
         "Approved base defaults");
 
     // ゲームと同じ変位関数を各FPSで実行。ここでの加算はCollider::Stepの代わりであり、
     // このテストだけでは実際のObjectManager/Collider/描画・入力統合を保証しない。
     for (int fps : {30, 60, 120})
     {
-        float x = c.BaseCenterX;
+        float x = c.BaseCenter.x;
         for (int frame = 0; frame < fps * 60; ++frame)
         {
             const auto delta = phase1::BaseDisplacement(x, c.TrialEndX, c.BaseSpeed, 1.0f / fps);
@@ -39,14 +39,14 @@ int main()
             x += delta.x;
         }
         const float expected = c.BaseSpeed * 60;
-        const float error = std::abs((x - c.BaseCenterX) - expected);
-        std::cout << fps << "fps 60s: distance=" << x - c.BaseCenterX
+        const float error = std::abs((x - c.BaseCenter.x) - expected);
+        std::cout << fps << "fps 60s: distance=" << x - c.BaseCenter.x
                   << " expected=" << expected << " error=" << error << "u\n";
         require(error < 2.0f, "60s distance tolerance 2u");
     }
 
     // Pが10秒停止して拠点を先行させたあと追跡する数値シミュレーション。
-    float base = c.BaseCenterX, player = c.PlayerCenterX;
+    float base = c.BaseCenter.x, player = c.PlayerCenter.x;
     for (int i = 0; i < 600; ++i)
         base += phase1::BaseDisplacement(base, c.TrialEndX, c.BaseSpeed, 1.0f / 60).x;
     const float gap = base - player;
@@ -72,7 +72,7 @@ int main()
     auto adjusted = data;
     adjusted["baseSpeed"] = 100; adjusted["playerSpeed"] = 200;
     const auto tune = phase1::Config::FromJson(adjusted);
-    require(phase1::BaseDisplacement(tune.BaseCenterX, tune.TrialEndX, tune.BaseSpeed, 2).x == 200,
+    require(phase1::BaseDisplacement(tune.BaseCenter.x, tune.TrialEndX, tune.BaseSpeed, 2).x == 200,
         "Changed JSON speed produces 200u in 2s");
     const auto rejected = [](const nlohmann::json& invalid) {
         try { phase1::Config::FromJson(invalid); }

@@ -35,7 +35,7 @@ namespace object
     {
         // 承認値は中心、RectColliderは左上。Pと同じ座標契約を使用する。
         const auto size = m_config.BaseSize;
-        m_pos = math::Vector2f{m_config.BaseCenterX, m_config.BaseCenterY} - size.Half();
+        m_pos = m_config.BaseCenter - size.Half();
         col2d::ColliderDef def{};
         def.localPos = m_pos;
         def.isActive = true;
