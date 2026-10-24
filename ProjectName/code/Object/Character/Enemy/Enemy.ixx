@@ -1,6 +1,7 @@
 ﻿export module Object.Enemy;
 
 import Object.GameObject;
+import Object.MovingBase;
 
 /// <summary>
 /// オブジェクト関連
@@ -20,6 +21,14 @@ export namespace object
         /// </summary>
         Enemy();
 
+        /// <summary>Phase 2の固定配置用追跡敵を生成する。</summary>
+        /// <param name="center">円中心のワールド初期座標（u）。</param>
+        explicit Enemy(math::Vector2f center);
+
+        /// <summary>キャラバンへの弱参照を取得する。</summary>
+        /// <param name="referenceObj">タグに一致するオブジェクト一覧の取得関数。</param>
+        void GetReferenceObject(std::function<std::vector<std::shared_ptr<GameObject>>(uint32_t)> referenceObj) override;
+
         /// <summary>
         /// デストラクタ
         /// </summary>
@@ -38,7 +47,7 @@ export namespace object
         /// <summary>
         /// 後更新処理
         /// </summary>
-        void LateUpdate() override {};
+        void LateUpdate() override;
 
         /// <summary>
         /// 描画処理
@@ -55,6 +64,8 @@ export namespace object
         }
 
     private:
+        bool m_prototype = false;
+        std::weak_ptr<MovingBase> m_base; // 所有しない。対象破棄後は追跡を停止する。
         col2d::ColliderID id;   // コライダーID
         float m_health;        // 体力
         float m_damage;        // ダメージ

@@ -32,6 +32,9 @@ namespace scene
             m_objManager->AddObject(new object::Player(true));
             m_objManager->AddObject(new object::Map(true));
             m_objManager->AddObject(new object::MovingBase(m_trialFinished));
+            // DEC-02: 前方・上下側方の固定3体。継続出現や攻撃はこのIssueで追加しない。
+            for (const auto center : {math::Vector2f{1280, 2048}, {1024, 1728}, {1024, 2368}})
+                m_objManager->AddObject(new object::Enemy(center));
             return;
         }
         //オブジェクト追加
@@ -83,7 +86,7 @@ namespace scene
         if (!m_prototype) DrawScrollingBackground();
         m_objManager->Draw();
         if (m_prototype)
-            DrawString(16, 16, "Phase 1 / WASD or arrows: move / R: return to title",
+            DrawString(16, 16, "Phase 2 / enemy pursuit only / WASD or arrows: move / R: title",
                 GetColor(255, 255, 255));
     }
 
