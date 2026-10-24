@@ -28,6 +28,10 @@ export namespace object
         /// <summary>拠点の更新・参照に使用するタグを返す。</summary>
         /// <returns>拠点を識別するObjectTag::BASE。</returns>
         ObjectTag MyObjectTag() const override { return ObjectTag::BASE; }
+
+        /// <summary>追跡対象として現在の中心位置を返す。</summary>
+        /// <returns>キャラバン中心のワールド座標（u）。</returns>
+        math::Vector2f Center() const { return m_pos + m_config.BaseSize.Half(); }
     private:
         std::weak_ptr<Player> m_player; // ObjectManager所有。参照で寿命を延ばさない。
         phase1::Config m_config{}; // Phase 1試作設定（u / u/s）

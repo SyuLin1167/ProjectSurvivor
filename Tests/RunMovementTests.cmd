@@ -3,7 +3,7 @@ rem Run from the repository root in an x64 Native Tools Command Prompt (v143).
 if not exist .verification mkdir .verification
 cl /nologo /c /EHsc /std:c++20 /utf-8 ProjectName\include\MyLib\Math\Vector2.ixx /ifcOutput .verification\ /Fo.verification\Vector2.obj
 if errorlevel 1 exit /b 1
-cl /nologo /c /EHsc /std:c++20 /utf-8 /I ProjectName\include\nlohmann ProjectName\code\Phase1Config.ixx /ifcOutput .verification\ /Fo.verification\Phase1Config.obj
+cl /nologo /c /EHsc /std:c++20 /utf-8 /I ProjectName\include\nlohmann /ifcSearchDir .verification ProjectName\code\Phase1Config.ixx /ifcOutput .verification\ /Fo.verification\Phase1Config.obj
 if errorlevel 1 exit /b 1
 cl /nologo /c /EHsc /std:c++20 /utf-8 /ifcSearchDir .verification ProjectName\code\Component\Move\MoveWithKey\MovementMath.ixx /ifcOutput .verification\ /Fo.verification\MovementMath.obj
 if errorlevel 1 exit /b 1

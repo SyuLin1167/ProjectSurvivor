@@ -1,6 +1,8 @@
 ﻿export module Object.Enemy;
 
 import Object.GameObject;
+import Object.MovingBase;
+import Object.EnemyConfig;
 
 /// <summary>
 /// オブジェクト関連
@@ -20,6 +22,15 @@ export namespace object
         /// </summary>
         Enemy();
 
+        /// <summary>Phase 2の固定配置用追跡敵を生成する。</summary>
+        /// <param name="center">円中心のワールド初期座標（u）。</param>
+        /// <param name="config">EnemyConfig::FromJsonで検証した敵設定。</param>
+        Enemy(math::Vector2f center, const phase2::EnemyConfig& config);
+
+        /// <summary>キャラバンへの弱参照を取得する。</summary>
+        /// <param name="referenceObj">タグに一致するオブジェクト一覧の取得関数。</param>
+        void GetReferenceObject(std::function<std::vector<std::shared_ptr<GameObject>>(uint32_t)> referenceObj) override;
+
         /// <summary>
         /// デストラクタ
         /// </summary>
@@ -38,7 +49,7 @@ export namespace object
         /// <summary>
         /// 後更新処理
         /// </summary>
-        void LateUpdate() override {};
+        void LateUpdate() override;
 
         /// <summary>
         /// 描画処理
@@ -55,6 +66,10 @@ export namespace object
         }
 
     private:
+        bool m_prototype = false;
+        float m_radius = 16.0f; // 旧サンプルの半径。試作ではJSON値を使用する。
+        float m_speed{}; // u/s。試作の設定読み込み時に確定する。
+        std::weak_ptr<MovingBase> m_base; // 所有しない。対象破棄後は追跡を停止する。
         col2d::ColliderID id;   // コライダーID
         float m_health;        // 体力
         float m_damage;        // ダメージ

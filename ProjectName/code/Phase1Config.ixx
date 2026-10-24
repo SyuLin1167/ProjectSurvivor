@@ -4,6 +4,7 @@
 #include <stdexcept>
 
 export module Phase1.Config;
+import MyLib.Math.Vector2;
 
 export namespace phase1
 {
@@ -17,8 +18,7 @@ export namespace phase1
         float PlayerCenterX{}; // 初期中心X(u)。コライダーは左上座標へ変換する
         float PlayerCenterY{}; // 初期中心Y(u)
         int GridSize{};        // 表示グリッドの間隔(u)
-        float BaseWidth{};     // 仮拠点の横幅(u)
-        float BaseHeight{};    // 仮拠点の縦幅(u)
+        math::Vector2f BaseSize{}; // 仮拠点の幅・高さ(u)
         float BaseSpeed{};     // Pとは独立した前進速度(u/s)
         float BaseCenterX{};   // 拠点の初期中心X(u)
         float BaseCenterY{};   // 拠点の初期中心Y(u)
@@ -39,8 +39,8 @@ export namespace phase1
             if (!data.at("gridSize").is_number_integer())
                 throw std::runtime_error("Phase1Config: gridSize must be an integer");
             c.GridSize = data.at("gridSize").get<int>();
-            c.BaseWidth = data.at("baseWidth").get<float>();
-            c.BaseHeight = data.at("baseHeight").get<float>();
+            c.BaseSize.x = data.at("baseWidth").get<float>();
+            c.BaseSize.y = data.at("baseHeight").get<float>();
             c.BaseSpeed = data.at("baseSpeed").get<float>();
             c.BaseCenterX = data.at("baseCenterX").get<float>();
             c.BaseCenterY = data.at("baseCenterY").get<float>();
@@ -49,7 +49,7 @@ export namespace phase1
             // 欠損・型不正はat/getで検出。非有限値、ゼロ間隔、境界外の初期配置も拒否する。
             for (float value : { c.WorldWidth, c.WorldHeight, c.PlayerSize,
                                 c.PlayerSpeed, c.PlayerCenterX, c.PlayerCenterY,
-                                c.BaseWidth, c.BaseHeight, c.BaseSpeed, c.BaseCenterX,
+                                c.BaseSize.x, c.BaseSize.y, c.BaseSpeed, c.BaseCenterX,
                                 c.BaseCenterY, c.TrialEndX })
                 if (!std::isfinite(value))
                     throw std::runtime_error("Phase1Config: non-finite value");
@@ -64,12 +64,12 @@ export namespace phase1
                 c.BaseSpeed < 60 || c.BaseSpeed > 100 ||
                 c.PlayerSpeed / c.BaseSpeed < 2 || c.PlayerSpeed / c.BaseSpeed > 3)
                 throw std::runtime_error("Phase1Config: speeds outside DEC-01 tuning range");
-            if (c.BaseWidth <= 0 || c.BaseHeight <= 0 ||
-                c.BaseCenterX < c.BaseWidth / 2 ||
-                c.BaseCenterX > c.WorldWidth - c.BaseWidth / 2 ||
-                c.BaseCenterY < c.BaseHeight / 2 ||
-                c.BaseCenterY > c.WorldHeight - c.BaseHeight / 2 ||
-                c.TrialEndX <= c.BaseCenterX || c.TrialEndX > c.WorldWidth - c.BaseWidth / 2)
+            if (c.BaseSize.x <= 0 || c.BaseSize.y <= 0 ||
+                c.BaseCenterX < c.BaseSize.x / 2 ||
+                c.BaseCenterX > c.WorldWidth - c.BaseSize.x / 2 ||
+                c.BaseCenterY < c.BaseSize.y / 2 ||
+                c.BaseCenterY > c.WorldHeight - c.BaseSize.y / 2 ||
+                c.TrialEndX <= c.BaseCenterX || c.TrialEndX > c.WorldWidth - c.BaseSize.x / 2)
                 throw std::runtime_error("Phase1Config: invalid base rectangle or trial end");
             return c;
         }

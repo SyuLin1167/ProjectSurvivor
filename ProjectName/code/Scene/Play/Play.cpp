@@ -10,6 +10,8 @@ import Scene.Result;
 import Object.ObjectManager;
 import Object.Player;
 import Object.Enemy;
+import Object.EnemyConfig;
+import MyLib.File.FileSystem;
 import Object.Map;
 import Object.MovingBase;
 import Object.Goal;
@@ -32,6 +34,11 @@ namespace scene
             m_objManager->AddObject(new object::Player(true));
             m_objManager->AddObject(new object::Map(true));
             m_objManager->AddObject(new object::MovingBase(m_trialFinished));
+            // DEC-02: 前方・上下側方の固定3体。継続出現や攻撃はこのIssueで追加しない。
+            auto& files = AppCtx::FileSystem();
+            const auto enemies = phase2::EnemyConfig::FromJson(files.jsonIO.Load(files.GetDataDir() / "EnemyConfig"));
+            for (const auto center : enemies.SpawnCenters)
+                m_objManager->AddObject(new object::Enemy(center, enemies));
             return;
         }
         //オブジェクト追加
@@ -83,7 +90,7 @@ namespace scene
         if (!m_prototype) DrawScrollingBackground();
         m_objManager->Draw();
         if (m_prototype)
-            DrawString(16, 16, "Phase 1 / WASD or arrows: move / R: return to title",
+            DrawString(16, 16, "Phase 2 / enemy pursuit only / WASD or arrows: move / R: title",
                 GetColor(255, 255, 255));
     }
 

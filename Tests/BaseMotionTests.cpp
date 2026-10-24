@@ -23,7 +23,7 @@ int main()
     require(input.is_open(), "Open config from repository root");
     const auto data = nlohmann::json::parse(input);
     const auto c = phase1::Config::FromJson(data);
-    require(c.BaseSpeed == 80 && c.BaseWidth == 96 && c.BaseHeight == 64 &&
+    require(c.BaseSpeed == 80 && c.BaseSize.x == 96 && c.BaseSize.y == 64 &&
         c.BaseCenterX == 768 && c.BaseCenterY == 2048 && c.TrialEndX == 15000,
         "Approved base defaults");
 

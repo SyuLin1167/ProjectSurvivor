@@ -37,14 +37,8 @@ namespace col2d
 
         if (auto it = m_colliders.find(id.index); it != m_colliders.end())
         {
-            // 他のコライダーからのマスクとイベントを削除
-            auto& category = it->second->GetFilter().category;
-            for (auto& [index, collider] : m_colliders)
-            {
-                collider->GetFilter().RemoveMask(category);
-                collider->DeleteEvent(category);
-            }
-
+            // マスク/イベントは個体IDではなく形状＋タグへの登録。
+            // 個体破棄で他個体の登録を消さない。自身のイベントは自身と共に破棄される。
             m_colliders.erase(it);
         }
 
