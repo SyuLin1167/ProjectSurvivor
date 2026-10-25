@@ -39,8 +39,7 @@ namespace object
                 AppCtx::FileSystem().GetDataDir() / "Phase1Config"));
             // 承認値は中心座標。既存RectColliderに合わせて左上へ変換する。
             pData.size = { m_phase1Config.PlayerSize, m_phase1Config.PlayerSize };
-            pData.pos = { m_phase1Config.PlayerCenterX - m_phase1Config.PlayerSize / 2,
-                          m_phase1Config.PlayerCenterY - m_phase1Config.PlayerSize / 2 };
+            pData.pos = m_phase1Config.PlayerCenter - m_phase1Config.PlayerSize / 2;
             pData.moveSpeed = { m_phase1Config.PlayerSpeed, m_phase1Config.PlayerSpeed };
             return;
         }

@@ -2,6 +2,7 @@
 #include <DxLib.h>
 
 module GameSystem.FrameRate;
+import <algorithm>;
 
 namespace gameSystem
 {
@@ -20,7 +21,8 @@ namespace gameSystem
     {
         //デルタタイムを算出
         m_nowTime = GetNowHiPerformanceCount();
-        m_deltaTime = (m_nowTime - m_prevTime) / MICRO_SEC;
+        // 時刻差が負になった場合も全利用者へ非負の秒数を渡し、逆向きの更新を防ぐ。
+        m_deltaTime = (std::max)(0.0f, (m_nowTime - m_prevTime) / MICRO_SEC);
         m_prevTime = m_nowTime;
 
         //fps算出

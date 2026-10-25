@@ -34,8 +34,8 @@ namespace object
     void MovingBase::Init()
     {
         // 承認値は中心、RectColliderは左上。Pと同じ座標契約を使用する。
-        const math::Vector2f size{m_config.BaseWidth, m_config.BaseHeight};
-        m_pos = math::Vector2f{m_config.BaseCenterX, m_config.BaseCenterY} - size.Half();
+        const auto size = m_config.BaseSize;
+        m_pos = m_config.BaseCenter - size.Half();
         col2d::ColliderDef def{};
         def.localPos = m_pos;
         def.isActive = true;
@@ -45,7 +45,7 @@ namespace object
 
     void MovingBase::Update()
     {
-        m_velocity = phase1::BaseDisplacement(m_pos.x + m_config.BaseWidth / 2,
+        m_velocity = phase1::BaseDisplacement(Center().x,
             m_config.TrialEndX, m_config.BaseSpeed, m_deltaTime);
         ColMgr().GetCollider(m_id)->SetVelocity(m_velocity);
         // 座標はここでは足さず、既存ColliderManager::Stepに一度だけ反映させる。
@@ -54,13 +54,13 @@ namespace object
     void MovingBase::LateUpdate()
     {
         m_pos = ColMgr().GetCollider(m_id)->GetColliderDef()->localPos;
-        if (m_pos.x + m_config.BaseWidth / 2 >= m_config.TrialEndX)
+        if (Center().x >= m_config.TrialEndX)
             m_trialFinished = true;
     }
 
     void MovingBase::Draw()
     {
-        const math::Vector2f size{m_config.BaseWidth, m_config.BaseHeight};
+        const auto size = m_config.BaseSize;
         const auto screen = gameSystem::Window::GetWindowData()->SIZE;
         const shape::Rect viewport{{0, 0}, {static_cast<float>(screen.x), static_cast<float>(screen.y)}};
         const shape::Rect baseRect{gameSystem::Camera::Instance().WorldToScreen(m_pos), size};
@@ -77,7 +77,7 @@ namespace object
         // 画面外でも更新される実座標で進行を観測する。
         DrawFormatString(16, 64, GetColor(255, 190, 80),
             "BASE center: (%.2f, %.2f) u   speed: %.0f u/s   trial end X: %.0f",
-            m_pos.x + m_config.BaseWidth / 2, m_pos.y + m_config.BaseHeight / 2,
+            Center().x, Center().y,
             m_config.BaseSpeed, m_config.TrialEndX);
 
         if (const auto player = m_player.lock())
