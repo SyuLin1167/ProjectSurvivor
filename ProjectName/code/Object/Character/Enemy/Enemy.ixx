@@ -65,6 +65,22 @@ export namespace object
             return ObjectTag::ENEMY;
         }
 
+        /// <summary>生存・有効Colliderを持つ試作敵か確認する。</summary>
+        /// <returns>自動攻撃の対象にできる場合true。</returns>
+        bool CanBeAttacked() const;
+        /// <summary>即時命中によるダメージを適用し、HP0なら衝突判定を無効化する。</summary>
+        /// <param name="damage">正の有限ダメージ。</param>
+        /// <returns>有効な対象へダメージを適用した場合true。</returns>
+        bool TakeDamage(float damage);
+        /// <summary>敵円の中心座標を返す。</summary>
+        /// <returns>ワールド中心(u)。</returns>
+        math::Vector2f Center() const { return m_pos; }
+        /// <summary>同距離時の順序に使う世代付きCollider由来の個体IDを返す。</summary>
+        /// <returns>初期化後から破棄まで変わらないID。初期化前は使用しない。</returns>
+        uint64_t TargetId() const { return (uint64_t(id.index) << 16) | id.generation; }
+        /// <summary>検証用の残HPを返す。</summary>
+        /// <returns>残HP。</returns>
+        float Health() const { return m_health; }
     private:
         bool m_prototype = false;
         float m_radius = 16.0f; // 旧サンプルの半径。試作ではJSON値を使用する。

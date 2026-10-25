@@ -5,6 +5,7 @@ module Object.Enemy;
 import MyLib.Math.Vector2;
 import GameSystem.Camera;
 import <algorithm>;
+import <cmath>;
 
 using namespace math;
 
@@ -25,7 +26,7 @@ namespace object
         m_health = config.Health;
         m_radius = config.Radius;
         m_speed = config.Speed;
-        // TODO(#10): 自動攻撃による被弾を接続する。
+
     }
 
     void Enemy::GetReferenceObject(std::function<std::vector<std::shared_ptr<GameObject>>(uint32_t)> referenceObj)
@@ -62,6 +63,28 @@ namespace object
         listener.when = [&](const col2d::ContactInfo&) { return true; };
         listener.event = [&]() {m_health -= m_damage * m_deltaTime; };
         ColMgr().AddEvent(id, col2d::MakeKey(col2d::RECT, ObjectTag::PLAYER), listener);
+    }
+
+    bool Enemy::CanBeAttacked() const
+    {
+        const auto* collider = ColMgrPtr() ? ColMgr().GetCollider(id) : nullptr;
+        return m_prototype && m_health > 0 && !(m_state & MainState::DEAD) &&
+            collider && collider->GetColliderDef()->isActive;
+    }
+
+    bool Enemy::TakeDamage(float damage)
+    {
+        if (!CanBeAttacked() || !std::isfinite(damage) || damage <= 0) return false;
+        m_health = (std::max)(0.0f, m_health - damage);
+        if (m_health == 0)
+        {
+            // Player更新は敵更新・Stepより先。配列を走査中に削除せず、撃破だけ即時確定する。
+            m_state |= MainState::DEAD;
+            auto* collider = ColMgr().GetCollider(id);
+            collider->GetColliderDef()->isActive = false;
+            collider->SetVelocity({});
+        }
+        return true;
     }
 
     void Enemy::Update()

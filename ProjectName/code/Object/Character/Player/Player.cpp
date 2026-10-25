@@ -6,6 +6,8 @@
 module Object.Player;
 
 import Phase1.Config;
+import Object.Enemy;
+import <algorithm>;
 import Component.MovementMath;
 
 import MyLib.File.FileSystem;
@@ -37,6 +39,8 @@ namespace object
             // 既存JsonIOで試作値を読み込む。欠損・不正な設定は例外として報告する。
             m_phase1Config = phase1::Config::FromJson(AppCtx::FileSystem().jsonIO.Load(
                 AppCtx::FileSystem().GetDataDir() / "Phase1Config"));
+            m_attack = phase2::PlayerAttackConfig::FromJson(AppCtx::FileSystem().jsonIO.Load(
+                AppCtx::FileSystem().GetDataDir() / "PlayerAttackConfig"));
             // 承認値は中心座標。既存RectColliderに合わせて左上へ変換する。
             pData.size = { m_phase1Config.PlayerSize, m_phase1Config.PlayerSize };
             pData.pos = m_phase1Config.PlayerCenter - m_phase1Config.PlayerSize / 2;
@@ -159,10 +163,51 @@ namespace object
         m_compMgr->AddComponent<component::AudioSource>(this);
     }
 
+    void Player::GetReferenceObject(std::function<std::vector<std::shared_ptr<GameObject>>(uint32_t)> referenceObj)
+    {
+        if (m_prototype) m_referenceObjects = std::move(referenceObj);
+    }
+
+    void Player::UpdateAutoAttack()
+    {
+        m_hitDisplayRemaining = (std::max)(0.0f, m_hitDisplayRemaining - m_deltaTime);
+        if (m_attackRemaining > 0) m_attackRemaining -= m_deltaTime;
+        if (m_attackRemaining > 0.000001 || !m_referenceObjects) return;
+        std::shared_ptr<Enemy> target;
+        float nearest = m_attack.Range;
+        // 1回の取得結果だけを使用する。永続的なshared_ptrで敵の破棄を妨げない。
+        for (const auto& object : m_referenceObjects(ObjectTag::ENEMY))
+        {
+            const auto enemy = std::dynamic_pointer_cast<Enemy>(object);
+            if (!enemy || !enemy->CanBeAttacked()) continue;
+            const float distance = Center().Distance(enemy->Center());
+            if (distance <= m_attack.Range && (!target || distance < nearest ||
+                (distance == nearest && enemy->TargetId() < target->TargetId())))
+            {
+                target = enemy;
+                nearest = distance;
+            }
+        }
+        // 命中直前にも有効性と射程を確認。対象なしで攻撃時間を借金として蓄積しない。
+        if (!target || !target->CanBeAttacked() || Center().Distance(target->Center()) > m_attack.Range ||
+            !target->TakeDamage(m_attack.Damage))
+        {
+            m_attackRemaining = 0;
+            return;
+        }
+        m_lastHit = target;
+        m_lastHitCenter = target->Center();
+        m_hitDisplayRemaining = 0.15f; // 命中確認だけの短い表示。正式アニメーションではない。
+        // 通常の端数は保持し、大きな遅延の攻撃回数は捨てる。連射ループは設けない。
+        m_attackRemaining = m_attack.Interval +
+            (m_attackRemaining > -m_attack.Interval ? m_attackRemaining : 0.0);
+    }
+
     void Player::Update()
     {
         if (m_prototype)
         {
+            UpdateAutoAttack();
             // 移動予定量だけを制限し、座標更新はColliderManager::Stepに一度だけ任せる。
             m_velocity.x = movement::BoundedDisplacement(m_pos.x, m_velocity.x,
                 pData.size.x, m_phase1Config.WorldWidth);
@@ -200,6 +245,14 @@ namespace object
     void Player::Draw()
     {
         if (!m_prototype) return;
+        if (m_hitDisplayRemaining > 0)
+        {
+            const auto target = std::dynamic_pointer_cast<Enemy>(m_lastHit.lock());
+            const auto hit = Camera::Instance().WorldToScreen(target ? target->Center() : m_lastHitCenter);
+            DrawCircle(static_cast<int>(hit.x), static_cast<int>(hit.y), 22, GetColor(255, 255, 255), false);
+        }
+        DrawFormatString(16, 120, GetColor(255, 255, 255), "AUTO: %.0fu / %.0f damage / %.2fs",
+            m_attack.Range, m_attack.Damage, m_attack.Interval);
         const auto p = Camera::Instance().WorldToScreen(m_pos);
         DrawBox(static_cast<int>(p.x), static_cast<int>(p.y),
             static_cast<int>(p.x + pData.size.x), static_cast<int>(p.y + pData.size.y),
