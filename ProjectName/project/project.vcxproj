@@ -170,6 +170,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\code\Phase1Config.ixx" />
+    <ClCompile Include="..\code\Object\Character\Player\PlayerAttackConfig.ixx" />
     <ClCompile Include="..\code\Object\Character\Enemy\EnemyConfig.ixx" />
     <ClCompile Include="..\code\GameSystem\Camera\CameraGeometry.ixx" />
     <ClCompile Include="..\code\Object\MovingBase\BaseMotion.ixx" />
@@ -609,6 +610,7 @@
   <ItemGroup>
     <None Include="..\resources\data\Phase1Config.json" />
     <None Include="..\resources\data\EnemyConfig.json" />
+    <None Include="..\resources\data\PlayerAttackConfig.json" />
     <None Include="..\resources\data\MapData.json" />
     <None Include="..\resources\data\MapTip.csv" />
     <None Include="..\resources\data\PlayerData.json" />

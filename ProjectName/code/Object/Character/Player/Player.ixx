@@ -1,6 +1,7 @@
 ﻿export module Object.Player;
 
 import Phase1.Config;
+import Object.PlayerAttackConfig;
 
 import <future>;
 
@@ -33,6 +34,9 @@ export namespace object
         /// 初期化処理
         /// </summary>
         void Init() override;
+        /// <summary>攻撃時に現存する敵を取得する関数を保持する。</summary>
+        /// <param name="referenceObj">所有するObjectManagerの取得関数。シーン内だけで使用する。</param>
+        void GetReferenceObject(std::function<std::vector<std::shared_ptr<GameObject>>(uint32_t)> referenceObj) override;
 
         /// <summary>
         /// 更新処理
@@ -74,6 +78,14 @@ export namespace object
         PlayerData pData; // プレイヤー情報
         col2d::ColliderID id;   // コライダーの識別子
     private:
+        /// <summary>1更新につき最大1体へ、承認済みの自動攻撃を適用する。</summary>
+        void UpdateAutoAttack();
+        phase2::PlayerAttackConfig m_attack{};
+        double m_attackRemaining{}; // 秒。初回と対象なしでは即時発動可能。
+        std::function<std::vector<std::shared_ptr<GameObject>>(uint32_t)> m_referenceObjects;
+        std::weak_ptr<GameObject> m_lastHit; // 表示用。撃破した敵の寿命を延ばさない。
+        math::Vector2f m_lastHitCenter{};
+        float m_hitDisplayRemaining{};
         bool m_prototype; // Phase 1試作経路の選択
         phase1::Config m_phase1Config{}; // JSONから読み込んだ試作設定
         math::Vector2f m_cameraCenter{};

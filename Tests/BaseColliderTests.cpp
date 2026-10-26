@@ -12,6 +12,9 @@ import GameSystem.CameraGeometry;
 import MyLib.Math.Vector2;
 import MyLib.Shape.Rect;
 import Object.Enemy;
+import Object.Player;
+import Object.PlayerAttackConfig;
+import <algorithm>;
 import Object.EnemyConfig;
 import MyLib.File.FileSystem;
 import Object.MovingBase;
@@ -118,12 +121,118 @@ void VerifyEnemyPursuit()
     std::cout << "PASS: actual Enemy/ObjectManager pursuit and target destruction\n";
 }
 
+/// <summary>実Player/Enemyで自動攻撃の選択、間隔、撃破、再試行を検証する。</summary>
+void VerifyAutoAttack()
+{
+    gameSystem::AppCtx::Activate();
+    auto& files = gameSystem::AppCtx::FileSystem();
+    for (const auto name : {"Phase1Config.json", "PlayerAttackConfig.json"})
+        std::filesystem::copy_file(std::filesystem::path("ProjectName/resources/data") / name,
+            files.GetDataDir() / name, std::filesystem::copy_options::overwrite_existing);
+    const auto config = phase2::EnemyConfig::FromJson(files.jsonIO.Load("ProjectName/resources/data/EnemyConfig.json"));
+    auto& dt = const_cast<float&>(gameSystem::FrameRate::GetDeltaTime());
+    const auto previousDt = dt;
+    auto attackData = files.jsonIO.Load("ProjectName/resources/data/PlayerAttackConfig.json");
+    const auto attack = phase2::PlayerAttackConfig::FromJson(attackData);
+    require(attack.Range == 160 && attack.Damage == 10 && attack.Interval == 0.5f, "Approved attack defaults");
+    attackData["damage"] = 11;
+    bool rejected = false;
+    try { phase2::PlayerAttackConfig::FromJson(attackData); }
+    catch (const std::exception&) { rejected = true; }
+    require(rejected, "Fixed damage cannot be changed through JSON");
+    for (int fps : {30, 60, 120})
+    {
+        object::ObjectManager objects;
+        auto* player = new object::Player(true);
+        objects.AddObject(player);
+        auto* first = new object::Enemy({672, 2048}, config);
+        auto* second = new object::Enemy({352, 2048}, config);
+        objects.AddObject(first);
+        objects.AddObject(second);
+        objects.InitBeforeUpdate();
+        // 列挙を逆転させても、同距離は小さい安定IDを選ぶ。
+        player->GetReferenceObject([&](uint32_t tag) {
+            auto list = objects.GetObjForTag(tag);
+            std::reverse(list.begin(), list.end());
+            return list;
+        });
+        std::weak_ptr<object::GameObject> killed = objects.GetObjForTag(object::ENEMY).front();
+        dt = 0;
+        objects.Update();
+        require(first->Health() == 20 && second->Health() == 30, "Inclusive range, immediate attack, stable ID tie");
+        dt = 1.0f / fps;
+        for (int i = 0; i < fps / 2 - 1; ++i) objects.Update();
+        require(first->Health() == 20, "No early repeated damage");
+        objects.Update();
+        require(first->Health() == 10, "Attack interval 0.5 seconds");
+        for (int i = 0; i < fps / 2; ++i) objects.Update();
+        require(killed.expired() && objects.GetObjForTag(object::ENEMY).size() == 1,
+            "Lethal damage releases enemy through RefreshObjects");
+        require(second->Health() == 30, "One attack hits one target only");
+        dt = 3;
+        objects.Update();
+        require(second->Health() == 20, "Long stall fires only once");
+        dt = 0;
+        objects.Update();
+        require(second->Health() == 20, "No stored burst after stall");
+        objects.RemoveObject(second);
+        objects.Update(); // 表示用の弱参照と取得関数が消失した対象を所有しない。
+        std::cout << "PASS: auto attack " << fps << "fps, tie, interval, kill and removal\n";
+    }
+    {
+        object::ObjectManager objects;
+        auto* player = new object::Player(true);
+        objects.AddObject(player);
+        auto* far = new object::Enemy({673, 2048}, config);
+        auto* near = new object::Enemy({512, 2048}, config);
+        auto* middle = new object::Enemy({612, 2048}, config);
+        objects.AddObject(far);
+        objects.AddObject(near);
+        objects.AddObject(middle);
+        objects.InitBeforeUpdate();
+        // 最初は射程外だけを列挙。待機後に通常の一覧へ戻して初回即発動を確認する。
+        player->GetReferenceObject([&](uint32_t) {
+            auto list = objects.GetObjForTag(object::ENEMY);
+            list.resize(1);
+            return list;
+        });
+        dt = 3;
+        objects.Update();
+        require(far->Health() == 30 && near->Health() == 30, "Out of range never damages");
+        player->GetReferenceObject([&](uint32_t tag) { return objects.GetObjForTag(tag); });
+        dt = 0;
+        objects.Update();
+        require(near->Health() == 20 && middle->Health() == 30 && far->Health() == 30,
+            "Ready without target, nearest target, restart resets timer");
+        objects.Update();
+        require(near->Health() == 20, "Overlap does not add contact damage or duplicate hits");
+    }
+    {
+        col2d::ColliderManager colliders;
+        col2d::ColliderID id;
+        {
+            object::Enemy enemy({512, 2048}, config);
+            enemy.SetColliderManager(&colliders);
+            enemy.Init();
+            id.index = static_cast<uint32_t>(enemy.TargetId() >> 16);
+            id.generation = static_cast<uint16_t>(enemy.TargetId());
+            require(enemy.TakeDamage(30) && enemy.Health() == 0 && !enemy.CanBeAttacked(), "Dead enemy is immediately excluded");
+            require(!colliders.GetCollider(id)->GetColliderDef()->isActive && !enemy.TakeDamage(10),
+                "Lethal damage disables collider and rejects repeated hit");
+        }
+        require(colliders.GetCollider(id) == nullptr, "Enemy destructor unregisters collider");
+    }
+    dt = previousDt;
+    gameSystem::AppCtx::Deactivate();
+}
+
 /// <summary>既存処理を用いて、このテストが担当する回帰条件を検証する。</summary>
 /// <returns>全条件が成功すると0。不成立時はrequireから終了コード1で終了する。</returns>
 int main() try
 {
     VerifyCategoryLifetime();
     VerifyEnemyPursuit();
+    VerifyAutoAttack();
     // clampの回帰はテスト用の関数へ切り出さず、実Cameraに対して確認する。
     auto& boundaryCamera = gameSystem::Camera::Instance();
     math::Vector2f farCenter{16960, 4540};
