@@ -82,6 +82,12 @@ export namespace object
         /// <returns>残HP。</returns>
         float Health() const { return m_health; }
     private:
+        /// <summary>全Colliderの移動後に接触を1回評価し、敵固有の間隔で拠点へ被害を与える。</summary>
+        void UpdateContactAttack();
+        double m_contactRemaining{}; // 秒。初回は即時、離脱しても残り時間は維持。
+        bool m_wasTouching{}; // 再接触時に非接触時間の端数を次の攻撃へ繰り越さない。
+        static constexpr float CONTACT_DAMAGE = 10.0f; // DEC-02固定値。
+        static constexpr double CONTACT_INTERVAL = 1.0; // DEC-02固定値（秒）。
         bool m_prototype = false;
         float m_radius = 16.0f; // 旧サンプルの半径。試作ではJSON値を使用する。
         float m_speed{}; // u/s。試作の設定読み込み時に確定する。

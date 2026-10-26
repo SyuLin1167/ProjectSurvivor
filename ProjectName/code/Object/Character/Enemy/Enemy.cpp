@@ -6,6 +6,7 @@ import MyLib.Math.Vector2;
 import GameSystem.Camera;
 import <algorithm>;
 import <cmath>;
+import Collider.CircleCollider;
 
 using namespace math;
 
@@ -55,7 +56,7 @@ namespace object
         id = ColMgr().CreateCircleCollider(&def, m_radius, MyObjectTag());
 
         // Phase 2は押し戻しなし。旧サンプルのP接触による自己ダメージを登録しない。
-        // TODO(#11): 接触攻撃は独立タイマー・重複通知抑制と共に接続する。
+        // 接触攻撃はLateUpdateで移動後のColliderを1回評価する。重複通知には接続しない。
         if (m_prototype) return;
 
         // 衝突イベント登録
@@ -93,6 +94,7 @@ namespace object
             m_state = MainState::DEAD;
 
         if (!m_prototype) return;
+        if (m_contactRemaining > 0) m_contactRemaining -= m_deltaTime;
         m_velocity = {};
         // DEAD対象は参照が残っていても追跡しない。対象なしでは前フレームの変位も消す。
         if (!(m_state & MainState::DEAD))
@@ -115,7 +117,30 @@ namespace object
     void Enemy::LateUpdate()
     {
         if (m_prototype)
+        {
             m_pos = ColMgr().GetCollider(id)->GetColliderDef()->localPos;
+            UpdateContactAttack();
+        }
+    }
+
+    void Enemy::UpdateContactAttack()
+    {
+        const auto base = m_base.lock();
+        auto* circle = dynamic_cast<col2d::CircleCollider*>(ColMgr().GetCollider(id));
+        // Playerの撃破確定後、全Colliderが移動済み。Object側のLateUpdate順には依存しない。
+        const bool touching = CanBeAttacked() && base && circle && base->IsTouching(*circle);
+        if (touching && m_contactRemaining <= 0.000001)
+        {
+            if (base->TakeDamage(CONTACT_DAMAGE))
+            {
+                // 連続接触の通常端数のみ保持。長い遅延でも1フレーム1発、非接触中の蓄積なし。
+                m_contactRemaining = CONTACT_INTERVAL +
+                    (m_wasTouching && m_contactRemaining > -CONTACT_INTERVAL ? m_contactRemaining : 0.0);
+            }
+        }
+        else if (!touching)
+            m_contactRemaining = (std::max)(0.0, m_contactRemaining);
+        m_wasTouching = touching;
     }
 
     void Enemy::Draw()
