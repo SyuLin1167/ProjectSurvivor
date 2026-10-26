@@ -9,6 +9,8 @@ import GameSystem.CameraGeometry;
 import GameSystem.Window;
 import MyLib.Shape.Rect;
 import Collider;
+import <algorithm>;
+import <cmath>;
 
 namespace object
 {
@@ -39,8 +41,9 @@ namespace object
         col2d::ColliderDef def{};
         def.localPos = m_pos;
         def.isActive = true;
+        def.isTrigger = false;
         m_id = ColMgr().CreateRectCollider(&def, size, MyObjectTag());
-        // マスクなしでPと相互通過。基盤のtrigger/地形経路へ入らない。
+        // Pとは相互通過。敵側だけに拠点マスクを登録し、拠点の前進を衝突で止めない。
     }
 
     void MovingBase::Update()
@@ -49,6 +52,15 @@ namespace object
             m_config.TrialEndX, m_config.BaseSpeed, m_deltaTime);
         ColMgr().GetCollider(m_id)->SetVelocity(m_velocity);
         // 座標はここでは足さず、既存ColliderManager::Stepに一度だけ反映させる。
+    }
+
+    bool MovingBase::TakeDamage(float damage)
+    {
+        const auto* collider = ColMgrPtr() ? ColMgr().GetCollider(m_id) : nullptr;
+        if ((m_state & MainState::DEAD) || !collider || !collider->GetColliderDef()->isActive ||
+            m_health <= 0 || !std::isfinite(damage) || damage <= 0) return false;
+        m_health = (std::max)(0.0f, m_health - damage);
+        return true;
     }
 
     void MovingBase::LateUpdate()
@@ -60,6 +72,9 @@ namespace object
 
     void MovingBase::Draw()
     {
+        // 正式HUDではなく、画面外でも放置と防衛を比較するための試作表示。
+        DrawFormatString(16, 146, GetColor(255, 190, 80), "BASE HP: %.0f / 100%s",
+            m_health, m_health == 0 ? " (prototype: movement continues)" : "");
         const auto size = m_config.BaseSize;
         const auto screen = gameSystem::Window::GetWindowData()->SIZE;
         const shape::Rect viewport{{0, 0}, {static_cast<float>(screen.x), static_cast<float>(screen.y)}};

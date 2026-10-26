@@ -30,6 +30,18 @@ void require(bool condition, const char* message)
     if (!condition) { std::cerr << message << '\n'; std::exit(1); }
 }
 
+/// <summary>拠点矩形への円の食い込みが誤差範囲内か検証する。</summary>
+/// <param name="enemy">半径16uの試作敵。</param>
+/// <param name="base">96×64uの試作拠点。</param>
+void RequireOutsideBase(const object::Enemy& enemy, const object::MovingBase& base)
+{
+    const auto center = enemy.Center();
+    const auto b = base.Center();
+    const math::Vector2f nearest{std::clamp(center.x, b.x - 48, b.x + 48),
+        std::clamp(center.y, b.y - 32, b.y + 32)};
+    require((center - nearest).Length() >= 15.99f, "Enemy stays outside base rectangle");
+}
+
 /// <summary>同種個体の削除で他個体のカテゴリ登録を失わないことを確認する。</summary>
 void VerifyCategoryLifetime()
 {
@@ -54,6 +66,36 @@ void VerifyCategoryLifetime()
     require(manager.GetCollider(first) == nullptr && manager.GetCollider(second) == nullptr, "Stale generation stays invalid");
     manager.GetCollider(base)->TriggerEvent(key, {});
     require(notifications == 2 && manager.GetCollider(replacement), "Category registration survives respawn");
+}
+
+/// <summary>移動後解決の生成順独立性と、片側だけのトリガーでも押し戻さない契約を検証する。</summary>
+void VerifyContactResolution()
+{
+    for (int trigger = 0; trigger < 3; ++trigger)
+        for (bool reverse : {false, true})
+        {
+            col2d::ColliderManager manager;
+            col2d::ColliderDef b{}, e{};
+            b.localPos = {720, 2016}; b.isActive = true; b.isTrigger = trigger == 1;
+            e.localPos = {832, 2048}; e.isActive = true; e.isTrigger = trigger == 2;
+            e.contactAfterMove = true;
+            col2d::ColliderID base, enemy;
+            if (reverse) enemy = manager.CreateCircleCollider(&e, 16, object::ENEMY);
+            base = manager.CreateRectCollider(&b, {96, 64}, object::BASE);
+            if (!reverse) enemy = manager.CreateCircleCollider(&e, 16, object::ENEMY);
+            manager.AddMask(enemy, col2d::RECT, object::BASE);
+            int contacts = 0;
+            col2d::ContactListener event;
+            event.event = [&]() { ++contacts; };
+            manager.AddEvent(enemy, col2d::MakeKey(col2d::RECT, object::BASE), event);
+            manager.GetCollider(base)->SetVelocity({2, 0});
+            manager.GetCollider(enemy)->SetVelocity({-3, 0});
+            manager.Step();
+            require(contacts == 1, "Collider event is emitted once in either creation order");
+            require(manager.GetCollider(base)->GetColliderDef()->localPos.x == 722, "Base is never pushed back");
+            require(manager.GetCollider(enemy)->GetColliderDef()->localPos.x == (trigger ? 829 : 834),
+                "Solid enemy is resolved; either trigger suppresses resolution");
+        }
 }
 
 /// <summary>実Enemy/ObjectManagerで追跡、対象消失、シーン単位の破棄を検証する。</summary>
@@ -103,9 +145,14 @@ void VerifyEnemyPursuit()
         require(std::abs(displacement - config.Speed) < 0.1f, "Enemy speed uses elapsed seconds");
         require(std::abs(base->Center().x - 848) < 0.1f, "Enemy does not obstruct caravan");
         std::cout << "Enemy " << fps << "fps configured=" << config.Speed << " first-second displacement=" << displacement << "u\n";
-        for (int frame = 0; frame < fps * 9; ++frame) objects.Update();
+        for (int frame = 0; frame < fps * 9; ++frame)
+        {
+            objects.Update();
+            for (const auto& enemy : enemies)
+                RequireOutsideBase(*std::dynamic_pointer_cast<object::Enemy>(enemy), *base);
+        }
         for (const auto& enemy : enemies)
-            require((enemy->AccessPos().NowPos() - base->Center()).Length() < 5, "Three enemies converge on moving caravan");
+            require((enemy->AccessPos().NowPos() - base->Center()).Length() < 100, "Three enemies converge on caravan exterior");
         objects.RemoveObject(enemies.front().get());
         enemies.erase(enemies.begin());
         require(removed.expired(), "Enemy removed without retained ownership");
@@ -226,13 +273,132 @@ void VerifyAutoAttack()
     gameSystem::AppCtx::Deactivate();
 }
 
+/// <summary>実Collider・敵・拠点で接触攻撃の間隔、複数敵、破棄と撃破優先を確認する。</summary>
+void VerifyContactDamage()
+{
+    gameSystem::AppCtx::Activate();
+    auto& files = gameSystem::AppCtx::FileSystem();
+    const auto config = phase2::EnemyConfig::FromJson(files.jsonIO.Load("ProjectName/resources/data/EnemyConfig.json"));
+    auto& dt = const_cast<float&>(gameSystem::FrameRate::GetDeltaTime());
+    const auto previousDt = dt;
+    for (int fps : {30, 60, 120})
+    {
+        bool finished = false;
+        object::ObjectManager objects;
+        auto* base = new object::MovingBase(finished);
+        objects.AddObject(base);
+        objects.AddObject(new object::Enemy({832, 2048}, config)); // 正面から接触。
+        objects.AddObject(new object::Enemy({704, 2048}, config)); // 背後から接触。
+        objects.InitBeforeUpdate();
+        require(base->Health() == 100, "New trial resets base HP");
+        dt = 0;
+        objects.Update();
+        require(base->Health() == 80, "Two independent enemies each deal initial 10 damage");
+        dt = 1.0f / fps;
+        for (int i = 0; i < fps - 1; ++i) objects.Update();
+        require(base->Health() == 80, "Continuous contact cannot attack early");
+        objects.Update();
+        require(base->Health() == 60, "Both enemies repeat at one second");
+        require(std::abs(base->Center().x - 848) < 0.1f, "Contact does not impede moving base");
+        for (int i = 0; i < fps * 4; ++i)
+        {
+            objects.Update();
+            for (const auto& enemy : objects.GetObjForTag(object::ENEMY))
+                RequireOutsideBase(*std::dynamic_pointer_cast<object::Enemy>(enemy), *base);
+        }
+        require(base->Health() == 0 && std::abs(base->Center().x - 1168) < 0.1f && !finished,
+            "HP stops at zero while movement continues without defeat");
+        require(!base->TakeDamage(10), "Zero HP rejects additional damage");
+        objects.RemoveObject(base);
+        objects.Update(); // 接触中の標的破棄後にも弱参照を安全に扱う。
+        std::cout << "PASS: contact " << fps << "fps, HP 100->80->60->0, movement and target removal\n";
+    }
+    {
+        // タイマーの再接触・遅延を、実Colliderの移動で再現する。専用の本番APIは増やさない。
+        bool finished = false;
+        col2d::ColliderManager colliders;
+        auto base = std::make_shared<object::MovingBase>(finished);
+        base->SetColliderManager(&colliders);
+        base->Init();
+        object::Enemy enemy({768, 2048}, config);
+        enemy.SetColliderManager(&colliders);
+        enemy.GetReferenceObject([&](uint32_t) { return std::vector<std::shared_ptr<object::GameObject>>{base}; });
+        enemy.Init();
+        col2d::ColliderID id;
+        id.index = static_cast<uint32_t>(enemy.TargetId() >> 16);
+        id.generation = static_cast<uint16_t>(enemy.TargetId());
+        auto* circle = dynamic_cast<col2d::CircleCollider*>(colliders.GetCollider(id));
+        dt = 0;
+        enemy.Update(); circle->SetVelocity({}); colliders.Step(); enemy.LateUpdate();
+        require(base->Health() == 90, "Initial contact is immediate");
+        RequireOutsideBase(enemy, *base); // 中心重なりからも外周へ押し出す。
+        for (int i = 0; i < 3; ++i)
+        {
+            circle->TriggerEvent(col2d::MakeKey(col2d::RECT, object::BASE), {});
+            enemy.LateUpdate();
+        }
+        require(base->Health() == 90, "Duplicate notifications and evaluations cannot multiply damage");
+        circle->AddVelocity({0, 200});
+        dt = 0.25f;
+        enemy.Update(); circle->SetVelocity({}); colliders.Step(); enemy.LateUpdate();
+        circle->AddVelocity({0, -200});
+        enemy.Update(); circle->SetVelocity({}); colliders.Step(); enemy.LateUpdate();
+        require(base->Health() == 90, "Recontact before cooldown does not reset timer");
+        dt = 0.5f;
+        enemy.Update(); circle->SetVelocity({}); colliders.Step(); enemy.LateUpdate();
+        require(base->Health() == 80, "Recontact preserves original one-second cooldown");
+        dt = 3;
+        enemy.Update(); circle->SetVelocity({}); colliders.Step(); enemy.LateUpdate();
+        require(base->Health() == 70, "Long contact stall deals only one hit");
+        dt = 0;
+        enemy.Update(); circle->SetVelocity({}); colliders.Step(); enemy.LateUpdate();
+        require(base->Health() == 70, "No delayed burst on following frame");
+        circle->AddVelocity({0, 200});
+        dt = 3;
+        enemy.Update(); circle->SetVelocity({}); colliders.Step(); enemy.LateUpdate();
+        require(base->Health() == 70, "No damage outside contact");
+        circle->AddVelocity({0, -200});
+        dt = 0;
+        enemy.Update(); circle->SetVelocity({}); colliders.Step(); enemy.LateUpdate();
+        require(base->Health() == 60, "Long absence stores only ready state");
+        enemy.LateUpdate();
+        require(base->Health() == 60, "No accumulated attacks after recontact");
+        base->TakeDamage(55);
+        dt = 1;
+        enemy.Update(); circle->SetVelocity({}); colliders.Step(); enemy.LateUpdate();
+        require(base->Health() == 0, "Damage exceeding remaining HP clamps to zero");
+        base.reset();
+        enemy.Update(); circle->SetVelocity({}); colliders.Step(); enemy.LateUpdate();
+    }
+    {
+        bool finished = false;
+        object::ObjectManager objects;
+        auto* player = new object::Player(true);
+        auto* base = new object::MovingBase(finished);
+        auto* enemy = new object::Enemy({720, 2048}, config);
+        objects.AddObject(player); objects.AddObject(base); objects.AddObject(enemy);
+        objects.InitBeforeUpdate();
+        player->AccessPos().NowPos() = {704, 2032}; // 中心(720,2048)。自動攻撃の判定座標を設定。
+        require(enemy->TakeDamage(20), "Prepare lethal player attack");
+        dt = 0;
+        objects.Update();
+        require(base->Health() == 100 && objects.GetObjForTag(object::ENEMY).empty(),
+            "Player kill takes priority over contact damage in same frame");
+    }
+    dt = previousDt;
+    gameSystem::AppCtx::Deactivate();
+    std::cout << "PASS: recontact, duplicate notifications, stall, lower bound and kill priority\n";
+}
+
 /// <summary>既存処理を用いて、このテストが担当する回帰条件を検証する。</summary>
 /// <returns>全条件が成功すると0。不成立時はrequireから終了コード1で終了する。</returns>
 int main() try
 {
     VerifyCategoryLifetime();
+    VerifyContactResolution();
     VerifyEnemyPursuit();
     VerifyAutoAttack();
+    VerifyContactDamage();
     // clampの回帰はテスト用の関数へ切り出さず、実Cameraに対して確認する。
     auto& boundaryCamera = gameSystem::Camera::Instance();
     math::Vector2f farCenter{16960, 4540};

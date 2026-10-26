@@ -82,6 +82,14 @@ export namespace object
         /// <returns>残HP。</returns>
         float Health() const { return m_health; }
     private:
+        /// <summary>拠点接触イベントから敵固有の間隔で被害を与える。1更新内の重複通知は無視する。</summary>
+        void OnBaseContact();
+        bool m_touching{}; // この更新で接触通知を受けたか。
+        bool m_attackedThisFrame{};
+        double m_contactRemaining{}; // 秒。初回は即時、離脱しても残り時間は維持。
+        bool m_wasTouching{}; // 再接触時に非接触時間の端数を次の攻撃へ繰り越さない。
+        static constexpr float CONTACT_DAMAGE = 10.0f; // DEC-02固定値。
+        static constexpr double CONTACT_INTERVAL = 1.0; // DEC-02固定値（秒）。
         bool m_prototype = false;
         float m_radius = 16.0f; // 旧サンプルの半径。試作ではJSON値を使用する。
         float m_speed{}; // u/s。試作の設定読み込み時に確定する。

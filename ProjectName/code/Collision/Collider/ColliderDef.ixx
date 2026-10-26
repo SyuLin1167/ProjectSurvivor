@@ -42,6 +42,7 @@ export namespace col2d
         bool shouldCCD;             // 連続衝突検出を行うか
         bool isTrigger;             // トリガーかどうか
         bool isActive;              // 有効かどうか
+        bool contactAfterMove = false; // 移動済み形状で接触解決する。通常の地形/サブステップ経路とは分離。
     };
 
     /// <summary>

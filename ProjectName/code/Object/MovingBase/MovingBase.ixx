@@ -32,7 +32,15 @@ export namespace object
         /// <summary>追跡対象として現在の中心位置を返す。</summary>
         /// <returns>キャラバン中心のワールド座標（u）。</returns>
         math::Vector2f Center() const { return m_pos + m_config.BaseSize.Half(); }
+        /// <summary>試作の被害を下限0で適用する。HP0でも移動・表示は継続する。</summary>
+        /// <param name="damage">正の有限ダメージ。</param>
+        /// <returns>有効な拠点のHPを減少させた場合true。</returns>
+        bool TakeDamage(float damage);
+        /// <summary>防衛の効果を検証するため残HPを返す。</summary>
+        /// <returns>0〜100の試作HP。</returns>
+        float Health() const { return m_health; }
     private:
+        float m_health = 100.0f; // DEC-02固定値。Phase 2では調整権限なし。
         std::weak_ptr<Player> m_player; // ObjectManager所有。参照で寿命を延ばさない。
         phase1::Config m_config{}; // Phase 1試作設定（u / u/s）
         col2d::ColliderID m_id{};
