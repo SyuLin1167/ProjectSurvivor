@@ -82,7 +82,8 @@ namespace col2d
                 }
 
                 // フィルターを確認して衝突判定を行う
-                if (collider->GetFilter().HasMask(otherCollider.second->GetFilter().category))
+                if (!collider->GetColliderDef()->contactAfterMove &&
+                    collider->GetFilter().HasMask(otherCollider.second->GetFilter().category))
                 {
                     // コライダー同士の衝突判定
                     collider->CollideWith(*otherCollider.second);
@@ -90,6 +91,20 @@ namespace col2d
             }
 
             collider->AddVelocity();
+        }
+
+        // 移動拠点への接触は両者の移動完了後に解決する。
+        // 指定した側だけを解決するので、拠点は敵に止められず敵だけが外周へ押し戻される。
+        // 既存Visitorを変位0で使用し、既に反映した移動を二重適用しない。
+        for (auto& [index, collider] : m_colliders)
+        {
+            if (!collider->GetColliderDef()->contactAfterMove) continue;
+            const auto velocity = collider->GetVelocity();
+            collider->SetVelocity({});
+            for (auto& [otherIndex, other] : m_colliders)
+                if (collider != other && collider->GetFilter().HasMask(other->GetFilter().category))
+                    collider->CollideWith(*other);
+            collider->SetVelocity(velocity);
         }
     }
 

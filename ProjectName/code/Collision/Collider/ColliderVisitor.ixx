@@ -53,7 +53,7 @@ export namespace col2d
             }
 
             // どちらかがトリガーなら押し戻しは行わない
-            if (!issue.GetColliderDef()->isTrigger || !target.GetColliderDef()->isTrigger)
+            if (!issue.GetColliderDef()->isTrigger && !target.GetColliderDef()->isTrigger)
             {
                 if (auto info = resolve.Resolve(issue, target))
                 {

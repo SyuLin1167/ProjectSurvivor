@@ -6,7 +6,6 @@ import MyLib.Math.Vector2;
 import GameSystem.Camera;
 import <algorithm>;
 import <cmath>;
-import Collider.CircleCollider;
 
 using namespace math;
 
@@ -53,11 +52,19 @@ namespace object
         def.type = m_prototype ? col2d::Type::DYNAMIC : col2d::Type::STATIC;
         def.localPos = m_pos;
         def.isActive = true;
+        def.isTrigger = false;
+        def.contactAfterMove = m_prototype;
         id = ColMgr().CreateCircleCollider(&def, m_radius, MyObjectTag());
 
-        // Phase 2は押し戻しなし。旧サンプルのP接触による自己ダメージを登録しない。
-        // 接触攻撃はLateUpdateで移動後のColliderを1回評価する。重複通知には接続しない。
-        if (m_prototype) return;
+        if (m_prototype)
+        {
+            // 敵から拠点への片方向マスク。P/敵同士は通過し、拠点側は押し戻さない。
+            ColMgr().AddMask(id, col2d::RECT, ObjectTag::BASE);
+            col2d::ContactListener contact;
+            contact.event = [this]() { OnBaseContact(); };
+            ColMgr().AddEvent(id, col2d::MakeKey(col2d::RECT, ObjectTag::BASE), contact);
+            return;
+        }
 
         // 衝突イベント登録
         col2d::ContactListener listener;
@@ -94,6 +101,8 @@ namespace object
             m_state = MainState::DEAD;
 
         if (!m_prototype) return;
+        m_touching = false;
+        m_attackedThisFrame = false;
         if (m_contactRemaining > 0) m_contactRemaining -= m_deltaTime;
         m_velocity = {};
         // DEAD対象は参照が残っていても追跡しない。対象なしでは前フレームの変位も消す。
@@ -119,28 +128,27 @@ namespace object
         if (m_prototype)
         {
             m_pos = ColMgr().GetCollider(id)->GetColliderDef()->localPos;
-            UpdateContactAttack();
+            if (!m_touching) m_contactRemaining = (std::max)(0.0, m_contactRemaining);
+            m_wasTouching = m_touching;
         }
     }
 
-    void Enemy::UpdateContactAttack()
+    void Enemy::OnBaseContact()
     {
         const auto base = m_base.lock();
-        auto* circle = dynamic_cast<col2d::CircleCollider*>(ColMgr().GetCollider(id));
-        // Playerの撃破確定後、全Colliderが移動済み。Object側のLateUpdate順には依存しない。
-        const bool touching = CanBeAttacked() && base && circle && base->IsTouching(*circle);
-        if (touching && m_contactRemaining <= 0.000001)
+        // 接触の事実はColliderイベントだけから受け取る。撃破済み/対象消失時は被害を出さない。
+        if (!CanBeAttacked() || !base || (base->NowState() & MainState::DEAD)) return;
+        m_touching = true;
+        if (!m_attackedThisFrame && m_contactRemaining <= 0.000001)
         {
             if (base->TakeDamage(CONTACT_DAMAGE))
             {
+                m_attackedThisFrame = true;
                 // 連続接触の通常端数のみ保持。長い遅延でも1フレーム1発、非接触中の蓄積なし。
                 m_contactRemaining = CONTACT_INTERVAL +
                     (m_wasTouching && m_contactRemaining > -CONTACT_INTERVAL ? m_contactRemaining : 0.0);
             }
         }
-        else if (!touching)
-            m_contactRemaining = (std::max)(0.0, m_contactRemaining);
-        m_wasTouching = touching;
     }
 
     void Enemy::Draw()

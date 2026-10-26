@@ -9,7 +9,6 @@ import GameSystem.CameraGeometry;
 import GameSystem.Window;
 import MyLib.Shape.Rect;
 import Collider;
-import Collider.RectCollider;
 import <algorithm>;
 import <cmath>;
 
@@ -42,8 +41,9 @@ namespace object
         col2d::ColliderDef def{};
         def.localPos = m_pos;
         def.isActive = true;
+        def.isTrigger = false;
         m_id = ColMgr().CreateRectCollider(&def, size, MyObjectTag());
-        // マスクなしでPと相互通過。基盤のtrigger/地形経路へ入らない。
+        // Pとは相互通過。敵側だけに拠点マスクを登録し、拠点の前進を衝突で止めない。
     }
 
     void MovingBase::Update()
@@ -52,13 +52,6 @@ namespace object
             m_config.TrialEndX, m_config.BaseSpeed, m_deltaTime);
         ColMgr().GetCollider(m_id)->SetVelocity(m_velocity);
         // 座標はここでは足さず、既存ColliderManager::Stepに一度だけ反映させる。
-    }
-
-    bool MovingBase::IsTouching(col2d::CircleCollider& enemy) const
-    {
-        const auto* base = ColMgrPtr() ? dynamic_cast<col2d::RectCollider*>(ColMgr().GetCollider(m_id)) : nullptr;
-        return !(m_state & MainState::DEAD) && base && base->GetColliderDef()->isActive &&
-            enemy.GetColliderDef()->isActive && enemy.IsCollider(*base);
     }
 
     bool MovingBase::TakeDamage(float damage)
