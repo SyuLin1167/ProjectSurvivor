@@ -21,6 +21,9 @@ import Object.MovingBase;
 import Object.ObjectManager;
 import GameSystem.FrameRate;
 import AppContext;
+import Scene.LoadingScene;
+import Scene.SceneBase;
+import <stdexcept>;
 
 /// <summary>回帰条件に失敗した場合は理由を表示してテストを終了する。</summary>
 /// <param name="condition">成立を期待する検証条件。</param>
@@ -390,6 +393,82 @@ void VerifyContactDamage()
     std::cout << "PASS: recontact, duplicate notifications, stall, lower bound and kill priority\n";
 }
 
+/// <summary>通常FPS・停止・復帰・新規開始で時間が蓄積しないことを確認する。</summary>
+void VerifySimulationTime()
+{
+    // 同期構築失敗も例外をゲームループへ漏らさず、未初期化Playへ遷移しない。
+    for (auto policy : {scene::LoadPolicy::DONE, scene::LoadPolicy::PROGRESS})
+    {
+        scene::LoadingScene loading(policy, []() -> std::shared_ptr<scene::SceneBase> {
+            throw std::runtime_error("Expected construction failure");
+        });
+        require(std::holds_alternative<scene::CmdQuit>(loading.Update()),
+            "Construction failure safely requests quit");
+    }
+    gameSystem::SimulationTime clock;
+    require(clock.Advance(60, true) == 0, "First frame discards loading time");
+    for (int fps : {30, 60, 120})
+        require(clock.Advance(1.0f / fps, true) == 1.0f / fps, "Normal FPS unchanged");
+    require(clock.Advance(60, true) == 1.0f / 30, "Long stall capped");
+    require(clock.Advance(60, false) == 0 && clock.Advance(60, false) == 0,
+        "Inactive time not accumulated");
+    require(clock.Advance(60, true) == 0, "Resume discards inactive time");
+    require(clock.Advance(1.0f / 60, true) == 1.0f / 60, "Resume returns to normal");
+    clock.Reset();
+    require(clock.Advance(60, true) == 0, "New play discards previous timing");
+    gameSystem::FrameRate::ResetSimulationTime();
+    require(gameSystem::FrameRate::GetDeltaTime() == 0, "Shared dt cleared on start");
+    std::cout << "PASS: simulation time start, resume and frame cap\n";
+}
+
+/// <summary>実ObjectManagerを繰り返し生成し、敵・HP・攻撃間隔・参照・カメラの初期状態を確認する。</summary>
+void VerifyFreshPlayObjects()
+{
+    gameSystem::AppCtx::Activate();
+    auto& files = gameSystem::AppCtx::FileSystem();
+    const auto config = phase2::EnemyConfig::FromJson(files.jsonIO.Load("ProjectName/resources/data/EnemyConfig.json"));
+    auto& dt = const_cast<float&>(gameSystem::FrameRate::GetDeltaTime());
+    const float previousDt = dt;
+    for (int trial = 0; trial < 3; ++trial)
+    {
+        std::weak_ptr<object::GameObject> oldEnemy;
+        {
+            bool finished = false;
+            object::ObjectManager objects;
+            auto* player = new object::Player(true);
+            auto* base = new object::MovingBase(finished);
+            auto* nearby = new object::Enemy({512, 2048}, config);
+            auto* touching = new object::Enemy({768, 2048}, config);
+            objects.AddObject(player); objects.AddObject(base);
+            objects.AddObject(nearby); objects.AddObject(touching);
+            objects.InitBeforeUpdate();
+            require(player->Center().x == 512 && base->Center().x == 768 &&
+                base->Health() == 100 && nearby->Health() == 30 && !finished,
+                "Fresh positions, HP and endpoint state");
+            oldEnemy = objects.GetObjForTag(object::ENEMY).front();
+            dt = 0;
+            objects.Update();
+            require(nearby->Health() == 20 && base->Health() == 90,
+                "Fresh player and contact timers are immediately ready");
+            const auto initialCamera = gameSystem::Camera::Instance().GetOffset();
+            require(initialCamera.x == 0 && initialCamera.y == 1508,
+                "Fresh camera follows initial player");
+            require(nearby->TakeDamage(100), "Defeat enemy before restart");
+            require(base->TakeDamage(100), "Deplete base before restart");
+            player->AccessPos().NowPos() = {10000, 2032};
+            objects.Update();
+            require(objects.GetObjForTag(object::ENEMY).size() == 1 && base->Health() == 0,
+                "Mutate previous play before destruction");
+        }
+        require(oldEnemy.expired(), "Old enemy ownership released");
+        // 破棄済みPlayerを追従して参照しないことも実Cameraで通す。
+        gameSystem::Camera::Instance().Update();
+    }
+    dt = previousDt;
+    gameSystem::AppCtx::Deactivate();
+    std::cout << "PASS: three fresh object lifetimes, HP, timers and camera\n";
+}
+
 /// <summary>既存処理を用いて、このテストが担当する回帰条件を検証する。</summary>
 /// <returns>全条件が成功すると0。不成立時はrequireから終了コード1で終了する。</returns>
 int main() try
@@ -399,6 +478,8 @@ int main() try
     VerifyEnemyPursuit();
     VerifyAutoAttack();
     VerifyContactDamage();
+    VerifySimulationTime();
+    VerifyFreshPlayObjects();
     // clampの回帰はテスト用の関数へ切り出さず、実Cameraに対して確認する。
     auto& boundaryCamera = gameSystem::Camera::Instance();
     math::Vector2f farCenter{16960, 4540};

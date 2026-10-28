@@ -16,6 +16,7 @@ import Object.Map;
 import Object.MovingBase;
 import Object.Goal;
 import GameSystem.Camera;
+import GameSystem.FrameRate;
 import Asset.Graph;
 import AppContext;
 import GameSystem.Window;
@@ -61,6 +62,9 @@ namespace scene
     void Play::Init()
     {
         m_objManager->InitBeforeUpdate();
+        // 全Object初期化後にカメラを合わせ、ロード時間をプレイへ持ち越さない。
+        Camera::Instance().Update();
+        FrameRate::ResetSimulationTime();
     }
 
     SceneCmd Play::Update()
