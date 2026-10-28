@@ -14,15 +14,15 @@ namespace gameSystem
         , m_fps(FPS_60)
         , m_frameCount()
     {
-        CalcFrameRateImpl();
+        CalcFrameRateImpl(true);
     }
 
-    void FrameRate::CalcFrameRateImpl()
+    void FrameRate::CalcFrameRateImpl(bool active)
     {
         //デルタタイムを算出
         m_nowTime = GetNowHiPerformanceCount();
-        // 時刻差が負になった場合も全利用者へ非負の秒数を渡し、逆向きの更新を防ぐ。
-        m_deltaTime = (std::max)(0.0f, (m_nowTime - m_prevTime) / MICRO_SEC);
+        // 実時間FPSは保持し、ゲーム時間だけ停止・復帰・上限を制御する。
+        m_deltaTime = m_simulationTime.Advance((m_nowTime - m_prevTime) / MICRO_SEC, active);
         m_prevTime = m_nowTime;
 
         //fps算出

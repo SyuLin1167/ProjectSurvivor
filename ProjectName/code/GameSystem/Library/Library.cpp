@@ -12,6 +12,8 @@ namespace gameSystem
         SetMainWindowText("2DGame");
 
         SetUseDirect3DVersion(DX_DIRECT3D_11);
+        // 非アクティブでも時計・入力・終了要求を処理し、シーン更新だけを停止する。
+        SetAlwaysRunFlag(TRUE);
 
         if (DxLib_Init())
         {

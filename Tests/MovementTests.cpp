@@ -66,7 +66,9 @@ int main()
     invalid = data; invalid["worldHeight"] = -1;
     require(rejected(invalid), "Negative world size");
     auto adjusted = data; adjusted["playerSpeed"] = 200;
-    require(phase1::Config::FromJson(adjusted).PlayerSpeed == 200, "Read changed JSON value");
+    bool rejectedSpeed = false;
+    try { (void)phase1::Config::FromJson(adjusted); } catch (...) { rejectedSpeed = true; }
+    require(rejectedSpeed, "DEC-03 rejects historical speed tuning");
 
     // 全16組合せで逆方向相殺、無入力、方向の符号と単位長への正規化を確認する。
     for (int bits = 0; bits < 16; ++bits)

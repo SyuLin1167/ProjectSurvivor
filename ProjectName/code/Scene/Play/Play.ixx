@@ -17,6 +17,7 @@ export namespace scene
         /// <summary>
         /// コンストラクタ
         /// </summary>
+        /// <param name="prototype">既存の試作経路を使う場合true。旧サンプル経路はfalse。</param>
         explicit Play(bool prototype = true);
 
         /// <summary>
@@ -32,6 +33,7 @@ export namespace scene
         /// <summary>
         /// 更新処理
         /// </summary>
+        /// <returns>更新後の遷移要求。継続時は空のコマンド。</returns>
         SceneCmd Update() override;
 
         /// <summary>

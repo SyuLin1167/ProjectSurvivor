@@ -57,11 +57,9 @@ export namespace phase1
                 c.PlayerCenter.x < half || c.PlayerCenter.x > c.WorldWidth - half ||
                 c.PlayerCenter.y < half || c.PlayerCenter.y > c.WorldHeight - half)
                 throw std::runtime_error("Phase1Config: invalid dimensions, speed or initial position");
-            // 委任された速度範囲と比率を同時に確認。JSON編集で承認範囲を誤って越えない。
-            if (c.PlayerSpeed < 180 || c.PlayerSpeed > 300 ||
-                c.BaseSpeed < 60 || c.BaseSpeed > 100 ||
-                c.PlayerSpeed / c.BaseSpeed < 2 || c.PlayerSpeed / c.BaseSpeed > 3)
-                throw std::runtime_error("Phase1Config: speeds outside DEC-01 tuning range");
+            // DEC-03: Phase 1の調整範囲を継承せず、P/拠点速度は固定する。
+            if (c.PlayerSpeed != 240 || c.BaseSpeed != 80)
+                throw std::runtime_error("Phase1Config: speeds must match DEC-03 fixed values");
             if (c.BaseSize.x <= 0 || c.BaseSize.y <= 0 ||
                 c.BaseCenter.x < c.BaseSize.x / 2 ||
                 c.BaseCenter.x > c.WorldWidth - c.BaseSize.x / 2 ||

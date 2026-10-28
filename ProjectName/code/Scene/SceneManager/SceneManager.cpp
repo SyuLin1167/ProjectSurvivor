@@ -37,9 +37,13 @@ namespace scene
     void SceneManager::Update()
     {
         //更新処理
-        FrameRate::CalcFrameRate();
+        const bool active = GetActiveFlag() != 0;
+        FrameRate::CalcFrameRate(active);
         KeyStatus::UpdateKeyState();
         MouseStatus::UpdateMouseState();
+        // 入力は停止中も更新する。dt=0でも初回攻撃は可能なのでシーン更新自体を止める。
+        m_pendingCmd = std::monostate{};
+        if (!active || FrameRate::GetDeltaTime() <= 0) return;
         m_pendingCmd = m_nowScene.top()->Update();
     }
 

@@ -24,7 +24,7 @@ int main()
     const auto data = nlohmann::json::parse(input);
     const auto c = phase1::Config::FromJson(data);
     require(c.BaseSpeed == 80 && c.BaseSize.x == 96 && c.BaseSize.y == 64 &&
-        c.BaseCenter.x == 768 && c.BaseCenter.y == 2048 && c.TrialEndX == 15000,
+        c.BaseCenter.x == 768 && c.BaseCenter.y == 2048 && c.TrialEndX == 5568,
         "Approved base defaults");
 
     // ゲームと同じ変位関数を各FPSで実行。ここでの加算はCollider::Stepの代わりであり、
@@ -35,7 +35,7 @@ int main()
         for (int frame = 0; frame < fps * 60; ++frame)
         {
             const auto delta = phase1::BaseDisplacement(x, c.TrialEndX, c.BaseSpeed, 1.0f / fps);
-            require(delta.y == 0 && delta.x > 0, "Continuous positive X movement");
+            require(delta.y == 0 && delta.x >= 0, "Forward movement stops at approved endpoint");
             x += delta.x;
         }
         const float expected = c.BaseSpeed * 60;
@@ -70,10 +70,11 @@ int main()
 
     // 同じデータ変換・移動関数でJSON変更の反映を実測（配布JSON自体は変更しない）。
     auto adjusted = data;
-    adjusted["baseSpeed"] = 100; adjusted["playerSpeed"] = 200;
+    adjusted["trialEndX"] = 7968;
     const auto tune = phase1::Config::FromJson(adjusted);
-    require(phase1::BaseDisplacement(tune.BaseCenter.x, tune.TrialEndX, tune.BaseSpeed, 2).x == 200,
-        "Changed JSON speed produces 200u in 2s");
+    require(tune.TrialEndX - tune.BaseCenter.x == 7200 &&
+        phase1::BaseDisplacement(7967, tune.TrialEndX, tune.BaseSpeed, 2).x == 1,
+        "Approved JSON distance tuning changes endpoint");
     const auto rejected = [](const nlohmann::json& invalid) {
         try { phase1::Config::FromJson(invalid); }
         catch (const std::exception&) { return true; }
@@ -86,7 +87,7 @@ int main()
     }
     auto invalid = data; invalid["baseSpeed"] = 0;
     require(rejected(invalid), "Zero speed");
-    invalid = data; invalid["baseSpeed"] = 60; // P240 / B60 = 4、委任範囲外
+    invalid = data; invalid["baseSpeed"] = 60; // DEC-03は拠点80u/s固定
     require(rejected(invalid), "Invalid speed ratio");
     invalid = data; invalid["trialEndX"] = 20000;
     require(rejected(invalid), "Endpoint outside world");

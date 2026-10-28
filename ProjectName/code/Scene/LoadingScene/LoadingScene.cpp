@@ -6,6 +6,7 @@ import GameSystem.FrameRate;
 import MyLib.Loading;
 import MyLib.Loading.LoadingContext;
 import Scene.Title;
+import <stdexcept>;
 
 namespace scene
 {
@@ -29,7 +30,7 @@ namespace scene
         }
         else if (m_policy & LoadPolicy::DONE)
         {
-            m_nextScene = m_loadScene();
+            if (!BuildNextScene()) return;
             // タスク登録完了後に実行開始
             task::LoadingContext::Get()->Run();
         }
@@ -41,10 +42,31 @@ namespace scene
         task::LoadingContext::Release();
     }
 
+    bool LoadingScene::BuildNextScene()
+    {
+        try
+        {
+            m_nextScene = m_loadScene();
+            if (!m_nextScene) throw std::runtime_error("Scene builder returned null");
+            return true;
+        }
+        catch (const std::exception& error)
+        {
+            task::LoadingContext::Get()->ReportFailure(error.what());
+        }
+        catch (...)
+        {
+            task::LoadingContext::Get()->ReportFailure("Unknown scene construction failure");
+        }
+        // 未完成シーンはInitしない。登録途中のタスクも実行せず、破棄時に解放する。
+        m_failed = true;
+        return false;
+    }
+
     Coroutine LoadingScene::LoadCoroutine()
     {
         // 次シーンのローディング処理
-        m_nextScene = m_loadScene();
+        if (!BuildNextScene()) co_return;
 
         // タスク登録完了後に実行開始
         task::LoadingContext::Get()->Run();
@@ -71,8 +93,8 @@ namespace scene
         // 失敗理由をログ出力
         ErrorLogFmtAdd("Loading failed: %s", task::LoadingContext::Get()->FailureReason().c_str());
 
-        // タイトル自体の読み込み失敗(戻り先なし)は安全に終了
-        if (!m_holdScene)
+        // 戻り先なし・構築失敗は安全に終了し、未完成シーンへの遷移を避ける。
+        if (!m_holdScene || !m_nextScene)
         {
             return CmdQuit{};
         }
@@ -83,6 +105,7 @@ namespace scene
 
     SceneCmd LoadingScene::Update()
     {
+        if (m_failed) return OnLoadFailed();
         // ワーカーが予約した共有コンテナーの更新をメインスレッドで反映
         if (auto* loading = task::LoadingContext::Get())
         {
@@ -101,9 +124,8 @@ namespace scene
                     // 指定時間待機
                     if (auto waitPtr = std::get_if<WaitForSeconds>(&yieldType))
                     {
-                        static float elapsed = 0.0f;
-                        elapsed += gameSystem::FrameRate::GetDeltaTime();
-                        if (elapsed < waitPtr->seconds)
+                        m_waitElapsed += gameSystem::FrameRate::GetDeltaTime();
+                        if (m_waitElapsed < waitPtr->seconds)
                         {
                             return std::monostate{};
                         }
@@ -121,7 +143,8 @@ namespace scene
                     }
                 }
 
-                // コルーチン再開
+                // 次の待機区間・再開始へ経過時間を持ち越さない。
+                m_waitElapsed = 0;
                 m_coroutine.resume();
 
                 // コルーチン完了確認
