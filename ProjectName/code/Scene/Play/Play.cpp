@@ -7,6 +7,7 @@ module Scene.Play;
 import MyLib.KeyStatus;
 import Scene.Title;
 import Scene.Result;
+import Scene.LoadingScene;
 import Object.ObjectManager;
 import Object.Player;
 import Object.Enemy;
@@ -34,7 +35,11 @@ namespace scene
         {
             m_objManager->AddObject(new object::Player(true));
             m_objManager->AddObject(new object::Map(true));
-            m_objManager->AddObject(new object::MovingBase(m_trialFinished));
+            auto* base = new object::MovingBase;
+            m_objManager->AddObject(base);
+            m_stage.emplace(base->StartX(), base->EndX());
+            m_base = std::dynamic_pointer_cast<object::MovingBase>(
+                m_objManager->GetObjForTag(object::BASE).front());
             // DEC-02: 前方・上下側方の固定3体。継続出現は行わない。
             auto& files = AppCtx::FileSystem();
             const auto enemies = phase2::EnemyConfig::FromJson(files.jsonIO.Load(files.GetDataDir() / "EnemyConfig"));
@@ -67,22 +72,40 @@ namespace scene
         FrameRate::ResetSimulationTime();
     }
 
+    SceneCmd Play::Start(std::shared_ptr<SceneBase> hold, bool prototype)
+    {
+        return CmdReplace{ [hold = std::move(hold), prototype]() mutable {
+            return std::make_shared<LoadingScene>(LoadPolicy::PROGRESS,
+                [prototype]() { return std::make_shared<Play>(prototype); }, std::move(hold));
+        } };
+    }
+
     SceneCmd Play::Update()
     {
+        // 結果確定後に再度Updateが呼ばれても、攻撃・移動・遷移を繰り返さない。
+        if (m_stage && m_stage->Finished()) return std::monostate{};
         // オブジェクト更新
         m_objManager->Update();
 
-        // LateUpdate後に試行終端を判定。既存SceneCmdでTitleへ戻して次の試行で初期化する。
-        if (m_prototype && m_trialFinished)
-            return CmdReplace{ []() { return std::make_shared<Title>(); } };
-
-        if (m_prototype && input::KeyStatus::CheckKey(keyType.R, ON_PRESS))
-            return CmdReplace{ []() { return std::make_shared<Title>(); } };
+        // Stepの接触被害とLateUpdateがすべて反映された後に判定する。
+        if (m_stage)
+        {
+            const auto base = m_base.lock();
+            if (!base) return CmdQuit{}; // 拠点消失は通常の勝敗に偽装しない。
+            const auto end = m_stage->Advance(base->Center().x, base->Health(),
+                input::KeyStatus::CheckKey(keyType.R, ON_PRESS));
+            if (end == StageEnd::Success || end == StageEnd::Defeat)
+                return CmdReplace{ [result = m_stage->ResultValue()]() {
+                    return std::make_shared<Result>(result);
+                } };
+            if (end == StageEnd::Aborted)
+                return CmdReplace{ []() { return std::make_shared<Title>(); } };
+        }
 
         // クリア後の画面へ移動
         if (m_cleared)
         {
-            return CmdReplace{ [](){ return std::make_shared<Result>(); } };
+            return CmdReplace{ [](){ return std::make_shared<Result>(StageResult{StageEnd::Success, 100, 1}, false); } };
         }
 
         // 継続
@@ -94,7 +117,7 @@ namespace scene
         if (!m_prototype) DrawScrollingBackground();
         m_objManager->Draw();
         if (m_prototype)
-            DrawString(16, 16, "Phase 2 / auto attack / WASD or arrows: move / R: title",
+            DrawString(16, 16, "Auto attack / WASD or arrows: move / R: title",
                 GetColor(255, 255, 255));
     }
 

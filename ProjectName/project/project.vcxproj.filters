@@ -486,6 +486,11 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\code\Scene\Play\StageState.ixx">
+      <Filter>Scene\Play</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
     <ResourceCompile Include="project.rc" />
   </ItemGroup>
 </Project>

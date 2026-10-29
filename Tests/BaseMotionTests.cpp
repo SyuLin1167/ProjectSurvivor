@@ -1,4 +1,4 @@
-﻿#include <cmath>
+#include <cmath>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
@@ -91,6 +91,11 @@ int main()
     require(rejected(invalid), "Invalid speed ratio");
     invalid = data; invalid["trialEndX"] = 20000;
     require(rejected(invalid), "Endpoint outside world");
+    for (float end : {5567.0f, 7969.0f})
+    {
+        invalid = data; invalid["trialEndX"] = end;
+        require(rejected(invalid), "Reject distance outside DEC-03 delegation");
+    }
     invalid = data; invalid["baseCenterY"] = 0;
     require(rejected(invalid), "Base outside world");
     std::cout << "PASS: base motion, catch-up, endpoint, JSON values and rejection\n";
