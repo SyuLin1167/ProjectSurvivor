@@ -20,7 +20,7 @@ export namespace phase1
         math::Vector2f BaseSize{}; // 仮拠点の幅・高さ(u)
         float BaseSpeed{};     // Pとは独立した前進速度(u/s)
         math::Vector2f BaseCenter{}; // 拠点の初期中心(u)
-        float TrialEndX{};     // 試行終了の中心X(u)。正式なクリア条件ではない
+        float TrialEndX{};     // DEC-03試作の成功終端X(u)。既存JSONキーを維持
 
         /// <summary>JSONを読み込み、寸法・初期位置・承認された速度範囲を検証する。不正時は例外を送出する。</summary>
         /// <param name="data">Phase1Config.jsonの設定オブジェクト。</param>
@@ -67,6 +67,10 @@ export namespace phase1
                 c.BaseCenter.y > c.WorldHeight - c.BaseSize.y / 2 ||
                 c.TrialEndX <= c.BaseCenter.x || c.TrialEndX > c.WorldWidth - c.BaseSize.x / 2)
                 throw std::runtime_error("Phase1Config: invalid base rectangle or trial end");
+            // DEC-03の委任範囲。設定名は維持し、未承認の短縮・延長を拒否する。
+            const float distance = c.TrialEndX - c.BaseCenter.x;
+            if (distance < 4800 || distance > 7200)
+                throw std::runtime_error("Phase1Config: distance outside DEC-03 range");
             return c;
         }
     };

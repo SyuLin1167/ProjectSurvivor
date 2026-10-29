@@ -14,7 +14,7 @@ import <cmath>;
 
 namespace object
 {
-    MovingBase::MovingBase(bool& trialFinished) : m_trialFinished(trialFinished)
+    MovingBase::MovingBase()
     {
         m_config = phase1::Config::FromJson(gameSystem::AppCtx::FileSystem().jsonIO.Load(
             gameSystem::AppCtx::FileSystem().GetDataDir() / "Phase1Config"));
@@ -66,15 +66,12 @@ namespace object
     void MovingBase::LateUpdate()
     {
         m_pos = ColMgr().GetCollider(m_id)->GetColliderDef()->localPos;
-        if (Center().x >= m_config.TrialEndX)
-            m_trialFinished = true;
     }
 
     void MovingBase::Draw()
     {
         // 正式HUDではなく、画面外でも放置と防衛を比較するための試作表示。
-        DrawFormatString(16, 146, GetColor(255, 190, 80), "BASE HP: %.0f / 100%s",
-            m_health, m_health == 0 ? " (prototype: movement continues)" : "");
+        DrawFormatString(16, 146, GetColor(255, 190, 80), "BASE HP: %.0f / 100", m_health);
         const auto size = m_config.BaseSize;
         const auto screen = gameSystem::Window::GetWindowData()->SIZE;
         const shape::Rect viewport{{0, 0}, {static_cast<float>(screen.x), static_cast<float>(screen.y)}};

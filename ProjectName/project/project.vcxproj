@@ -169,6 +169,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\code\Scene\Play\StageState.ixx" />
     <ClCompile Include="..\code\Phase1Config.ixx" />
     <ClCompile Include="..\code\Object\Character\Player\PlayerAttackConfig.ixx" />
     <ClCompile Include="..\code\Object\Character\Enemy\EnemyConfig.ixx" />

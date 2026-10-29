@@ -2,6 +2,9 @@
 import Scene.SceneBase;
 import MyLib.Math.Vector2;
 import Asset.Graph;
+import Scene.StageState;
+import Object.MovingBase;
+import <optional>;
 
 /// <summary>
 /// シーン関連
@@ -41,6 +44,12 @@ export namespace scene
         /// </summary>
         void Draw() override;
 
+        /// <summary>StartとRetry共通の読み込み経路で、新しいPlayへの遷移を要求する。</summary>
+        /// <param name="hold">読み込み中の表示を保持する元シーン。</param>
+        /// <param name="prototype">既存の試作経路を使用する場合true。</param>
+        /// <returns>LoadingSceneへ置き換えるコマンド。</returns>
+        static SceneCmd Start(std::shared_ptr<SceneBase> hold, bool prototype = true);
+
     private:
         /// <summary>
         /// スクロール背景描画
@@ -50,6 +59,7 @@ export namespace scene
 
         bool m_cleared;     // クリアフラグ
         bool m_prototype;
-        bool m_trialFinished = false; // Phase 1試行の終端。正式な勝敗とは分離
+        std::optional<StageState> m_stage; // 新規Playごとの進行・終了状態
+        std::weak_ptr<object::MovingBase> m_base; // 所有はObjectManagerに限定
     };
 }

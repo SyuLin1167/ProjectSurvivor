@@ -2,6 +2,8 @@
 #include <cstdlib>
 #include <iostream>
 #include <filesystem>
+#include <chrono>
+#include <thread>
 
 import Collider.ColliderManager;
 import Collider;
@@ -23,6 +25,9 @@ import GameSystem.FrameRate;
 import AppContext;
 import Scene.LoadingScene;
 import Scene.SceneBase;
+import Scene.Play;
+import Scene.Result;
+import Scene.StageState;
 import <stdexcept>;
 
 /// <summary>回帰条件に失敗した場合は理由を表示してテストを終了する。</summary>
@@ -131,9 +136,8 @@ void VerifyEnemyPursuit()
         if (changed) { data["speed"] = 140; data["spawnCenters"][0]["x"] = 1344; }
         const auto config = phase2::EnemyConfig::FromJson(data);
         dt = 1.0f / fps;
-        bool finished = false;
         object::ObjectManager objects;
-        auto* base = new object::MovingBase(finished);
+        auto* base = new object::MovingBase();
         objects.AddObject(base);
         for (auto position : config.SpawnCenters)
             objects.AddObject(new object::Enemy(position, config));
@@ -286,9 +290,8 @@ void VerifyContactDamage()
     const auto previousDt = dt;
     for (int fps : {30, 60, 120})
     {
-        bool finished = false;
         object::ObjectManager objects;
-        auto* base = new object::MovingBase(finished);
+        auto* base = new object::MovingBase();
         objects.AddObject(base);
         objects.AddObject(new object::Enemy({832, 2048}, config)); // 正面から接触。
         objects.AddObject(new object::Enemy({704, 2048}, config)); // 背後から接触。
@@ -309,8 +312,8 @@ void VerifyContactDamage()
             for (const auto& enemy : objects.GetObjForTag(object::ENEMY))
                 RequireOutsideBase(*std::dynamic_pointer_cast<object::Enemy>(enemy), *base);
         }
-        require(base->Health() == 0 && std::abs(base->Center().x - 1168) < 0.1f && !finished,
-            "HP stops at zero while movement continues without defeat");
+        require(base->Health() == 0 && std::abs(base->Center().x - 1168) < 0.1f,
+            "Object-only update clamps HP; Play owns the stop decision");
         require(!base->TakeDamage(10), "Zero HP rejects additional damage");
         objects.RemoveObject(base);
         objects.Update(); // 接触中の標的破棄後にも弱参照を安全に扱う。
@@ -318,9 +321,8 @@ void VerifyContactDamage()
     }
     {
         // タイマーの再接触・遅延を、実Colliderの移動で再現する。専用の本番APIは増やさない。
-        bool finished = false;
         col2d::ColliderManager colliders;
-        auto base = std::make_shared<object::MovingBase>(finished);
+        auto base = std::make_shared<object::MovingBase>();
         base->SetColliderManager(&colliders);
         base->Init();
         object::Enemy enemy({768, 2048}, config);
@@ -374,10 +376,9 @@ void VerifyContactDamage()
         enemy.Update(); circle->SetVelocity({}); colliders.Step(); enemy.LateUpdate();
     }
     {
-        bool finished = false;
         object::ObjectManager objects;
         auto* player = new object::Player(true);
-        auto* base = new object::MovingBase(finished);
+        auto* base = new object::MovingBase();
         auto* enemy = new object::Enemy({720, 2048}, config);
         objects.AddObject(player); objects.AddObject(base); objects.AddObject(enemy);
         objects.InitBeforeUpdate();
@@ -433,18 +434,17 @@ void VerifyFreshPlayObjects()
     {
         std::weak_ptr<object::GameObject> oldEnemy;
         {
-            bool finished = false;
             object::ObjectManager objects;
             auto* player = new object::Player(true);
-            auto* base = new object::MovingBase(finished);
+            auto* base = new object::MovingBase();
             auto* nearby = new object::Enemy({512, 2048}, config);
             auto* touching = new object::Enemy({768, 2048}, config);
             objects.AddObject(player); objects.AddObject(base);
             objects.AddObject(nearby); objects.AddObject(touching);
             objects.InitBeforeUpdate();
             require(player->Center().x == 512 && base->Center().x == 768 &&
-                base->Health() == 100 && nearby->Health() == 30 && !finished,
-                "Fresh positions, HP and endpoint state");
+                base->Health() == 100 && nearby->Health() == 30,
+                "Fresh positions and HP");
             oldEnemy = objects.GetObjForTag(object::ENEMY).front();
             dt = 0;
             objects.Update();
@@ -469,6 +469,108 @@ void VerifyFreshPlayObjects()
     std::cout << "PASS: three fresh object lifetimes, HP, timers and camera\n";
 }
 
+/// <summary>勝敗・閾値・R競合・結果固定と、実Playの終了から新規開始を検証する。</summary>
+void VerifyStageEnd()
+{
+    using scene::StageEnd;
+    for (float endpoint : {5568.0f, 7968.0f})
+    {
+        scene::StageState stage(768, endpoint);
+        require(stage.Distance() == 0 && stage.RemainingDistance() == endpoint - 768 &&
+            !stage.Finished(), "Fresh stage progress and result");
+        const float before = std::nextafter(endpoint, 0.0f);
+        require(stage.Advance(before, 1, false) == StageEnd::None &&
+            stage.ResultValue().progress < 1 && stage.RemainingDistance() > 0,
+            "Immediately before endpoint is not success or 100 percent");
+        require(stage.Advance(endpoint, 1, true) == StageEnd::Success,
+            "Exact endpoint success takes priority over R");
+        require(stage.Advance(768, 0, true) == StageEnd::None &&
+            stage.ResultValue().outcome == StageEnd::Success && stage.ResultValue().health == 1 &&
+            stage.ResultValue().progress == 1, "Result emitted once and never overwritten");
+        scene::StageState overshoot(768, endpoint);
+        require(overshoot.Advance(endpoint + 1, 100, false) == StageEnd::Success &&
+            overshoot.RemainingDistance() == 0 && overshoot.Distance() == endpoint - 768,
+            "Overshoot clamps progress and remaining distance");
+        for (float hp : {0.0f, -1.0f})
+        {
+            scene::StageState simultaneous(768, endpoint);
+            require(simultaneous.Advance(endpoint, hp, true) == StageEnd::Defeat &&
+                simultaneous.ResultValue().health == 0, "Defeat precedes success and R");
+        }
+        scene::StageState defeat(768, endpoint);
+        require(defeat.Advance(868, 0, true) == StageEnd::Defeat && defeat.Distance() == 100,
+            "Defeat preserves partial progress");
+        scene::StageState abort(768, endpoint);
+        require(abort.Advance(868, 100, true) == StageEnd::Aborted,
+            "R interrupts unfinished play without a win or defeat");
+    }
+
+    gameSystem::AppCtx::Activate();
+    auto& files = gameSystem::AppCtx::FileSystem();
+    std::filesystem::copy_file("ProjectName/resources/data/EnemyConfig.json",
+        files.GetDataDir() / "EnemyConfig.json", std::filesystem::copy_options::overwrite_existing);
+    auto& dt = const_cast<float&>(gameSystem::FrameRate::GetDeltaTime());
+    const float previousDt = dt;
+    // 固定配置の実Playを無操作で敗北まで進め、Resultへ値だけが渡ることを確認する。
+    // そのResultを保持してStart/Retry共通の実LoadingSceneを通し、2回目も同条件に戻す。
+    int firstFrames = 0;
+    float firstProgress = 0;
+    std::shared_ptr<scene::Play> play = std::make_shared<scene::Play>();
+    for (int trial = 0; trial < 2; ++trial)
+    {
+        play->Init();
+        dt = 1.0f / 60;
+        scene::SceneCmd command;
+        int frames = 0;
+        while (std::holds_alternative<std::monostate>(command) && frames < 6000)
+        {
+            command = play->Update();
+            ++frames;
+        }
+        auto* replace = std::get_if<scene::CmdReplace>(&command);
+        require(replace != nullptr, "Actual fixed-enemy play reaches result");
+        auto result = std::dynamic_pointer_cast<scene::Result>(replace->build());
+        require(result && result->ResultValue().outcome == StageEnd::Defeat &&
+            result->ResultValue().health == 0 && result->ResultValue().progress < 1,
+            "Actual contact damage ends play as defeat");
+        for (int frame = 0; frame < 60; ++frame)
+            require(std::holds_alternative<std::monostate>(play->Update()),
+                "Finished Play never updates or issues another transition");
+        const auto snapshot = result->ResultValue();
+        if (trial == 0) { firstFrames = frames; firstProgress = snapshot.progress; }
+        else require(frames == firstFrames && snapshot.progress == firstProgress,
+            "Restart restores HP, positions, attack timers and progress to the same result");
+        play.reset();
+        command = std::monostate{};
+        require(result->ResultValue().progress == snapshot.progress,
+            "Result survives old Play destruction by value");
+        std::cout << "Stage trial=" << trial << " defeat frame=" << frames
+                  << " progress=" << snapshot.progress << " HP=" << snapshot.health << '\n';
+        if (trial == 0)
+        {
+            auto retry = scene::Play::Start(result);
+            auto loading = std::get<scene::CmdReplace>(retry).build();
+            retry = std::monostate{};
+            result.reset();
+            scene::SceneCmd ready;
+            const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+            while (std::holds_alternative<std::monostate>(ready) && std::chrono::steady_clock::now() < deadline)
+            {
+                dt = 1.0f / 60;
+                ready = loading->Update();
+                std::this_thread::yield();
+            }
+            auto* loaded = std::get_if<scene::CmdReplace>(&ready);
+            require(loaded != nullptr, "Shared Start/Retry loading completes");
+            play = std::dynamic_pointer_cast<scene::Play>(loaded->build());
+            require(play != nullptr, "Retry builds a new Play");
+        }
+    }
+    dt = previousDt;
+    gameSystem::AppCtx::Deactivate();
+    std::cout << "PASS: stage threshold, defeat/R priority, result latch and actual restart\n";
+}
+
 /// <summary>既存処理を用いて、このテストが担当する回帰条件を検証する。</summary>
 /// <returns>全条件が成功すると0。不成立時はrequireから終了コード1で終了する。</returns>
 int main() try
@@ -480,6 +582,7 @@ int main() try
     VerifyContactDamage();
     VerifySimulationTime();
     VerifyFreshPlayObjects();
+    VerifyStageEnd();
     // clampの回帰はテスト用の関数へ切り出さず、実Cameraに対して確認する。
     auto& boundaryCamera = gameSystem::Camera::Instance();
     math::Vector2f farCenter{16960, 4540};

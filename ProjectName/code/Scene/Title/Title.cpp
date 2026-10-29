@@ -7,7 +7,6 @@ import MyLib.Math.Vector2;
 import MyLib.Shape.Rect;
 import MyLib.KeyStatus;
 import MyLib.Loading.LoadingContext;
-import Scene.LoadingScene;
 import Scene.Play;
 import Asset.Graph;
 import UI.Button;
@@ -58,17 +57,11 @@ namespace scene
                 return CmdQuit{};
             }
         }
-        //Eキーが押されていたらシーン移動
+        // Startボタンが押されたらシーン移動
         if (m_toNextScene)
         {
-            // ローディングシーンへ移動
-            return CmdReplace{
-                [hold = shared_from_this()]() mutable {
-                    return std::make_shared<LoadingScene>(LoadPolicy::PROGRESS,
-                        []() { return std::make_shared<Play>(); },
-                        std::move(hold));
-                }
-            };
+            // Retryと同じ経路で毎回新規Playを生成する。
+            return Play::Start(shared_from_this());
         }
 
         // Exitボタンが押されていたら終了要求
