@@ -11,6 +11,7 @@ import UI.Button;
 import MyLib.Shape.Rect;
 import GameSystem.Window;
 import UI.PlayHud;
+import UI.DisplayElements;
 
 namespace scene
 {
@@ -18,6 +19,13 @@ namespace scene
         : m_result(result), m_retryPrototype(retryPrototype)
     {
         const float centerX = gameSystem::Window::GetWindowData()->SIZE.x / 2.0f;
+        const float x = centerX - 160;
+        const auto heading = m_hudManager.Create<ui::TextLabel>(m_result.outcome == StageEnd::Success ? "SUCCESS" : "DEFEAT");
+        m_hudManager.GetElement(heading)->SetPosition({x, 400});
+        const auto status = m_hudManager.Create<ui::StageStatus>(m_result.health, m_result.progress);
+        m_hudManager.GetElement(status)->SetPosition({x, 450});
+        const auto controls = m_hudManager.Create<ui::TextLabel>("Click Retry or Title");
+        m_hudManager.GetElement(controls)->SetPosition({x, 550});
         ui::ButtonDef retry("Retry", shape::Rect{{centerX - 160, 600}, {140, 50}}, GetColor(150, 180, 220));
         retry.onReleased = [this]() { m_toRetry = true; };
         m_retryButtonID = gameSystem::AppCtx::UIMgr().Create<ui::Button>(&retry);
@@ -53,12 +61,7 @@ namespace scene
 
     void Result::Draw()
     {
-        const int x = gameSystem::Window::GetWindowData()->SIZE.x / 2 - 160;
-        const auto color = GetColor(255, 255, 255);
-        DrawString(x, 400, m_result.outcome == StageEnd::Success ? "SUCCESS" : "DEFEAT", color);
-        // 生きたObjectを読み直さず、確定値をPlayと共通の表示へ渡す。
-        ui::DrawStageStatus(m_result.health, m_result.progress, x, 450);
-        DrawString(x, 550, "Click Retry or Title", color);
+        m_hudManager.Draw();
         gameSystem::AppCtx::UIMgr().Draw();
     }
 }

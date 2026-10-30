@@ -3,6 +3,7 @@
 #include <cmath>
 
 export module UI.PlayHud;
+import UI.UIBase;
 import MyLib.Math.Vector2;
 import MyLib.Shape.Rect;
 
@@ -62,8 +63,33 @@ export namespace ui
     /// <param name="y">画面上の上端（px）。</param>
     void DrawStageStatus(float health, float progress, int x, int y);
 
-    /// <summary>状態・距離・操作を画面座標で重ね、既存マーカーを再利用する。</summary>
-    /// <param name="values">同フレームの実状態から作った表示値。</param>
-    /// <param name="baseScreenRect">Cameraで変換済みの拠点矩形。</param>
-    void DrawPlayHud(const HudValues& values, const shape::Rect& baseScreenRect);
+    /// <summary>UIManagerが所有するプレイHUD。ゲーム参照を持たず、そのフレームの値だけを保持する。</summary>
+    class PlayHud final : public UIBase
+    {
+    public:
+        /// <summary>描画直前に表示値を更新する。</summary>
+        /// <param name="values">現在の実状態。</param>
+        /// <param name="baseScreenRect">Cameraで変換済みの拠点矩形。</param>
+        void SetValues(const HudValues& values, const shape::Rect& baseScreenRect)
+        { m_values = values; m_baseScreenRect = baseScreenRect; }
+        /// <summary>背景、数値、方向、操作案内を順に描く。</summary>
+        void Draw() override;
+    private:
+        HudValues m_values{};
+        shape::Rect m_baseScreenRect{};
+    };
+
+    /// <summary>確定したHPと進行率を表示するUI要素。</summary>
+    class StageStatus final : public UIBase
+    {
+    public:
+        /// <summary>確定値をコピーして保持する。</summary>
+        /// <param name="health">終了時HP。</param>
+        /// <param name="progress">終了時進行率（0〜1）。</param>
+        StageStatus(float health, float progress) : m_health(health), m_progress(progress) {}
+        /// <summary>プレイ中と共通の形式で確定値を描く。</summary>
+        void Draw() override;
+    private:
+        float m_health, m_progress;
+    };
 }

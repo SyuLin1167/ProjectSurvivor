@@ -34,6 +34,7 @@ namespace scene
     {
         if (m_prototype)
         {
+            m_hudID = m_hudManager.Create<ui::PlayHud>();
             m_objManager->AddObject(new object::Player(true));
             m_player = std::dynamic_pointer_cast<object::Player>(
                 m_objManager->GetObjForTag(object::PLAYER).front());
@@ -129,7 +130,9 @@ namespace scene
                 const auto result = m_stage->ResultValue();
                 const auto hud = ui::MakeHudValues(base->Health(), result.progress,
                     m_stage->Distance(), m_stage->RemainingDistance(), base->Center() - player->Center());
-                ui::DrawPlayHud(hud, {Camera::Instance().WorldToScreen(base->Center() - base->Size().Half()), base->Size()});
+                if (auto* element = dynamic_cast<ui::PlayHud*>(m_hudManager.GetElement(m_hudID)))
+                    element->SetValues(hud, {Camera::Instance().WorldToScreen(base->Center() - base->Size().Half()), base->Size()});
+                m_hudManager.Draw();
             }
         }
     }

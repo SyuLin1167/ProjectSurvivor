@@ -29,6 +29,8 @@ import Scene.Play;
 import Scene.Result;
 import Scene.StageState;
 import UI.PlayHud;
+import UI.DisplayElements;
+import UI.UIManager;
 import <stdexcept>;
 
 /// <summary>回帰条件に失敗した場合は理由を表示してテストを終了する。</summary>
@@ -635,6 +637,27 @@ int main() try
     VerifySimulationTime();
     VerifyFreshPlayObjects();
     VerifyStageEnd();
+    // UIManager経由の再利用要素とClear後の値リセットを検証する。描画は手動確認する。
+    ui::UIManager hudManager;
+    const auto labelID = hudManager.Create<ui::TextLabel>("HP 50%");
+    auto* label = dynamic_cast<ui::TextLabel*>(hudManager.GetElement(labelID));
+    require(label && label->Text() == "HP 50%", "UI text is preserved literally");
+    label->SetText("HP 0%");
+    require(label->Text() == "HP 0%", "UI text replacement");
+    const auto gaugeID = hudManager.Create<ui::Gauge>();
+    auto* gauge = dynamic_cast<ui::Gauge*>(hudManager.GetElement(gaugeID));
+    gauge->SetValue(25, 50);
+    require(gauge->Ratio() == 0.5f, "Gauge supports non-HP maximum");
+    gauge->SetValue(60, 50);
+    require(gauge->Ratio() == 1, "Gauge clamps overflow");
+    gauge->SetValue(-10, 50);
+    require(gauge->Ratio() == 0, "Gauge clamps underflow");
+    gauge->SetValue(10, 0);
+    require(gauge->Ratio() == 0, "Gauge invalid maximum is empty");
+    hudManager.Clear();
+    require(!hudManager.GetElement(labelID) && !hudManager.GetElement(gaugeID), "HUD IDs expire on clear");
+    const auto freshGauge = hudManager.Create<ui::Gauge>();
+    require(dynamic_cast<ui::Gauge*>(hudManager.GetElement(freshGauge))->Ratio() == 0, "Fresh gauge has no previous state");
     VerifyHudAndPlayerContact();
     // clampの回帰はテスト用の関数へ切り出さず、実Cameraに対して確認する。
     auto& boundaryCamera = gameSystem::Camera::Instance();
