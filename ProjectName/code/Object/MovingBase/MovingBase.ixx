@@ -1,7 +1,6 @@
 ﻿export module Object.MovingBase;
 import Object.GameObject;
 import Phase1.Config;
-import Object.Player;
 
 export namespace object
 {
@@ -13,16 +12,13 @@ export namespace object
         MovingBase();
         /// <summary>所有するコライダーを解放する。</summary>
         ~MovingBase();
-        /// <summary>距離表示用に単一プレイヤーへの弱参照を取得する。</summary>
-        /// <param name="referenceObj">タグに一致するオブジェクト一覧を取得する関数。</param>
-        void GetReferenceObject(std::function<std::vector<std::shared_ptr<GameObject>>(uint32_t)> referenceObj) override;
         /// <summary>承認された中心座標から拠点矩形とコライダーを初期化する。</summary>
         void Init() override;
         /// <summary>時間に応じた前進量をコライダーへ渡す。</summary>
         void Update() override;
         /// <summary>衝突処理後の座標を読み戻す。</summary>
         void LateUpdate() override;
-        /// <summary>可視の拠点と、方向・距離の試作表示を描画する。</summary>
+        /// <summary>可視の拠点矩形を描画する。画面座標のHUDはPlayが担当する。</summary>
         void Draw() override;
         /// <summary>拠点の更新・参照に使用するタグを返す。</summary>
         /// <returns>拠点を識別するObjectTag::BASE。</returns>
@@ -44,9 +40,11 @@ export namespace object
         /// <summary>開始時に読み込んだ終端Xを返す。</summary>
         /// <returns>終端X（u）。</returns>
         float EndX() const { return m_config.TrialEndX; }
+        /// <summary>表示領域と画面外マーカーの計算に使う寸法を返す。</summary>
+        /// <returns>拠点の幅・高さ（u）。</returns>
+        math::Vector2f Size() const { return m_config.BaseSize; }
     private:
         float m_health = 100.0f; // DEC-02固定値。Phase 2では調整権限なし。
-        std::weak_ptr<Player> m_player; // ObjectManager所有。参照で寿命を延ばさない。
         phase1::Config m_config{}; // Phase 1試作設定（u / u/s）
         col2d::ColliderID m_id{};
     };

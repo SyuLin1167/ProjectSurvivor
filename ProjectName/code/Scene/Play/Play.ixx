@@ -4,6 +4,7 @@ import MyLib.Math.Vector2;
 import Asset.Graph;
 import Scene.StageState;
 import Object.MovingBase;
+import Object.Player;
 import <optional>;
 
 /// <summary>
@@ -60,6 +61,7 @@ export namespace scene
         bool m_cleared;     // クリアフラグ
         bool m_prototype;
         std::optional<StageState> m_stage; // 新規Playごとの進行・終了状態
+        std::weak_ptr<object::Player> m_player; // HUD用。所有権を延長しない。
         std::weak_ptr<object::MovingBase> m_base; // 所有はObjectManagerに限定
     };
 }

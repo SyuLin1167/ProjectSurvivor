@@ -28,6 +28,7 @@ import Scene.SceneBase;
 import Scene.Play;
 import Scene.Result;
 import Scene.StageState;
+import UI.PlayHud;
 import <stdexcept>;
 
 /// <summary>回帰条件に失敗した場合は理由を表示してテストを終了する。</summary>
@@ -571,6 +572,57 @@ void VerifyStageEnd()
     std::cout << "PASS: stage threshold, defeat/R priority, result latch and actual restart\n";
 }
 
+/// <summary>HUDの値と丸め、方向、Pと移動拠点の非貫通を既存Colliderで確認する。</summary>
+void VerifyHudAndPlayerContact()
+{
+    const auto initial = ui::MakeHudValues(100, 0, 0, 4800, {256, 0});
+    require(initial.health == 100 && initial.distance == 0 && initial.remaining == 4800 &&
+        initial.baseDistance == 256 && !initial.isNear && ui::ProgressPercent(initial.progress) == 0,
+        "Initial HUD uses stage values");
+    const auto damaged = ui::MakeHudValues(40, 0.5f, 2400, 2400, {0, -128});
+    require(damaged.health == 40 && damaged.distance == 2400 && damaged.isNear &&
+        ui::ProgressPercent(damaged.progress) == 50 && std::string(ui::DirectionText(damaged.toBase)) == "UP",
+        "Damage, travel and NEAR reflect actual values");
+    require(!ui::MakeHudValues(0, 0, 0, 4800, {129, 0}).isNear &&
+        ui::ProgressPercent(std::nextafter(1.0f, 0.0f)) == 99 && ui::ProgressPercent(1) == 100,
+        "HUD boundary never reports early arrival");
+    require(std::string(ui::DirectionText({1, 1})) == "DOWN-RIGHT" &&
+        std::string(ui::DirectionText({-1, -1})) == "UP-LEFT" &&
+        std::string(ui::DirectionText({0, 0})) == "HERE", "HUD world direction convention");
+
+    for (int fps : {30, 60, 120})
+        for (bool reverse : {false, true})
+            for (int side = 0; side < 5; ++side)
+            {
+                col2d::ColliderManager manager;
+                col2d::ColliderDef b{}, p{};
+                b.localPos = {720, 2016}; b.isActive = true; b.isTrigger = false;
+                // 右側で静止／左から追突／上下から侵入／同じ深さの角接触を再現する。
+                const math::Vector2f starts[] = {{816,2032}, {688,2032}, {752,1984}, {752,2080}, {810,2074}};
+                const math::Vector2f speeds[] = {{0,0}, {240,0}, {0,240}, {0,-240}, {0,0}};
+                p.localPos = starts[side]; p.isActive = true; p.isTrigger = false; p.contactAfterMove = true;
+                col2d::ColliderID base, player;
+                if (reverse) player = manager.CreateRectCollider(&p, {32,32}, object::PLAYER);
+                base = manager.CreateRectCollider(&b, {96,64}, object::BASE);
+                if (!reverse) player = manager.CreateRectCollider(&p, {32,32}, object::PLAYER);
+                manager.AddMask(player, col2d::RECT, object::BASE);
+                for (int frame = 0; frame < fps; ++frame)
+                {
+                    manager.GetCollider(base)->SetVelocity({80.0f/fps,0});
+                    manager.GetCollider(player)->SetVelocity(speeds[side] / static_cast<float>(fps));
+                    manager.Step();
+                    const auto bp = manager.GetCollider(base)->GetColliderDef()->localPos;
+                    const auto pp = manager.GetCollider(player)->GetColliderDef()->localPos;
+                    const float overlapX = (std::min)(bp.x+96, pp.x+32) - (std::max)(bp.x, pp.x);
+                    const float overlapY = (std::min)(bp.y+64, pp.y+32) - (std::max)(bp.y, pp.y);
+                    require(overlapX <= 0.001f || overlapY <= 0.001f, "Player does not penetrate moving base");
+                    require(std::abs(bp.x - (720 + 80.0f*(frame+1)/fps)) < 0.02f && bp.y == 2016,
+                        "Player contact never stops or displaces base");
+                }
+            }
+    std::cout << "PASS: HUD values, threshold, direction; player/base contact at 30/60/120fps\n";
+}
+
 /// <summary>既存処理を用いて、このテストが担当する回帰条件を検証する。</summary>
 /// <returns>全条件が成功すると0。不成立時はrequireから終了コード1で終了する。</returns>
 int main() try
@@ -583,6 +635,7 @@ int main() try
     VerifySimulationTime();
     VerifyFreshPlayObjects();
     VerifyStageEnd();
+    VerifyHudAndPlayerContact();
     // clampの回帰はテスト用の関数へ切り出さず、実Cameraに対して確認する。
     auto& boundaryCamera = gameSystem::Camera::Instance();
     math::Vector2f farCenter{16960, 4540};

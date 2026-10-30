@@ -8,6 +8,7 @@ import MyLib.KeyStatus;
 import Scene.Title;
 import Scene.Result;
 import Scene.LoadingScene;
+import UI.PlayHud;
 import Object.ObjectManager;
 import Object.Player;
 import Object.Enemy;
@@ -34,6 +35,8 @@ namespace scene
         if (m_prototype)
         {
             m_objManager->AddObject(new object::Player(true));
+            m_player = std::dynamic_pointer_cast<object::Player>(
+                m_objManager->GetObjForTag(object::PLAYER).front());
             m_objManager->AddObject(new object::Map(true));
             auto* base = new object::MovingBase;
             m_objManager->AddObject(base);
@@ -116,9 +119,19 @@ namespace scene
     {
         if (!m_prototype) DrawScrollingBackground();
         m_objManager->Draw();
-        if (m_prototype)
-            DrawString(16, 16, "Auto attack / WASD or arrows: move / R: title",
-                GetColor(255, 255, 255));
+        if (m_stage)
+        {
+            const auto base = m_base.lock();
+            const auto player = m_player.lock();
+            if (base && player)
+            {
+                // 初回描画も含め、そのPlayの実値を読む。共有・静的なHUD状態を残さない。
+                const auto result = m_stage->ResultValue();
+                const auto hud = ui::MakeHudValues(base->Health(), result.progress,
+                    m_stage->Distance(), m_stage->RemainingDistance(), base->Center() - player->Center());
+                ui::DrawPlayHud(hud, {Camera::Instance().WorldToScreen(base->Center() - base->Size().Half()), base->Size()});
+            }
+        }
     }
 
     void Play::DrawScrollingBackground(float parallax)

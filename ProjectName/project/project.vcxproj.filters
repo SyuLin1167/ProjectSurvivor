@@ -491,6 +491,10 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\code\UI\PlayHud\PlayHud.ixx" />
+    <ClCompile Include="..\code\UI\PlayHud\PlayHud.cpp" />
+  </ItemGroup>
+  <ItemGroup>
     <ResourceCompile Include="project.rc" />
   </ItemGroup>
 </Project>

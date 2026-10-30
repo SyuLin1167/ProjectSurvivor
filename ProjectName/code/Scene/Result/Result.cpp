@@ -10,6 +10,7 @@ import AppContext;
 import UI.Button;
 import MyLib.Shape.Rect;
 import GameSystem.Window;
+import UI.PlayHud;
 
 namespace scene
 {
@@ -55,9 +56,8 @@ namespace scene
         const int x = gameSystem::Window::GetWindowData()->SIZE.x / 2 - 160;
         const auto color = GetColor(255, 255, 255);
         DrawString(x, 400, m_result.outcome == StageEnd::Success ? "SUCCESS" : "DEFEAT", color);
-        DrawFormatString(x, 450, color, "BASE HP: %.0f / 100", m_result.health);
-        // 到達直前の敗北を100%と表示しない。内部値で判定し、表示は切り捨てる。
-        DrawFormatString(x, 490, color, "PROGRESS: %d%%", static_cast<int>(std::floor(m_result.progress * 100)));
+        // 生きたObjectを読み直さず、確定値をPlayと共通の表示へ渡す。
+        ui::DrawStageStatus(m_result.health, m_result.progress, x, 450);
         DrawString(x, 550, "Click Retry or Title", color);
         gameSystem::AppCtx::UIMgr().Draw();
     }
