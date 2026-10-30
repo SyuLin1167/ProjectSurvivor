@@ -1,4 +1,4 @@
-module Collider.RectColliderResolver;
+﻿module Collider.RectColliderResolver;
 import Collider.RectCollider;
 import Collider.CircleCollider;
 import MyLib.Math.Vector2;
@@ -25,8 +25,9 @@ namespace col2d
         float dx = (std::abs(diffX.x) < std::abs(diffX.y)) ? diffX.x : diffX.y;
         float dy = (std::abs(diffY.x) < std::abs(diffY.y)) ? diffY.x : diffY.y;
 
-        // 対角同値は何もしない
-        if (std::abs(dx) == std::abs(dy))
+        // 移動後の非貫通解決では停止中も押し戻す。同値はXへ固定し、角の残留を防ぐ。
+        const bool afterMove = issue.GetColliderDef()->contactAfterMove;
+        if (!afterMove && std::abs(dx) == std::abs(dy))
         {
             return std::nullopt;
         }
@@ -34,10 +35,10 @@ namespace col2d
         ContactInfo info{};
 
         // 最も近い方向に押し戻す
-        if (std::abs(dx) < std::abs(dy))
+        if (std::abs(dx) <= std::abs(dy))
         {
             // 同じ方向への押し戻しは受け付けないようにする
-            if ((dx < 0 && issue.GetVelocity().x > 0) || (dx > 0 && issue.GetVelocity().x < 0))
+            if (afterMove || (dx < 0 && issue.GetVelocity().x > 0) || (dx > 0 && issue.GetVelocity().x < 0))
             {
                 issue.AddVelocity(Vector2f(dx, 0.0f));
             }
@@ -51,7 +52,7 @@ namespace col2d
         else
         {
             // 同じ方向への押し戻しは受け付けないようにする
-            if ((dy < 0 && issue.GetVelocity().y > 0) || (dy > 0 && issue.GetVelocity().y < 0))
+            if (afterMove || (dy < 0 && issue.GetVelocity().y > 0) || (dy > 0 && issue.GetVelocity().y < 0))
             {
                 issue.AddVelocity(Vector2f(0.0f, dy));
             }

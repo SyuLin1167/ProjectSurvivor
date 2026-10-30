@@ -112,8 +112,11 @@ namespace object
             ColliderDef def{};
             def.localPos = m_pos;
             def.isActive = true;
+            def.isTrigger = false;
+            def.contactAfterMove = true;
             id = ColMgr().CreateRectCollider(&def, pData.size, MyObjectTag());
-            // 空き地では衝突マスクを使わず、Updateで矩形全体をマップ境界に制限する。
+            // 拠点側は解決しない。移動後にPだけを押し戻し、拠点の自動前進を維持する。
+            ColMgr().AddMask(id, col2d::RECT, ObjectTag::BASE);
             return;
         }
 
@@ -251,16 +254,11 @@ namespace object
             const auto hit = Camera::Instance().WorldToScreen(target ? target->Center() : m_lastHitCenter);
             DrawCircle(static_cast<int>(hit.x), static_cast<int>(hit.y), 22, GetColor(255, 255, 255), false);
         }
-        DrawFormatString(16, 120, GetColor(255, 255, 255), "AUTO: %.0fu / %.0f damage / %.2fs",
-            m_attack.Range, m_attack.Damage, m_attack.Interval);
         const auto p = Camera::Instance().WorldToScreen(m_pos);
         DrawBox(static_cast<int>(p.x), static_cast<int>(p.y),
             static_cast<int>(p.x + pData.size.x), static_cast<int>(p.y + pData.size.y),
             GetColor(40, 140, 255), true);
         DrawString(static_cast<int>(p.x + 10), static_cast<int>(p.y + 6),
             "P", GetColor(255, 255, 255));
-        DrawFormatString(16, 40, GetColor(255, 255, 255),
-            "P center: (%.2f, %.2f) u   speed: %.0f u/s",
-            m_cameraCenter.x, m_cameraCenter.y, pData.moveSpeed.x);
     }
 }

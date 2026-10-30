@@ -2,6 +2,7 @@
 #include <DxLib.h>
 
 module GameSystem.FrameRate;
+import GameSystem.Window;
 import <algorithm>;
 
 namespace gameSystem
@@ -38,8 +39,8 @@ namespace gameSystem
 #ifdef _DEBUG
     void FrameRate::DrawFrameRate()
     {
-        printfDx("deltaTime: %f", FrameRate::GetDeltaTime());
-        printfDx("fps: %3.1f", Instance().m_fps);
+        DrawFormatString(16, Window::GetWindowData()->SIZE.y - 24, GetColor(180, 180, 180),
+            "DEBUG | dt: %.4f s | FPS: %.1f", FrameRate::GetDeltaTime(), Instance().m_fps);
     }
 #endif // _DEBUG
 }

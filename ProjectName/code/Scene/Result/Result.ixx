@@ -1,5 +1,6 @@
 ﻿export module Scene.Result;
 import Scene.SceneBase;
+import UI.UIManager;
 import Scene.StageState;
 
 export namespace scene
@@ -26,6 +27,8 @@ export namespace scene
         StageResult ResultValue() const { return m_result; }
 
     private:
+        // シーン単位のUI所有。LoadingSceneが旧シーンを保持しても新画面へ混在させない。
+        ui::UIManager m_hudManager;
         const StageResult m_result;
         bool m_retryPrototype;
         bool m_toRetry = false;
