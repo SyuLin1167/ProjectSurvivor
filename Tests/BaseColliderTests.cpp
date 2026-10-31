@@ -18,6 +18,7 @@ import Object.Player;
 import Object.PlayerAttackConfig;
 import <algorithm>;
 import Object.EnemyConfig;
+import Object.EnemySpawner;
 import MyLib.File.FileSystem;
 import Object.MovingBase;
 import Object.ObjectManager;
@@ -122,8 +123,7 @@ void VerifyEnemyPursuit()
     const float previousDt = dt;
     const auto source = files.jsonIO.Load("ProjectName/resources/data/EnemyConfig.json");
     const auto initial = phase2::EnemyConfig::FromJson(source);
-    require(initial.Health == 30 && initial.Radius == 16 && initial.Speed == 120 &&
-        initial.SpawnCenters.size() == 3, "Committed JSON matches approved defaults");
+    require(initial.Health == 30 && initial.Radius == 16 && initial.Speed == 120, "Committed JSON matches approved defaults");
     auto invalid = source;
     invalid["speed"] = 141;
     bool rejected = false;
@@ -132,23 +132,24 @@ void VerifyEnemyPursuit()
     require(rejected, "JSON rejects speed outside delegated range");
     for (int scenario = 0; scenario < 4; ++scenario)
     {
-        // 最後の60fpsではメモリ上のJSONだけを変更し、速度と配置の反映を実Enemyで測る。
+        // 最後の60fpsではメモリ上のJSONだけを変更し、速度と明示配置の反映を実Enemyで測る。
         auto data = source;
         const bool changed = scenario == 3;
         const int fps = scenario == 0 ? 30 : scenario == 2 ? 120 : 60;
-        if (changed) { data["speed"] = 140; data["spawnCenters"][0]["x"] = 1344; }
+        if (changed) data["speed"] = 140;
         const auto config = phase2::EnemyConfig::FromJson(data);
         dt = 1.0f / fps;
         object::ObjectManager objects;
         auto* base = new object::MovingBase();
         objects.AddObject(base);
-        for (auto position : config.SpawnCenters)
+        const std::vector<math::Vector2f> positions{{changed ? 1344.0f : 1280.0f, 2048}, {1024,1728}, {1024,2368}};
+        for (auto position : positions)
             objects.AddObject(new object::Enemy(position, config));
         objects.InitBeforeUpdate();
         auto enemies = objects.GetObjForTag(object::ENEMY);
         std::weak_ptr<object::GameObject> removed = enemies.front();
         const auto start = enemies.front()->AccessPos().NowPos();
-        require(start == config.SpawnCenters.front(), "JSON spawn center reaches actual Enemy");
+        require(start == positions.front(), "Explicit spawn center reaches actual Enemy");
         for (int frame = 0; frame < fps; ++frame) objects.Update();
         const auto end = enemies.front()->AccessPos().NowPos();
         const float displacement = (end - start).Length();
@@ -514,7 +515,9 @@ void VerifyStageEnd()
         files.GetDataDir() / "EnemyConfig.json", std::filesystem::copy_options::overwrite_existing);
     auto& dt = const_cast<float&>(gameSystem::FrameRate::GetDeltaTime());
     const float previousDt = dt;
-    // 固定配置の実Playを無操作で敗北まで進め、Resultへ値だけが渡ることを確認する。
+    std::filesystem::copy_file("ProjectName/resources/data/EnemySpawnConfig.json",
+        files.GetDataDir() / "EnemySpawnConfig.json", std::filesystem::copy_options::overwrite_existing);
+    // 継続出現の実Playを無操作で敗北まで進め、Resultへ値だけが渡ることを確認する。
     // そのResultを保持してStart/Retry共通の実LoadingSceneを通し、2回目も同条件に戻す。
     int firstFrames = 0;
     float firstProgress = 0;
@@ -531,7 +534,7 @@ void VerifyStageEnd()
             ++frames;
         }
         auto* replace = std::get_if<scene::CmdReplace>(&command);
-        require(replace != nullptr, "Actual fixed-enemy play reaches result");
+        require(replace != nullptr, "Actual spawning play reaches result");
         auto result = std::dynamic_pointer_cast<scene::Result>(replace->build());
         require(result && result->ResultValue().outcome == StageEnd::Defeat &&
             result->ResultValue().health == 0 && result->ResultValue().progress < 1,
@@ -572,6 +575,247 @@ void VerifyStageEnd()
     dt = previousDt;
     gameSystem::AppCtx::Deactivate();
     std::cout << "PASS: stage threshold, defeat/R priority, result latch and actual restart\n";
+}
+
+/// <summary>初期化の途中で失敗する個体。登録済みColliderの回収を検証する。</summary>
+class FailingSpawn final : public object::GameObject
+{
+public:
+    /// <summary>検証用の破棄結果と登録IDを受け取る。</summary>
+    /// <param name="destroyed">デストラクター到達の記録先。</param>
+    /// <param name="manager">登録先ColliderManagerの記録先。</param>
+    /// <param name="id">登録したIDの記録先。</param>
+    FailingSpawn(bool& destroyed, col2d::ColliderManager*& manager, col2d::ColliderID& id)
+        : m_destroyed(destroyed), m_manager(manager), m_id(id) {}
+    /// <summary>例外時も自分のColliderを回収する。</summary>
+    ~FailingSpawn() { if (m_manager) m_manager->Destroy(m_id); m_destroyed = true; }
+    /// <summary>Colliderを登録した直後に初期化失敗を再現する。</summary>
+    void Init() override
+    {
+        m_manager = &ColMgr();
+        col2d::ColliderDef def{};
+        m_id = ColMgr().CreateCircleCollider(&def, 16, object::ENEMY);
+        throw std::runtime_error("Expected spawn initialization failure");
+    }
+    /// <summary>描画を必要としない失敗経路のため何もしない。</summary>
+    void Draw() override {}
+    /// <summary>既存の敵タグへ分類する。</summary>
+    /// <returns>敵のタグ。</returns>
+    object::ObjectTag MyObjectTag() const override { return object::ENEMY; }
+private:
+    bool& m_destroyed;
+    col2d::ColliderManager*& m_manager;
+    col2d::ColliderID& m_id;
+};
+
+/// <summary>承認された出現条件と実個体の寿命・接近・負荷を既存基盤で確認する。</summary>
+void VerifyEnemySpawning()
+{
+    gameSystem::AppCtx::Activate();
+    auto& files = gameSystem::AppCtx::FileSystem();
+    const auto enemy = phase2::EnemyConfig::FromJson(files.jsonIO.Load("ProjectName/resources/data/EnemyConfig.json"));
+    const auto source = files.jsonIO.Load("ProjectName/resources/data/EnemySpawnConfig.json");
+    const auto config = object::EnemySpawnConfig::FromJson(source);
+    require(config.interval == 4 && config.firstDelay == 3 && config.distance == 480 && config.limit == 8,
+        "Committed spawn defaults match approval");
+    for (const auto key : {"interval", "firstDelay", "distance", "limit"})
+    {
+        auto invalid = source; invalid[key] = -1;
+        bool rejected = false;
+        try { object::EnemySpawnConfig::FromJson(invalid); } catch (const std::exception&) { rejected = true; }
+        require(rejected, "Spawn JSON rejects outside approval");
+    }
+    auto fractional = source; fractional["limit"] = 8.5;
+    bool rejected = false;
+    try { object::EnemySpawnConfig::FromJson(fractional); } catch (const std::exception&) { rejected = true; }
+    require(rejected, "Spawn limit rejects fractional JSON");
+    auto changed = source;
+    changed["interval"] = 3; changed["firstDelay"] = 2; changed["distance"] = 640; changed["limit"] = 12;
+    const auto adjusted = object::EnemySpawnConfig::FromJson(changed);
+    require(adjusted.interval == 3 && adjusted.firstDelay == 2 && adjusted.distance == 640 && adjusted.limit == 12,
+        "Delegated JSON changes are preserved");
+    const math::Vector2f world{16384, 4096}, distantPlayer{16,16};
+    auto& dt = const_cast<float&>(gameSystem::FrameRate::GetDeltaTime());
+    const float previousDt = dt;
+    for (int fps : {30, 60, 120})
+    {
+        object::ObjectManager objects;
+        auto* base = new object::MovingBase;
+        objects.AddObject(base); objects.InitBeforeUpdate();
+        object::EnemySpawner spawner(config, enemy, world);
+        int count = 0;
+        for (int frame = 1; frame <= fps * 60; ++frame)
+        {
+            require(!spawner.Update(0, objects, *base, distantPlayer), "Paused spawn does not advance");
+            if (!spawner.Update(1.0f / fps, objects, *base, distantPlayer)) continue;
+            require(std::abs(frame / double(fps) - (3 + 4 * count)) <= 1.0 / fps, "Spawn schedule has no frame drift");
+            auto spawned = std::dynamic_pointer_cast<object::Enemy>(objects.GetObjForTag(object::ENEMY).front());
+            const auto delta = spawned->Center() - base->Center();
+            require(std::abs(delta.Length() - 480) < 0.01f, "Spawn distance from current base");
+            require(count % 3 == 0 ? delta.y == 0 : count % 3 == 1 ? delta.y < 0 : delta.y > 0, "Direction cycle");
+            spawned->TakeDamage(30); spawned.reset(); objects.RefreshObjects();
+            ++count;
+        }
+        require(count == 15, "Sixty seconds has fifteen opportunities");
+        std::cout << "Spawn " << fps << "fps: count=" << count << " times=3..59s\n";
+    }
+    {
+        object::ObjectManager objects;
+        auto* base = new object::MovingBase;
+        objects.AddObject(base); objects.InitBeforeUpdate();
+        object::EnemySpawner spawner(adjusted, enemy, world);
+        require(!spawner.Update(1.9f, objects, *base, distantPlayer) && spawner.Update(0.1f, objects, *base, distantPlayer),
+            "Adjusted first delay reaches real generation");
+        auto first = std::dynamic_pointer_cast<object::Enemy>(objects.GetObjForTag(object::ENEMY).front());
+        require(std::abs(first->Center().Distance(base->Center()) - 640) < 0.01f, "Adjusted distance reaches real enemy");
+        require(!spawner.Update(2.9f, objects, *base, distantPlayer) && spawner.Update(0.1f, objects, *base, distantPlayer),
+            "Adjusted interval reaches real generation");
+        base->TakeDamage(100);
+        require(!spawner.Update(100, objects, *base, distantPlayer), "No generation after base reaches zero HP");
+    }
+    // 返却前の領域を上書きせず、同じ領域の再構築で古い弱参照・HP・接触時計を継承しない。
+    {
+        object::ObjectManager objects;
+        auto* base = new object::MovingBase;
+        objects.AddObject(base); objects.InitBeforeUpdate();
+        auto spawner = std::make_unique<object::EnemySpawner>(config, enemy, world);
+        require(spawner->Update(3, objects, *base, distantPlayer), "Pool first acquisition");
+        auto first = std::dynamic_pointer_cast<object::Enemy>(objects.GetObjForTag(object::ENEMY).front());
+        const auto address = first.get();
+        const auto oldId = first->TargetId();
+        std::weak_ptr<object::Enemy> old = first;
+        dt = 1.0f / 60;
+        for (int i = 0; i < 300 && base->Health() == 100; ++i) objects.Update();
+        require(base->Health() == 90, "Pooled enemy starts contact timer");
+        first->TakeDamage(30); objects.RefreshObjects();
+        require(spawner->Update(4, objects, *base, distantPlayer), "Pool uses another slot while old owner remains");
+        auto second = std::dynamic_pointer_cast<object::Enemy>(objects.GetObjForTag(object::ENEMY).front());
+        require(second.get() != address && !first->CanBeAttacked(), "Owned dead slot is not overwritten");
+        first.reset();
+        require(old.expired(), "Old weak reference expires before reuse");
+        second->TakeDamage(30); second.reset(); objects.RefreshObjects();
+        require(spawner->Update(4, objects, *base, distantPlayer), "Returned slot can be acquired again");
+        auto reused = std::dynamic_pointer_cast<object::Enemy>(objects.GetObjForTag(object::ENEMY).front());
+        require(reused.get() == address && reused->Health() == 30 && reused->CanBeAttacked() &&
+            reused->TargetId() != oldId && old.expired(), "Same storage has fresh health, collider identity and weak lifetime");
+        // 再構築後も既存の接触処理を通り、Colliderと対象参照が有効であることを確認。
+        spawner.reset(); // Spawnerが先に破棄されても管理中の個体・領域は有効。
+        dt = 1.0f / 60;
+        for (int i = 0; i < 300 && base->Health() == 90; ++i) objects.Update();
+        require(base->Health() == 80 && reused->CanBeAttacked(), "Pool storage survives spawner and contacts after reconstruction");
+        reused.reset();
+    }
+    {
+        object::ObjectManager objects;
+        auto* base = new object::MovingBase;
+        objects.AddObject(base); objects.InitBeforeUpdate();
+        object::EnemySpawner spawner(config, enemy, world);
+        std::vector<std::shared_ptr<object::Enemy>> retained;
+        for (int i = 0; i < 12; ++i)
+        {
+            require(spawner.Update(i == 0 ? 3.0f : 4.0f, objects, *base, distantPlayer), "Pool acquires each free slot");
+            auto item = std::dynamic_pointer_cast<object::Enemy>(objects.GetObjForTag(object::ENEMY).front());
+            item->TakeDamage(30); objects.RefreshObjects(); retained.push_back(item);
+        }
+        require(!spawner.Update(4, objects, *base, distantPlayer), "Exhausted pool skips without overwriting retained objects");
+        retained.clear();
+        require(!spawner.Update(0.1f, objects, *base, distantPlayer) &&
+            spawner.Update(3.9f, objects, *base, distantPlayer), "Returned pool waits next interval without backlog");
+    }
+    // 上限・候補不成立で見送った分を、空きができても即補充しない。
+    for (int limit : {8, 12})
+    {
+        object::ObjectManager objects;
+        auto* base = new object::MovingBase;
+        objects.AddObject(base); objects.InitBeforeUpdate();
+        auto settings = config; settings.limit = limit;
+        object::EnemySpawner spawner(settings, enemy, world);
+        for (int i = 0; i < limit; ++i)
+            objects.AddInitializedObject(std::make_unique<object::Enemy>(math::Vector2f{100, 100.0f + i * 64}, enemy));
+        require(!spawner.Update(3, objects, *base, distantPlayer), "At cap skips opportunity");
+        { auto dead = std::dynamic_pointer_cast<object::Enemy>(objects.GetObjForTag(object::ENEMY).front()); dead->TakeDamage(30); }
+        objects.RefreshObjects();
+        require(!spawner.Update(0.1f, objects, *base, distantPlayer), "Free slot does not immediately refill");
+        require(spawner.Update(3.9f, objects, *base, distantPlayer), "Next interval fills one slot");
+        require(objects.GetObjForTag(object::ENEMY).size() == limit, "Live cap is exact");
+    }
+    {
+        object::ObjectManager objects;
+        auto* base = new object::MovingBase;
+        objects.AddObject(base); objects.InitBeforeUpdate();
+        object::EnemySpawner blocked(config, enemy, {800,4096});
+        require(!blocked.Update(3, objects, *base, distantPlayer) && objects.GetObjForTag(object::ENEMY).empty(),
+            "All three candidates outside map are skipped without clamp");
+        object::EnemySpawner spawner(config, enemy, world);
+        const auto front = base->Center() + math::Vector2f{480,0};
+        require(spawner.Update(3, objects, *base, front), "Player exclusion tries another candidate");
+        const auto first = std::dynamic_pointer_cast<object::Enemy>(objects.GetObjForTag(object::ENEMY).front());
+        require(first->Center().y < base->Center().y && first->Center().Distance(front) >= 256, "Fallback is upper and safe");
+        for (const auto direction : {math::Vector2f{1,0}, math::Vector2f{1,1}.Norm()})
+            objects.AddInitializedObject(std::make_unique<object::Enemy>(base->Center() + direction * 480, enemy));
+        object::EnemySpawner occupied(config, enemy, world);
+        require(!occupied.Update(3, objects, *base, distantPlayer), "All candidates within enemy clearance are skipped");
+        for (const auto& item : objects.GetObjForTag(object::ENEMY)) std::dynamic_pointer_cast<object::Enemy>(item)->TakeDamage(30);
+        objects.RefreshObjects();
+        require(!occupied.Update(0.1f, objects, *base, distantPlayer), "Position skip waits full interval");
+        require(occupied.Update(3.9f, objects, *base, distantPlayer), "Position recovery creates next interval");
+        // 初期化失敗時の個体と登録を回収し、既存個体の参照は保つ。
+        bool destroyed = false; col2d::ColliderManager* colliderManager = nullptr; col2d::ColliderID failedID{};
+        try { objects.AddInitializedObject(std::make_unique<FailingSpawn>(destroyed, colliderManager, failedID)); }
+        catch (const std::runtime_error&) {}
+        require(destroyed && colliderManager && !colliderManager->GetCollider(failedID), "Failed spawn releases object and collider");
+        require(base->TakeDamage(1), "Failed spawn does not remove base collider");
+        require(objects.GetObjForTag(object::ENEMY).size() == 1, "Failed spawn not exposed in collection");
+        require(occupied.Update(100, objects, *base, distantPlayer), "Long stall generates at most one");
+        require(objects.GetObjForTag(object::ENEMY).size() == 2 && !occupied.Update(0.01f, objects, *base, distantPlayer),
+            "No backlog burst after stall");
+    }
+    // 形状を含む実接触までの時間。AIは画面内外を参照せず、登録直後はまだ動かない。
+    for (int fps : {30,60,120}) for (int direction = 0; direction < 3; ++direction)
+    {
+        dt = 1.0f / fps;
+        object::ObjectManager objects;
+        auto* base = new object::MovingBase;
+        objects.AddObject(base); objects.InitBeforeUpdate();
+        const math::Vector2f offset = direction == 0 ? math::Vector2f{480,0} : math::Vector2f{1, direction == 1 ? -1.0f : 1.0f}.Norm() * 480;
+        objects.AddInitializedObject(std::make_unique<object::Enemy>(base->Center() + offset, enemy));
+        int frames = 0;
+        while (base->Health() == 100 && frames < fps * 10) { objects.Update(); ++frames; }
+        require(base->Health() == 90, "Dynamic enemy resolves target and gives first contact damage");
+        std::cout << "Approach " << fps << "fps direction=" << direction << " firstContact=" << frames / double(fps) << "s\n";
+        objects.RemoveObject(base);
+        objects.Update(); // weak_ptrが失効した後の更新も安全。
+    }
+    // 性能用の限定fixture: HP0でもManager単体を更新し、上限数を60秒相当維持する。
+    // 実Playの勝敗後継続を意味しない。30フレームごとに1体を撃破して登録し直す。
+    for (int count : {8,12})
+    {
+        dt = 1.0f / 60;
+        object::ObjectManager objects;
+        auto* base = new object::MovingBase;
+        objects.AddObject(base); objects.InitBeforeUpdate();
+        for (int i = 0; i < count; ++i)
+            objects.AddInitializedObject(std::make_unique<object::Enemy>(base->Center() + math::Vector2f{96, float(i * 4)}, enemy));
+        double total = 0, maximum = 0;
+        for (int frame = 0; frame < 3600; ++frame)
+        {
+            const auto start = std::chrono::steady_clock::now();
+            objects.Update();
+            if (frame % 30 == 0)
+            {
+                { auto dead = std::dynamic_pointer_cast<object::Enemy>(objects.GetObjForTag(object::ENEMY).front()); dead->TakeDamage(30); }
+                objects.RefreshObjects();
+                objects.AddInitializedObject(std::make_unique<object::Enemy>(base->Center() + math::Vector2f{96,0}, enemy));
+            }
+            const double ms = std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now() - start).count();
+            total += ms; maximum = std::max(maximum, ms);
+            require(objects.GetObjForTag(object::ENEMY).size() == count, "Repeated destruction and replacement keeps exact count");
+        }
+        std::cout << "Load " << count << " enemies, 3600 updates/120 replacements: mean=" << total/3600 << "ms max=" << maximum << "ms (no drawing)\n";
+    }
+    dt = previousDt;
+    gameSystem::AppCtx::Deactivate();
+    std::cout << "PASS: dynamic spawn schedule, limits, safety, reference resolution and lifetime\n";
 }
 
 /// <summary>HUDの値と丸め、方向、Pと移動拠点の非貫通を既存Colliderで確認する。</summary>
@@ -637,6 +881,7 @@ int main() try
     VerifySimulationTime();
     VerifyFreshPlayObjects();
     VerifyStageEnd();
+    VerifyEnemySpawning();
     // UIManager経由の再利用要素とClear後の値リセットを検証する。描画は手動確認する。
     ui::UIManager hudManager;
     const auto labelID = hudManager.Create<ui::TextLabel>("HP 50%");

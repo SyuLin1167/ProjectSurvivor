@@ -13,6 +13,7 @@ import Object.ObjectManager;
 import Object.Player;
 import Object.Enemy;
 import Object.EnemyConfig;
+import Phase1.Config;
 import MyLib.File.FileSystem;
 import Object.Map;
 import Object.MovingBase;
@@ -44,11 +45,12 @@ namespace scene
             m_stage.emplace(base->StartX(), base->EndX());
             m_base = std::dynamic_pointer_cast<object::MovingBase>(
                 m_objManager->GetObjForTag(object::BASE).front());
-            // DEC-02: 前方・上下側方の固定3体。継続出現は行わない。
             auto& files = AppCtx::FileSystem();
             const auto enemies = phase2::EnemyConfig::FromJson(files.jsonIO.Load(files.GetDataDir() / "EnemyConfig"));
-            for (const auto center : enemies.SpawnCenters)
-                m_objManager->AddObject(new object::Enemy(center, enemies));
+            const auto spawn = object::EnemySpawnConfig::FromJson(files.jsonIO.Load(files.GetDataDir() / "EnemySpawnConfig"));
+            const auto world = phase1::Config::FromJson(files.jsonIO.Load(files.GetDataDir() / "Phase1Config"));
+            m_spawner.emplace(spawn, enemies, math::Vector2f{world.WorldWidth, world.WorldHeight});
+            // 固定3体は生成しない。初期化／ロード中には生成時計を進めない。
             return;
         }
         //オブジェクト追加
@@ -104,6 +106,9 @@ namespace scene
                 } };
             if (end == StageEnd::Aborted)
                 return CmdReplace{ []() { return std::make_shared<Title>(); } };
+            // 終了と期限が同フレームなら上の遷移が優先。Stepの走査中には追加しない。
+            if (const auto player = m_player.lock(); player && m_spawner)
+                m_spawner->Update(FrameRate::GetDeltaTime(), *m_objManager, *base, player->Center());
         }
 
         // クリア後の画面へ移動

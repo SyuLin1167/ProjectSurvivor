@@ -8,15 +8,14 @@ import <stdexcept>;
 
 export namespace phase2
 {
-    /// <summary>固定配置敵の試作設定。JSONの値を検証してから生成・移動・描画へ渡す。</summary>
+    /// <summary>敵能力の試作設定。JSONの値を検証してから生成・移動・描画へ渡す。</summary>
     struct EnemyConfig
     {
         float Health{};
         float Radius{}; // u
         float Speed{};  // u/s
-        std::vector<math::Vector2f> SpawnCenters; // ワールド座標(u)
 
-        /// <summary>DEC-02の固定値・速度範囲と配置座標を確認する。不正時は例外を送出する。</summary>
+        /// <summary>DEC-02の固定値・速度範囲を確認する。不正時は例外を送出する。</summary>
         /// <param name="data">EnemyConfig.jsonのオブジェクト。欠損・型不正も拒否する。</param>
         /// <returns>検証済みの敵設定。攻撃・接触ダメージの設定は含まない。</returns>
         static EnemyConfig FromJson(const json& data)
@@ -29,16 +28,6 @@ export namespace phase2
             if (c.Health != 30 || c.Radius != 16 || !std::isfinite(c.Speed) ||
                 c.Speed < 100 || c.Speed > 140)
                 throw std::runtime_error("EnemyConfig: values outside DEC-02 approval");
-            const auto& positions = data.at("spawnCenters");
-            if (!positions.is_array() || positions.empty())
-                throw std::runtime_error("EnemyConfig: spawnCenters must be a non-empty array");
-            for (const auto& position : positions)
-            {
-                const math::Vector2f center{position.at("x").get<float>(), position.at("y").get<float>()};
-                if (!std::isfinite(center.x) || !std::isfinite(center.y))
-                    throw std::runtime_error("EnemyConfig: non-finite spawn center");
-                c.SpawnCenters.push_back(center);
-            }
             return c;
         }
     };

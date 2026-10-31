@@ -39,7 +39,7 @@ namespace object
 
     Enemy::~Enemy()
     {
-        if (auto* mgr = ColMgrPtr())
+        if (auto* mgr = ColMgrPtr(); mgr && m_colliderCreated)
         {
             mgr->Destroy(id);
         }
@@ -55,6 +55,7 @@ namespace object
         def.isTrigger = false;
         def.contactAfterMove = m_prototype;
         id = ColMgr().CreateCircleCollider(&def, m_radius, MyObjectTag());
+        m_colliderCreated = true;
 
         if (m_prototype)
         {
@@ -75,7 +76,7 @@ namespace object
 
     bool Enemy::CanBeAttacked() const
     {
-        const auto* collider = ColMgrPtr() ? ColMgr().GetCollider(id) : nullptr;
+        const auto* collider = m_colliderCreated && ColMgrPtr() ? ColMgr().GetCollider(id) : nullptr;
         return m_prototype && m_health > 0 && !(m_state & MainState::DEAD) &&
             collider && collider->GetColliderDef()->isActive;
     }
