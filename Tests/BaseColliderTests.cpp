@@ -673,6 +673,55 @@ void VerifyEnemySpawning()
         base->TakeDamage(100);
         require(!spawner.Update(100, objects, *base, distantPlayer), "No generation after base reaches zero HP");
     }
+    // 返却前の領域を上書きせず、同じ領域の再構築で古い弱参照・HP・接触時計を継承しない。
+    {
+        object::ObjectManager objects;
+        auto* base = new object::MovingBase;
+        objects.AddObject(base); objects.InitBeforeUpdate();
+        auto spawner = std::make_unique<object::EnemySpawner>(config, enemy, world);
+        require(spawner->Update(3, objects, *base, distantPlayer), "Pool first acquisition");
+        auto first = std::dynamic_pointer_cast<object::Enemy>(objects.GetObjForTag(object::ENEMY).front());
+        const auto address = first.get();
+        const auto oldId = first->TargetId();
+        std::weak_ptr<object::Enemy> old = first;
+        dt = 1.0f / 60;
+        for (int i = 0; i < 300 && base->Health() == 100; ++i) objects.Update();
+        require(base->Health() == 90, "Pooled enemy starts contact timer");
+        first->TakeDamage(30); objects.RefreshObjects();
+        require(spawner->Update(4, objects, *base, distantPlayer), "Pool uses another slot while old owner remains");
+        auto second = std::dynamic_pointer_cast<object::Enemy>(objects.GetObjForTag(object::ENEMY).front());
+        require(second.get() != address && !first->CanBeAttacked(), "Owned dead slot is not overwritten");
+        first.reset();
+        require(old.expired(), "Old weak reference expires before reuse");
+        second->TakeDamage(30); second.reset(); objects.RefreshObjects();
+        require(spawner->Update(4, objects, *base, distantPlayer), "Returned slot can be acquired again");
+        auto reused = std::dynamic_pointer_cast<object::Enemy>(objects.GetObjForTag(object::ENEMY).front());
+        require(reused.get() == address && reused->Health() == 30 && reused->CanBeAttacked() &&
+            reused->TargetId() != oldId && old.expired(), "Same storage has fresh health, collider identity and weak lifetime");
+        // 再構築後も既存の接触処理を通り、Colliderと対象参照が有効であることを確認。
+        spawner.reset(); // Spawnerが先に破棄されても管理中の個体・領域は有効。
+        dt = 1.0f / 60;
+        for (int i = 0; i < 300 && base->Health() == 90; ++i) objects.Update();
+        require(base->Health() == 80 && reused->CanBeAttacked(), "Pool storage survives spawner and contacts after reconstruction");
+        reused.reset();
+    }
+    {
+        object::ObjectManager objects;
+        auto* base = new object::MovingBase;
+        objects.AddObject(base); objects.InitBeforeUpdate();
+        object::EnemySpawner spawner(config, enemy, world);
+        std::vector<std::shared_ptr<object::Enemy>> retained;
+        for (int i = 0; i < 12; ++i)
+        {
+            require(spawner.Update(i == 0 ? 3.0f : 4.0f, objects, *base, distantPlayer), "Pool acquires each free slot");
+            auto item = std::dynamic_pointer_cast<object::Enemy>(objects.GetObjForTag(object::ENEMY).front());
+            item->TakeDamage(30); objects.RefreshObjects(); retained.push_back(item);
+        }
+        require(!spawner.Update(4, objects, *base, distantPlayer), "Exhausted pool skips without overwriting retained objects");
+        retained.clear();
+        require(!spawner.Update(0.1f, objects, *base, distantPlayer) &&
+            spawner.Update(3.9f, objects, *base, distantPlayer), "Returned pool waits next interval without backlog");
+    }
     // 上限・候補不成立で見送った分を、空きができても即補充しない。
     for (int limit : {8, 12})
     {

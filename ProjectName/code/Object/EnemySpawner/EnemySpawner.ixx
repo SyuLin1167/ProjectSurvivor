@@ -2,6 +2,10 @@
 import MyLib.File.JsonIO;
 import MyLib.Math.Vector2;
 import Object.EnemyConfig;
+import Object.Enemy;
+import <array>;
+import <optional>;
+import <memory>;
 import Object.ObjectManager;
 import Object.MovingBase;
 import <cmath>;
@@ -53,6 +57,16 @@ export namespace object
         /// <returns>新しい敵1体の登録に成功した場合true。</returns>
         bool Update(float dt, ObjectManager& manager, const MovingBase& base, math::Vector2f playerCenter);
     private:
+        /// <summary>承認上限12体分の格納領域。使用中スロットは最後の所有参照が解放されるまで再利用しない。</summary>
+        struct Pool
+        {
+            std::array<std::optional<Enemy>, 12> slots;
+        };
+        /// <summary>空き領域に新個体を構築し、最後の所有参照の解放時に破棄して領域を返す。</summary>
+        /// <param name="center">生成中心のワールド座標（u）。</param>
+        /// <returns>新個体の所有参照。空きがなければ空。</returns>
+        std::shared_ptr<Enemy> Acquire(math::Vector2f center);
+        std::shared_ptr<Pool> m_pool = std::make_shared<Pool>();
         EnemySpawnConfig m_config;
         phase2::EnemyConfig m_enemy;
         math::Vector2f m_worldSize;

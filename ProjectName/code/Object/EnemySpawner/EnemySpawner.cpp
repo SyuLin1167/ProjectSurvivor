@@ -12,6 +12,20 @@ namespace object
         m_config.Validate();
     }
 
+    std::shared_ptr<Enemy> EnemySpawner::Acquire(math::Vector2f center)
+    {
+        for (size_t i = 0; i < m_pool->slots.size(); ++i)
+        {
+            auto& slot = m_pool->slots[i];
+            if (slot) continue;
+            slot.emplace(center, m_enemy);
+            // 領域は再利用するが個体の寿命は分ける。古いweak_ptrを新個体へ復活させない。
+            // deleterがプールを保持するため、Spawnerが先に破棄されても領域は有効。
+            return std::shared_ptr<Enemy>(&*slot, [pool = m_pool, i](Enemy*) { pool->slots[i].reset(); });
+        }
+        return {};
+    }
+
     bool EnemySpawner::Update(float dt, ObjectManager& manager, const MovingBase& base, math::Vector2f playerCenter)
     {
         if (!std::isfinite(dt) || dt <= 0 || base.Health() <= 0 || (base.NowState() & MainState::DEAD)) return false;
@@ -42,7 +56,9 @@ namespace object
                     std::clamp(position.y, baseCenter.y - half.y, baseCenter.y + half.y)};
                 if (position.Distance(nearest) <= radius || std::any_of(centers.begin(), centers.end(),
                     [position](const auto& center) { return position.Distance(center) < 64; })) continue;
-                manager.AddInitializedObject(std::make_unique<Enemy>(position, m_enemy));
+                auto enemy = Acquire(position);
+                if (!enemy) break; // 撃破個体への所有参照が残る場合も、使用中領域を上書きしない。
+                manager.AddInitializedObject(std::move(enemy));
                 return true; // 登録時は行動させず、次フレームの通常更新で扱う。
             }
         }

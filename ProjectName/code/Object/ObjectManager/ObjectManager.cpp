@@ -13,14 +13,14 @@ namespace object
 
     ObjectManager::~ObjectManager() = default;
 
-    void ObjectManager::AddInitializedObject(std::unique_ptr<GameObject> object)
+    void ObjectManager::AddInitializedObject(std::shared_ptr<GameObject> object)
     {
         if (isUpdate || !object) throw std::logic_error("Dynamic addition requires an idle manager and a new object");
         object->SetColliderManager(&m_colMgr);
         object->OnAttach();
         object->GetReferenceObject([this](uint32_t tag) { return GetObjForTag(tag); });
         object->Init();
-        // Initが投げた場合もunique_ptrがColliderを含めて回収する。既存個体は再初期化しない。
+        // 既存個体は再初期化しない。失敗時も所有参照を解放し、プールの返却処理を維持する。
         const auto tag = object->MyObjectTag();
         objects[tag].emplace_back(std::move(object));
     }

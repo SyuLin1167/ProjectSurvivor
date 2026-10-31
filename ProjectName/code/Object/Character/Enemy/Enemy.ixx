@@ -22,7 +22,7 @@ export namespace object
         /// </summary>
         Enemy();
 
-        /// <summary>Phase 2の固定配置用追跡敵を生成する。</summary>
+        /// <summary>試作用追跡敵を初期状態で構築する。</summary>
         /// <param name="center">円中心のワールド初期座標（u）。</param>
         /// <param name="config">EnemyConfig::FromJsonで検証した敵設定。</param>
         Enemy(math::Vector2f center, const phase2::EnemyConfig& config);
