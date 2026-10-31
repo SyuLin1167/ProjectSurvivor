@@ -49,6 +49,10 @@ export namespace object
             objects[object->MyObjectTag()].emplace_back(obj);
         }
 
+        /// <summary>更新走査の外で新しい個体だけを参照解決・初期化し、所有する。失敗時は個体を破棄する。</summary>
+        /// <param name="object">未登録・未初期化の個体。所有権を渡す。</param>
+        void AddInitializedObject(std::unique_ptr<GameObject> object);
+
         /// <summary>
         /// オブジェクト除去
         /// </summary>

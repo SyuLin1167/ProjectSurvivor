@@ -94,6 +94,7 @@ export namespace object
         float m_radius = 16.0f; // 旧サンプルの半径。試作ではJSON値を使用する。
         float m_speed{}; // u/s。試作の設定読み込み時に確定する。
         std::weak_ptr<MovingBase> m_base; // 所有しない。対象破棄後は追跡を停止する。
+        bool m_colliderCreated = false; // Init前や失敗時に、未取得IDで他個体を破棄しない。
         col2d::ColliderID id;   // コライダーID
         float m_health;        // 体力
         float m_damage;        // ダメージ

@@ -171,6 +171,8 @@
   <ItemGroup>
     <ClCompile Include="..\code\UI\PlayHud\PlayHud.ixx" />
     <ClCompile Include="..\code\UI\PlayHud\PlayHud.cpp" />
+    <ClCompile Include="..\code\Object\EnemySpawner\EnemySpawner.ixx" />
+    <ClCompile Include="..\code\Object\EnemySpawner\EnemySpawner.cpp" />
     <ClCompile Include="..\code\UI\DisplayElements\DisplayElements.ixx" />
     <ClCompile Include="..\code\UI\DisplayElements\DisplayElements.cpp" />
     <ClCompile Include="..\code\Scene\Play\StageState.ixx" />
