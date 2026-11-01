@@ -16,12 +16,14 @@ export namespace object
     /// <summary>DEC-03補足で調整委任された出現値。安全距離・方向・生成数は固定。</summary>
     struct EnemySpawnConfig
     {
+        // ゲーム時間の秒数。初回待機と通常の出現周期を区別する。
         double interval = 4, firstDelay = 3;
         float distance = 480;
         int limit = 8;
         /// <summary>有限値・整数上限と承認範囲を確認する。</summary>
         void Validate() const
         {
+            // 非有限値や委任範囲外の値は、暗黙に補正せず設定エラーとして通知する。
             if (!std::isfinite(interval) || interval < 3 || interval > 6 ||
                 !std::isfinite(firstDelay) || firstDelay < 2 || firstDelay > 5 ||
                 !std::isfinite(distance) || distance < 384 || distance > 640 || limit < 6 || limit > 12)
@@ -32,9 +34,12 @@ export namespace object
         /// <returns>承認範囲内の出現設定。</returns>
         static EnemySpawnConfig FromJson(const json& data)
         {
+            // 小数の上限が整数変換で切り捨てられないよう、変換前に型を確認する。
             if (!data.at("limit").is_number_integer()) throw std::runtime_error("EnemySpawnConfig: limit must be integer");
+            // 必須項目を型付きで読み込む。欠落や型不一致はJSONの例外で通知する。
             EnemySpawnConfig c{data.at("interval").get<double>(), data.at("firstDelay").get<double>(),
                 data.at("distance").get<float>(), data.at("limit").get<int>()};
+            // 全項目が承認範囲内であることを確認してから、利用側へ返す。
             c.Validate();
             return c;
         }
@@ -60,6 +65,7 @@ export namespace object
         /// <summary>承認上限12体分の格納領域。使用中スロットは最後の所有参照が解放されるまで再利用しない。</summary>
         struct Pool
         {
+            // 空のoptionalを未使用領域として扱い、resetで個体を破棄して返却する。
             std::array<std::optional<Enemy>, 12> slots;
         };
         /// <summary>空き領域に新個体を構築し、最後の所有参照の解放時に破棄して領域を返す。</summary>
