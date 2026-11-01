@@ -1,5 +1,6 @@
-module Object.ObjectManager;
+﻿module Object.ObjectManager;
 import GameSystem.Camera;
+import <stdexcept>;
 
 namespace object
 {
@@ -11,6 +12,22 @@ namespace object
     }
 
     ObjectManager::~ObjectManager() = default;
+
+    void ObjectManager::AddInitializedObject(std::shared_ptr<GameObject> object)
+    {
+        // 更新・衝突の走査中の配列変更と、空参照の初期化を禁止する。
+        if (isUpdate || !object) throw std::logic_error("Dynamic addition requires an idle manager and a new object");
+        // 初期化中にColliderを作成できるよう、このシーンの管理へ所属させる。
+        object->SetColliderManager(&m_colMgr);
+        object->OnAttach();
+        // 既存オブジェクトへの参照を解決してから、新個体だけを初期化する。
+        object->GetReferenceObject([this](uint32_t tag) { return GetObjForTag(tag); });
+        object->Init();
+        // 既存個体は再初期化しない。失敗時も所有参照を解放し、プールの返却処理を維持する。
+        // 初期化成功後に一覧へ公開する。shared_ptrを移動し、プール返却用deleterを保持する。
+        const auto tag = object->MyObjectTag();
+        objects[tag].emplace_back(std::move(object));
+    }
 
     void ObjectManager::RemoveObject(class GameObject* object)
     {
