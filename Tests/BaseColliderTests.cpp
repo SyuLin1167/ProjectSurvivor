@@ -198,6 +198,32 @@ void VerifyAutoAttack()
     try { phase2::PlayerAttackConfig::FromJson(attackData); }
     catch (const std::exception&) { rejected = true; }
     require(rejected, "Fixed damage cannot be changed through JSON");
+    // HP20比較は既存JSON経路で読み込み、実Playerの2発目で敵と判定が除去されることを確認する。
+    auto comparisonData = files.jsonIO.Load("ProjectName/resources/data/EnemyConfig.json");
+    comparisonData["health"] = 20;
+    const auto comparison = phase2::EnemyConfig::FromJson(comparisonData);
+    {
+        object::ObjectManager objects;
+        objects.AddObject(new object::Player(true));
+        auto* enemy = new object::Enemy({612, 2048}, comparison);
+        objects.AddObject(enemy);
+        objects.InitBeforeUpdate();
+        std::weak_ptr<object::GameObject> killed = objects.GetObjForTag(object::ENEMY).front();
+        dt = 0;
+        objects.Update();
+        require(enemy->Health() == 10, "HP20 comparison survives first attack");
+        dt = 0.5f;
+        objects.Update();
+        require(killed.expired() && objects.GetObjForTag(object::ENEMY).empty(),
+            "HP20 comparison dies on second attack and is released");
+        objects.Update(); // 除去後の更新でも攻撃対象の参照を持ち越さない。
+    }
+    // 個別許可を一般的なHP調整権限へ広げないため、未承認の中間値は拒否する。
+    comparisonData["health"] = 25;
+    bool healthRejected = false;
+    try { phase2::EnemyConfig::FromJson(comparisonData); }
+    catch (const std::exception&) { healthRejected = true; }
+    require(healthRejected, "Unapproved HP25 remains rejected");
     for (int fps : {30, 60, 120})
     {
         object::ObjectManager objects;
