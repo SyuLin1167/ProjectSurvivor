@@ -8,6 +8,7 @@
         "health": 20,
         "stagedIntervals": true,
         "randomDirections": true,
-        "seed": 1901
+        "seed": 1901,
+        "stagedCount": false
     }
 }

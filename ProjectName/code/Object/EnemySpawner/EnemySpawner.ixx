@@ -16,7 +16,7 @@ import <string>;
 
 export namespace object
 {
-    /// <summary>DEC-03基準と#19比較セットの出現値。安全距離・方向候補・生成数は共通。</summary>
+    /// <summary>DEC-03基準と#19比較セットの出現値。安全距離・方向候補は共通。</summary>
     struct EnemySpawnConfig
     {
         // ゲーム時間の秒数。初回待機と通常の出現周期を区別する。
@@ -27,6 +27,7 @@ export namespace object
         std::optional<float> healthOverride;
         bool stagedIntervals = false, randomDirections = false;
         uint32_t seed = 1901;
+        bool stagedCount = false; // #19 v2のみ、期限20秒以降を最大2体にする。
         /// <summary>有限値・整数上限と承認範囲を確認する。</summary>
         void Validate() const
         {
@@ -39,7 +40,15 @@ export namespace object
             if (healthOverride && ((*healthOverride != 20 && *healthOverride != 30) ||
                 interval != 4 || firstDelay != 3 || distance != 480 || limit != 8))
                 throw std::runtime_error("EnemySpawnConfig: outside issue 19 comparison");
+            // 生成数だけを比較するv2は、段階周期やHP・方向条件の変更と混在させない。
+            if (stagedCount && (stagedIntervals || healthOverride != 20 || !randomDirections ||
+                seed != 1901 || interval != 4 || firstDelay != 3 || distance != 480 || limit != 8))
+                throw std::runtime_error("EnemySpawnConfig: staged count requires approved C1 conditions");
         }
+        /// <summary>処理フレームではなく予約期限から、この機会の生成数上限を決める。</summary>
+        /// <param name="due">新規Play開始からの予約期限（ゲーム秒）。</param>
+        /// <returns>基準・C0は1、C1の20秒以降は2。</returns>
+        int CountAt(double due) const { return stagedCount && due >= 20 ? 2 : 1; }
         /// <summary>予約期限が属する区間の間隔を返す。境界通過だけでは予約を変更しない。</summary>
         /// <param name="time">新規Play開始からのゲーム秒数。</param>
         /// <returns>次回予約に使う秒数。候補は20秒から3秒、40秒から2.5秒。</returns>
@@ -68,6 +77,7 @@ export namespace object
                 c.healthOverride = candidate.at("health").get<float>();
                 c.stagedIntervals = candidate.at("stagedIntervals").get<bool>();
                 c.randomDirections = candidate.at("randomDirections").get<bool>();
+                c.stagedCount = candidate.value("stagedCount", false);
                 // 負数・小数・32bitを超える種は、切り捨てず開始前に拒否する。
                 const auto& seedValue = candidate.at("seed");
                 if (!seedValue.is_number_integer() || seedValue.get<double>() < 0 ||
@@ -90,12 +100,12 @@ export namespace object
         /// <param name="enemy">既存の敵能力設定。</param>
         /// <param name="worldSize">マップの幅・高さ（u）。</param>
         EnemySpawner(EnemySpawnConfig config, phase2::EnemyConfig enemy, math::Vector2f worldSize);
-        /// <summary>継続中のフレーム末尾で最大1体を生成する。見送り分は蓄積しない。</summary>
+        /// <summary>継続中のフレーム末尾で1機会を処理し、設定に応じ最大2体を生成する。見送り分は蓄積しない。</summary>
         /// <param name="dt">共通ゲーム経過秒数。停止中は0。</param>
         /// <param name="manager">更新・Stepが完了したシーンの管理。</param>
         /// <param name="base">存続中の拠点。終了判定は呼び出し側で先に行う。</param>
         /// <param name="playerCenter">P中心のワールド座標（u）。</param>
-        /// <returns>新しい敵1体の登録に成功した場合true。</returns>
+        /// <returns>新しい敵を1体以上登録した場合true。部分生成も成功として扱う。</returns>
         bool Update(float dt, ObjectManager& manager, const MovingBase& base, math::Vector2f playerCenter);
     private:
         /// <summary>承認上限12体分の格納領域。使用中スロットは最後の所有参照が解放されるまで再利用しない。</summary>

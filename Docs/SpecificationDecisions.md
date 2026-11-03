@@ -174,3 +174,11 @@ Phase 3試作ではP・拠点の相互通過を非貫通へ変更する。既存
 比較設定は実行ファイル隣の resources/data/EnemySpawnConfig.json の balanceSet を baseline／candidate に切り替える。既定はbaseline。candidate内のhealth（20または30）、stagedIntervals、randomDirections、seedで各要素を独立に戻せる。候補の初期値は20／true／true／1901。基準時はEnemyConfig.jsonをそのまま使うため、既定のhealth:30へ戻して比較する。プレイ中の切替UIはなく、比較時は終了・再起動し、再ビルドによるリソースコピー後も実行用JSONを確認する。
 
 初回は基準と候補の2条件を優先。60秒試遊で初敵接触前撃破、結果HP、最大同時生存数、FPS、序盤／中盤／終盤の操作感、被弾・対応が重なる場面を記録。各要素の因果を断定せず、問題時だけ個別復帰して追加比較する。候補の手動結果と採否は#19へ記録する。
+### #19生成数比較v2（2026-11-04 JST承認）
+
+承認者: プロジェクトオーナー。[承認記録](https://github.com/SyuLin1167/ProjectSurvivor/issues/19#issuecomment-6612858182) / [詳細案v2](https://github.com/SyuLin1167/ProjectSurvivor/issues/19#issuecomment-6612768699)。
+Phase 4／#19比較限定。C0/C1はHP20・4秒固定・初回3秒・seed1901・既存3方向・上限8を共通とし、C1のみ予約期限20秒以降を最大2体にする。通常の初回2体機会は23秒。HP・速度・方向候補・安全条件・勝敗は変更しない。
+
+1機会で候補順を1回確定し、異なる安全方向から最大2体。1体目を2体目の安全判定・枠数へ含める。生存6/7/8なら最大2/1/0、安全候補1個なら1体。プール空きがなければ不足分を見送り、既に登録した個体は取り消さない。1体以上なら期限基準の次周期、0体なら処理時点から4秒待ち。未生成分の蓄積・追加抽選なし。次の通常更新から行動し、結果判定を生成より優先する。
+
+実行用EnemySpawnConfig.jsonはbalanceSet=candidate、candidate.health=20、stagedIntervals=false、randomDirections=true、seed=1901とする。stagedCount=falseがC0、trueがC1。C1と段階周期の併用は拒否する。従来baselineと旧v1（stagedIntervals=true、stagedCount=false）は保持。既定選択はbaselineのまま、C0/C1の試遊結果と採否は#19へ記録する。PR #40に集約し、マージは別承認。

@@ -63,6 +63,8 @@ namespace object
         const double due = m_elapsed + m_remaining;
         const double interval = m_config.IntervalAt(due);
         const auto directionsOrder = NextDirections();
+        const int requested = m_config.CountAt(due);
+        int generated = 0;
         // 通常の端数は保持。複数期限を跨ぐ遅延は回収せず現在区間から予約し直す。
         m_remaining = m_remaining > -interval ? interval + m_remaining : m_config.IntervalAt(m_elapsed);
         // 生存かつ有効な敵だけを収集し、同時上限と候補位置の安全距離に使用する。
@@ -78,8 +80,9 @@ namespace object
                 math::Vector2f{1, 0}, math::Vector2f{1, -1}.Norm(), math::Vector2f{1, 1}.Norm()};
             const auto baseCenter = base.Center();
             const auto half = base.Size().Half();
-            // 確定した順序で最大3候補を試し、安全な位置が見つかった時点で探索を終える。
-            for (int candidate = 0; candidate < 3; ++candidate)
+            // 各方向は1回だけ調べる。必要数・空き枠に達したら終了し、追加抽選はしない。
+            for (int candidate = 0; candidate < 3 && generated < requested &&
+                centers.size() < static_cast<size_t>(m_config.limit); ++candidate)
             {
                 const auto position = baseCenter + directions[directionsOrder[candidate]] * m_config.distance;
                 const float radius = m_enemy.Radius;
@@ -96,11 +99,14 @@ namespace object
                 // 安全な位置が確定してからプールを取得する。空きがなければ今回の生成を見送る。
                 auto enemy = Acquire(position);
                 if (!enemy) break; // 撃破個体への所有参照が残る場合も、使用中領域を上書きしない。
-                // 参照解決とCollider登録を完了して管理へ渡す。1体登録できた場合はtrueを返す。
+                // 参照解決とCollider登録後に、同機会の後続候補の距離判定・枠数へ含める。
                 manager.AddInitializedObject(std::move(enemy));
-                return true; // 登録時は行動させず、次フレームの通常更新で扱う。
+                centers.push_back(position);
+                ++generated; // どの個体も登録時は行動させず、次フレームの通常更新で扱う。
             }
         }
+        // 部分生成も成功。既存の予約期限を維持し、不足分の再試行や繰り越しはしない。
+        if (generated > 0) return true;
         // 上限／全候補不成立／プール空きなしは1周期待つ。空きができても即座に埋め戻さない。
         m_remaining = m_config.IntervalAt(m_elapsed);
         return false;

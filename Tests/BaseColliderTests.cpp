@@ -547,10 +547,16 @@ void VerifyStageEnd()
     // そのResultを保持してStart/Retry共通の実LoadingSceneを通し、2回目も同条件に戻す。
     const auto spawnSource = files.jsonIO.Load("ProjectName/resources/data/EnemySpawnConfig.json");
     // Start/Retry共通のLoadingを基準・候補双方で通し、乱数や時計も新規Playへ持ち越さない。
-    for (const auto selection : {"baseline", "candidate"})
+    for (const auto selection : {"baseline", "candidate", "countControl", "countCandidate"})
     {
         auto selected = spawnSource;
-        selected["balanceSet"] = selection;
+        const std::string mode = selection;
+        selected["balanceSet"] = mode == "baseline" ? "baseline" : "candidate";
+        if (mode == "countControl" || mode == "countCandidate")
+        {
+            selected["candidate"]["stagedIntervals"] = false;
+            selected["candidate"]["stagedCount"] = mode == "countCandidate";
+        }
         files.jsonIO.Write(files.GetDataDir() / "EnemySpawnConfig.json", selected);
         int firstFrames = 0;
         float firstProgress = 0;
@@ -643,6 +649,89 @@ private:
     col2d::ColliderID& m_id;
 };
 
+/// <summary>C0/C1の数切替、異方向生成、空き枠と安全候補による部分生成を検証する。</summary>
+void VerifyStagedCount()
+{
+    gameSystem::AppCtx::Activate();
+    auto& files = gameSystem::AppCtx::FileSystem();
+    auto data = files.jsonIO.Load("ProjectName/resources/data/EnemySpawnConfig.json");
+    data["balanceSet"] = "candidate";
+    data["candidate"]["stagedIntervals"] = false;
+    data["candidate"]["stagedCount"] = true;
+    const auto config = object::EnemySpawnConfig::FromJson(data);
+    const auto enemy = phase2::EnemyConfig::FromJson(files.jsonIO.Load("ProjectName/resources/data/EnemyConfig.json"));
+    const math::Vector2f world{16384,4096}, distant{16,16};
+    require(config.CountAt(19.999) == 1 && config.CountAt(20) == 2, "Count uses scheduled boundary");
+    auto invalid = data; invalid["candidate"]["stagedIntervals"] = true;
+    bool rejected = false;
+    try { object::EnemySpawnConfig::FromJson(invalid); } catch (const std::exception&) { rejected = true; }
+    require(rejected, "Count comparison cannot enable staged intervals");
+
+    // 機会ごとに除去して上限見送りを除外し、同一時刻列で数だけが変わることを測る。
+    for (bool pair : {false, true})
+    for (int fps : {30,60,120})
+    {
+        auto selected = config; selected.stagedCount = pair;
+        object::ObjectManager objects;
+        auto* base = new object::MovingBase;
+        objects.AddObject(base); objects.InitBeforeUpdate();
+        object::EnemySpawner spawner(selected, enemy, world);
+        int opportunities = 0, total = 0;
+        for (int frame = 1; frame <= 60 * fps; ++frame)
+        {
+            if (!spawner.Update(1.0f / fps, objects, *base, distant)) continue;
+            const double due = 3 + 4 * opportunities;
+            require(std::abs(frame / double(fps) - due) <= 1.0 / fps, "C0/C1 fixed four-second schedule");
+            const auto items = objects.GetObjForTag(object::ENEMY);
+            require(items.size() == (pair && due >= 20 ? 2u : 1u), "19 seconds single, 23 seconds pair");
+            if (items.size() == 2)
+            {
+                const auto a = std::dynamic_pointer_cast<object::Enemy>(items[0])->Center();
+                const auto b = std::dynamic_pointer_cast<object::Enemy>(items[1])->Center();
+                require(a.Distance(b) >= 64 && a.y != b.y, "Pair has distinct safe directions");
+            }
+            total += static_cast<int>(items.size());
+            for (auto& item : items) std::dynamic_pointer_cast<object::Enemy>(item)->TakeDamage(20);
+            objects.RefreshObjects();
+            ++opportunities;
+        }
+        require(opportunities == 15 && total == (pair ? 25 : 15), "C0/C1 expected totals");
+        std::cout << "PASS: C" << pair << " " << fps << "fps, 15 opportunities / " << total << " enemies\n";
+    }
+
+    // 6/7/8体で2/1/0を生成する。安全候補0/1個も同じ実登録経路で確認する。
+    for (int scenario = 0; scenario < 5; ++scenario)
+    {
+        object::ObjectManager objects;
+        auto* base = new object::MovingBase;
+        objects.AddObject(base); objects.InitBeforeUpdate();
+        object::EnemySpawner spawner(config, enemy, world);
+        for (int i = 0; i < 5; ++i)
+        {
+            require(spawner.Update(i == 0 ? 3.0f : 4.0f, objects, *base, distant), "Prepare through deadline19");
+            for (auto& item : objects.GetObjForTag(object::ENEMY))
+                std::dynamic_pointer_cast<object::Enemy>(item)->TakeDamage(20);
+            objects.RefreshObjects();
+        }
+        const int existing = scenario < 3 ? 6 + scenario : scenario == 3 ? 2 : 3;
+        const std::vector<math::Vector2f> offsets{{480,0},{339.41125f,-339.41125f},{339.41125f,339.41125f}};
+        for (int i = 0; i < existing; ++i)
+            objects.AddInitializedObject(std::make_unique<object::Enemy>(
+                scenario < 3 ? math::Vector2f{100,100.0f + i * 64} : base->Center() + offsets[i], enemy));
+        const int expected = scenario < 3 ? 8 - existing : scenario == 3 ? 1 : 0;
+        require(spawner.Update(4, objects, *base, distant) == (expected > 0), "Partial success return value");
+        require(objects.GetObjForTag(object::ENEMY).size() == existing + expected, "Cap/safe positions bound pair count");
+        for (auto& item : objects.GetObjForTag(object::ENEMY))
+            std::dynamic_pointer_cast<object::Enemy>(item)->TakeDamage(30);
+        objects.RefreshObjects();
+        require(!spawner.Update(0.1f, objects, *base, distant), "Partial or skipped count is not queued");
+        require(spawner.Update(3.9f, objects, *base, distant) &&
+            objects.GetObjForTag(object::ENEMY).size() == 2, "Next opportunity has only its own pair");
+        base->TakeDamage(100);
+        require(!spawner.Update(100, objects, *base, distant), "Pair mode stops after defeat");
+    }
+    gameSystem::AppCtx::Deactivate();
+}
 /// <summary>#19の候補設定、境界周期、固定シード、安全候補と見送り後の再現性を検証する。</summary>
 void VerifyBalanceSet()
 {
@@ -1032,6 +1121,7 @@ int main() try
     VerifySimulationTime();
     VerifyFreshPlayObjects();
     VerifyStageEnd();
+    VerifyStagedCount();
     VerifyBalanceSet();
     VerifyEnemySpawning();
     // UIManager経由の再利用要素とClear後の値リセットを検証する。描画は手動確認する。
