@@ -7,10 +7,31 @@ import <algorithm>;
 namespace object
 {
     EnemySpawner::EnemySpawner(EnemySpawnConfig config, phase2::EnemyConfig enemy, math::Vector2f worldSize)
-        : m_config(config), m_enemy(enemy), m_worldSize(worldSize), m_remaining(config.firstDelay)
+        : m_config(config), m_enemy(enemy), m_worldSize(worldSize), m_remaining(config.firstDelay), m_random(config.seed)
     {
         // JSON以外から構築された場合も、承認範囲外の値を開始前に拒否する。
         m_config.Validate();
+        // 能力の他項目は共有し、候補セットで明示されたHPだけを置き換える。
+        if (m_config.healthOverride) m_enemy.Health = *m_config.healthOverride;
+    }
+
+    std::array<int, 3> EnemySpawner::NextDirections()
+    {
+        // 基準では既存の固定巡回を完全に維持する。
+        if (!m_config.randomDirections)
+        {
+            const int start = m_direction;
+            m_direction = (m_direction + 1) % 3;
+            return {start, (start + 1) % 3, (start + 2) % 3};
+        }
+        // mt19937と6順列の割当を固定し、標準ライブラリのshuffle実装差を避ける。
+        static constexpr std::array<std::array<int, 3>, 6> orders{{
+            {0, 1, 2}, {0, 2, 1}, {1, 0, 2}, {1, 2, 0}, {2, 0, 1}, {2, 1, 0}}};
+        // 2^32を6で割った余り4値だけを再抽選し、剰余による偏りを除く。
+        // 抽選は安全候補の確認前に完結し、上限見送りでも同じように進む。
+        uint32_t value;
+        do { value = static_cast<uint32_t>(m_random()); } while (value >= 4294967292u);
+        return orders[value % 6];
     }
 
     std::shared_ptr<Enemy> EnemySpawner::Acquire(math::Vector2f center)
@@ -35,13 +56,15 @@ namespace object
         // 停止中・不正な経過時間・終了済みの拠点では、生成時計を進めずfalseを返す。
         if (!std::isfinite(dt) || dt <= 0 || base.Health() <= 0 || (base.NowState() & MainState::DEAD)) return false;
         // 次の生成期限まで待つ。微小な誤差で生成が1フレーム遅れないよう許容幅を設ける。
+        m_elapsed += dt;
         m_remaining -= dt;
         if (m_remaining > 0.000001) return false;
-        // この機会の開始方向を保存し、生成の成否にかかわらず次回の方向を1つ進める。
-        const int start = m_direction;
-        m_direction = (m_direction + 1) % 3;
-        // 通常の端数のみ保持し、大きな遅延にも連続生成ループを使わない。
-        m_remaining = m_config.interval + (m_remaining > -m_config.interval ? m_remaining : 0.0);
+        // 予約済み期限の区間を使うため、20/40秒を跨いでも期限を繰り上げない。
+        const double due = m_elapsed + m_remaining;
+        const double interval = m_config.IntervalAt(due);
+        const auto directionsOrder = NextDirections();
+        // 通常の端数は保持。複数期限を跨ぐ遅延は回収せず現在区間から予約し直す。
+        m_remaining = m_remaining > -interval ? interval + m_remaining : m_config.IntervalAt(m_elapsed);
         // 生存かつ有効な敵だけを収集し、同時上限と候補位置の安全距離に使用する。
         std::vector<math::Vector2f> centers;
         for (const auto& object : manager.GetObjForTag(ObjectTag::ENEMY))
@@ -55,10 +78,10 @@ namespace object
                 math::Vector2f{1, 0}, math::Vector2f{1, -1}.Norm(), math::Vector2f{1, 1}.Norm()};
             const auto baseCenter = base.Center();
             const auto half = base.Size().Half();
-            // 開始方向から最大3候補を試し、安全な位置が見つかった時点で探索を終える。
+            // 確定した順序で最大3候補を試し、安全な位置が見つかった時点で探索を終える。
             for (int candidate = 0; candidate < 3; ++candidate)
             {
-                const auto position = baseCenter + directions[(start + candidate) % 3] * m_config.distance;
+                const auto position = baseCenter + directions[directionsOrder[candidate]] * m_config.distance;
                 const float radius = m_enemy.Radius;
                 // 円がマップからはみ出す、またはプレイヤーに近すぎる場合は次の候補へ進む。
                 if (position.x < radius || position.y < radius || position.x > m_worldSize.x - radius ||
@@ -79,7 +102,7 @@ namespace object
             }
         }
         // 上限／全候補不成立／プール空きなしは1周期待つ。空きができても即座に埋め戻さない。
-        m_remaining = m_config.interval;
+        m_remaining = m_config.IntervalAt(m_elapsed);
         return false;
     }
 }

@@ -2,5 +2,12 @@
     "interval": 4,
     "firstDelay": 3,
     "distance": 480,
-    "limit": 8
+    "limit": 8,
+    "balanceSet": "baseline",
+    "candidate": {
+        "health": 20,
+        "stagedIntervals": true,
+        "randomDirections": true,
+        "seed": 1901
+    }
 }
