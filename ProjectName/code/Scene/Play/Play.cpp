@@ -50,7 +50,7 @@ namespace scene
             const auto enemies = phase2::EnemyConfig::FromJson(files.jsonIO.Load(files.GetDataDir() / "EnemyConfig"));
             const auto spawn = object::EnemySpawnConfig::FromJson(files.jsonIO.Load(files.GetDataDir() / "EnemySpawnConfig"));
             const auto world = phase1::Config::FromJson(files.jsonIO.Load(files.GetDataDir() / "Phase1Config"));
-            // 新規Play専用のプール・初回待機時間・巡回方向を作り、前回の状態を引き継がない。
+            // 新規Play専用のプール・初回待機時間・方向と乱数を作り、前回の状態を引き継がない。
             m_spawner.emplace(spawn, enemies, math::Vector2f{world.WorldWidth, world.WorldHeight});
             // 固定3体は生成しない。初期化／ロード中には生成時計を進めない。
             return;

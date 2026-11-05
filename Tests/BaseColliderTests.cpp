@@ -198,6 +198,32 @@ void VerifyAutoAttack()
     try { phase2::PlayerAttackConfig::FromJson(attackData); }
     catch (const std::exception&) { rejected = true; }
     require(rejected, "Fixed damage cannot be changed through JSON");
+    // HP20比較は既存JSON経路で読み込み、実Playerの2発目で敵と判定が除去されることを確認する。
+    auto comparisonData = files.jsonIO.Load("ProjectName/resources/data/EnemyConfig.json");
+    comparisonData["health"] = 20;
+    const auto comparison = phase2::EnemyConfig::FromJson(comparisonData);
+    {
+        object::ObjectManager objects;
+        objects.AddObject(new object::Player(true));
+        auto* enemy = new object::Enemy({612, 2048}, comparison);
+        objects.AddObject(enemy);
+        objects.InitBeforeUpdate();
+        std::weak_ptr<object::GameObject> killed = objects.GetObjForTag(object::ENEMY).front();
+        dt = 0;
+        objects.Update();
+        require(enemy->Health() == 10, "HP20 comparison survives first attack");
+        dt = 0.5f;
+        objects.Update();
+        require(killed.expired() && objects.GetObjForTag(object::ENEMY).empty(),
+            "HP20 comparison dies on second attack and is released");
+        objects.Update(); // 除去後の更新でも攻撃対象の参照を持ち越さない。
+    }
+    // 個別許可を一般的なHP調整権限へ広げないため、未承認の中間値は拒否する。
+    comparisonData["health"] = 25;
+    bool healthRejected = false;
+    try { phase2::EnemyConfig::FromJson(comparisonData); }
+    catch (const std::exception&) { healthRejected = true; }
+    require(healthRejected, "Unapproved HP25 remains rejected");
     for (int fps : {30, 60, 120})
     {
         object::ObjectManager objects;
@@ -519,59 +545,74 @@ void VerifyStageEnd()
         files.GetDataDir() / "EnemySpawnConfig.json", std::filesystem::copy_options::overwrite_existing);
     // 継続出現の実Playを無操作で敗北まで進め、Resultへ値だけが渡ることを確認する。
     // そのResultを保持してStart/Retry共通の実LoadingSceneを通し、2回目も同条件に戻す。
-    int firstFrames = 0;
-    float firstProgress = 0;
-    std::shared_ptr<scene::Play> play = std::make_shared<scene::Play>();
-    for (int trial = 0; trial < 2; ++trial)
+    const auto spawnSource = files.jsonIO.Load("ProjectName/resources/data/EnemySpawnConfig.json");
+    // Start/Retry共通のLoadingを基準・候補双方で通し、乱数や時計も新規Playへ持ち越さない。
+    for (const auto selection : {"baseline", "candidate", "countControl", "countCandidate"})
     {
-        play->Init();
-        dt = 1.0f / 60;
-        scene::SceneCmd command;
-        int frames = 0;
-        while (std::holds_alternative<std::monostate>(command) && frames < 6000)
+        auto selected = spawnSource;
+        const std::string mode = selection;
+        selected["balanceSet"] = mode == "baseline" ? "baseline" : "candidate";
+        if (mode == "countControl" || mode == "countCandidate")
         {
-            command = play->Update();
-            ++frames;
+            selected["candidate"]["stagedIntervals"] = false;
+            selected["candidate"]["stagedCount"] = mode == "countCandidate";
         }
-        auto* replace = std::get_if<scene::CmdReplace>(&command);
-        require(replace != nullptr, "Actual spawning play reaches result");
-        auto result = std::dynamic_pointer_cast<scene::Result>(replace->build());
-        require(result && result->ResultValue().outcome == StageEnd::Defeat &&
-            result->ResultValue().health == 0 && result->ResultValue().progress < 1,
-            "Actual contact damage ends play as defeat");
-        for (int frame = 0; frame < 60; ++frame)
-            require(std::holds_alternative<std::monostate>(play->Update()),
-                "Finished Play never updates or issues another transition");
-        const auto snapshot = result->ResultValue();
-        if (trial == 0) { firstFrames = frames; firstProgress = snapshot.progress; }
-        else require(frames == firstFrames && snapshot.progress == firstProgress,
-            "Restart restores HP, positions, attack timers and progress to the same result");
-        play.reset();
-        command = std::monostate{};
-        require(result->ResultValue().progress == snapshot.progress,
-            "Result survives old Play destruction by value");
-        std::cout << "Stage trial=" << trial << " defeat frame=" << frames
-                  << " progress=" << snapshot.progress << " HP=" << snapshot.health << '\n';
-        if (trial == 0)
+        files.jsonIO.Write(files.GetDataDir() / "EnemySpawnConfig.json", selected);
+        int firstFrames = 0;
+        float firstProgress = 0;
+        std::shared_ptr<scene::Play> play = std::make_shared<scene::Play>();
+        for (int trial = 0; trial < 2; ++trial)
         {
-            auto retry = scene::Play::Start(result);
-            auto loading = std::get<scene::CmdReplace>(retry).build();
-            retry = std::monostate{};
-            result.reset();
-            scene::SceneCmd ready;
-            const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
-            while (std::holds_alternative<std::monostate>(ready) && std::chrono::steady_clock::now() < deadline)
+            play->Init();
+            dt = 1.0f / 60;
+            scene::SceneCmd command;
+            int frames = 0;
+            while (std::holds_alternative<std::monostate>(command) && frames < 6000)
             {
-                dt = 1.0f / 60;
-                ready = loading->Update();
-                std::this_thread::yield();
+                command = play->Update();
+                ++frames;
             }
-            auto* loaded = std::get_if<scene::CmdReplace>(&ready);
-            require(loaded != nullptr, "Shared Start/Retry loading completes");
-            play = std::dynamic_pointer_cast<scene::Play>(loaded->build());
-            require(play != nullptr, "Retry builds a new Play");
+            auto* replace = std::get_if<scene::CmdReplace>(&command);
+            require(replace != nullptr, "Actual spawning play reaches result");
+            auto result = std::dynamic_pointer_cast<scene::Result>(replace->build());
+            require(result && result->ResultValue().outcome == StageEnd::Defeat &&
+                result->ResultValue().health == 0 && result->ResultValue().progress < 1,
+                "Actual contact damage ends play as defeat");
+            for (int frame = 0; frame < 60; ++frame)
+                require(std::holds_alternative<std::monostate>(play->Update()),
+                    "Finished Play never updates or issues another transition");
+            const auto snapshot = result->ResultValue();
+            if (trial == 0) { firstFrames = frames; firstProgress = snapshot.progress; }
+            else require(frames == firstFrames && snapshot.progress == firstProgress,
+                "Restart restores HP, positions, attack timers and progress to the same result");
+            play.reset();
+            command = std::monostate{};
+            require(result->ResultValue().progress == snapshot.progress,
+                "Result survives old Play destruction by value");
+            std::cout << "Stage trial=" << trial << " defeat frame=" << frames
+                      << " progress=" << snapshot.progress << " HP=" << snapshot.health << '\n';
+            if (trial == 0)
+            {
+                auto retry = scene::Play::Start(result);
+                auto loading = std::get<scene::CmdReplace>(retry).build();
+                retry = std::monostate{};
+                result.reset();
+                scene::SceneCmd ready;
+                const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+                while (std::holds_alternative<std::monostate>(ready) && std::chrono::steady_clock::now() < deadline)
+                {
+                    dt = 1.0f / 60;
+                    ready = loading->Update();
+                    std::this_thread::yield();
+                }
+                auto* loaded = std::get_if<scene::CmdReplace>(&ready);
+                require(loaded != nullptr, "Shared Start/Retry loading completes");
+                play = std::dynamic_pointer_cast<scene::Play>(loaded->build());
+                require(play != nullptr, "Retry builds a new Play");
+            }
         }
     }
+    files.jsonIO.Write(files.GetDataDir() / "EnemySpawnConfig.json", spawnSource);
     dt = previousDt;
     gameSystem::AppCtx::Deactivate();
     std::cout << "PASS: stage threshold, defeat/R priority, result latch and actual restart\n";
@@ -608,6 +649,205 @@ private:
     col2d::ColliderID& m_id;
 };
 
+/// <summary>C0/C1の数切替、異方向生成、空き枠と安全候補による部分生成を検証する。</summary>
+void VerifyStagedCount()
+{
+    gameSystem::AppCtx::Activate();
+    auto& files = gameSystem::AppCtx::FileSystem();
+    auto data = files.jsonIO.Load("ProjectName/resources/data/EnemySpawnConfig.json");
+    data["balanceSet"] = "candidate";
+    data["candidate"]["stagedIntervals"] = false;
+    data["candidate"]["stagedCount"] = true;
+    const auto config = object::EnemySpawnConfig::FromJson(data);
+    const auto enemy = phase2::EnemyConfig::FromJson(files.jsonIO.Load("ProjectName/resources/data/EnemyConfig.json"));
+    const math::Vector2f world{16384,4096}, distant{16,16};
+    require(config.CountAt(19.999) == 1 && config.CountAt(20) == 2, "Count uses scheduled boundary");
+    auto invalid = data; invalid["candidate"]["stagedIntervals"] = true;
+    bool rejected = false;
+    try { object::EnemySpawnConfig::FromJson(invalid); } catch (const std::exception&) { rejected = true; }
+    require(rejected, "Count comparison cannot enable staged intervals");
+
+    // 機会ごとに除去して上限見送りを除外し、同一時刻列で数だけが変わることを測る。
+    for (bool pair : {false, true})
+    for (int fps : {30,60,120})
+    {
+        auto selected = config; selected.stagedCount = pair;
+        object::ObjectManager objects;
+        auto* base = new object::MovingBase;
+        objects.AddObject(base); objects.InitBeforeUpdate();
+        object::EnemySpawner spawner(selected, enemy, world);
+        int opportunities = 0, total = 0;
+        for (int frame = 1; frame <= 60 * fps; ++frame)
+        {
+            if (!spawner.Update(1.0f / fps, objects, *base, distant)) continue;
+            const double due = 3 + 4 * opportunities;
+            require(std::abs(frame / double(fps) - due) <= 1.0 / fps, "C0/C1 fixed four-second schedule");
+            const auto items = objects.GetObjForTag(object::ENEMY);
+            require(items.size() == (pair && due >= 20 ? 2u : 1u), "19 seconds single, 23 seconds pair");
+            if (items.size() == 2)
+            {
+                const auto a = std::dynamic_pointer_cast<object::Enemy>(items[0])->Center();
+                const auto b = std::dynamic_pointer_cast<object::Enemy>(items[1])->Center();
+                require(a.Distance(b) >= 64 && a.y != b.y, "Pair has distinct safe directions");
+            }
+            total += static_cast<int>(items.size());
+            for (auto& item : items) std::dynamic_pointer_cast<object::Enemy>(item)->TakeDamage(20);
+            objects.RefreshObjects();
+            ++opportunities;
+        }
+        require(opportunities == 15 && total == (pair ? 25 : 15), "C0/C1 expected totals");
+        std::cout << "PASS: C" << pair << " " << fps << "fps, 15 opportunities / " << total << " enemies\n";
+    }
+
+    // 6/7/8体で2/1/0を生成する。安全候補0/1個も同じ実登録経路で確認する。
+    for (int scenario = 0; scenario < 5; ++scenario)
+    {
+        object::ObjectManager objects;
+        auto* base = new object::MovingBase;
+        objects.AddObject(base); objects.InitBeforeUpdate();
+        object::EnemySpawner spawner(config, enemy, world);
+        for (int i = 0; i < 5; ++i)
+        {
+            require(spawner.Update(i == 0 ? 3.0f : 4.0f, objects, *base, distant), "Prepare through deadline19");
+            for (auto& item : objects.GetObjForTag(object::ENEMY))
+                std::dynamic_pointer_cast<object::Enemy>(item)->TakeDamage(20);
+            objects.RefreshObjects();
+        }
+        const int existing = scenario < 3 ? 6 + scenario : scenario == 3 ? 2 : 3;
+        const std::vector<math::Vector2f> offsets{{480,0},{339.41125f,-339.41125f},{339.41125f,339.41125f}};
+        for (int i = 0; i < existing; ++i)
+            objects.AddInitializedObject(std::make_unique<object::Enemy>(
+                scenario < 3 ? math::Vector2f{100,100.0f + i * 64} : base->Center() + offsets[i], enemy));
+        const int expected = scenario < 3 ? 8 - existing : scenario == 3 ? 1 : 0;
+        require(spawner.Update(4, objects, *base, distant) == (expected > 0), "Partial success return value");
+        require(objects.GetObjForTag(object::ENEMY).size() == existing + expected, "Cap/safe positions bound pair count");
+        for (auto& item : objects.GetObjForTag(object::ENEMY))
+            std::dynamic_pointer_cast<object::Enemy>(item)->TakeDamage(30);
+        objects.RefreshObjects();
+        require(!spawner.Update(0.1f, objects, *base, distant), "Partial or skipped count is not queued");
+        require(spawner.Update(3.9f, objects, *base, distant) &&
+            objects.GetObjForTag(object::ENEMY).size() == 2, "Next opportunity has only its own pair");
+        base->TakeDamage(100);
+        require(!spawner.Update(100, objects, *base, distant), "Pair mode stops after defeat");
+    }
+    gameSystem::AppCtx::Deactivate();
+}
+/// <summary>#19の候補設定、境界周期、固定シード、安全候補と見送り後の再現性を検証する。</summary>
+void VerifyBalanceSet()
+{
+    gameSystem::AppCtx::Activate();
+    auto& files = gameSystem::AppCtx::FileSystem();
+    auto source = files.jsonIO.Load("ProjectName/resources/data/EnemySpawnConfig.json");
+    const auto baseline = object::EnemySpawnConfig::FromJson(source);
+    require(!baseline.healthOverride && !baseline.stagedIntervals && !baseline.randomDirections,
+        "Committed selection stays baseline");
+    source["balanceSet"] = "candidate";
+    const auto config = object::EnemySpawnConfig::FromJson(source);
+    const auto enemy = phase2::EnemyConfig::FromJson(files.jsonIO.Load("ProjectName/resources/data/EnemyConfig.json"));
+    const math::Vector2f world{16384,4096}, distant{16,16};
+    require(config.healthOverride == 20 && config.seed == 1901 && config.stagedIntervals && config.randomDirections,
+        "Candidate JSON selects approved set");
+    require(config.IntervalAt(19.999) == 4 && config.IntervalAt(20) == 3 &&
+        config.IntervalAt(39.999) == 3 && config.IntervalAt(40) == 2.5, "Stage interval boundary");
+
+    // 個別切替で元に戻せることを確認し、未知のモードや未承認HPは黙って受け入れない。
+    auto reverted = source;
+    reverted["candidate"]["health"] = 30;
+    reverted["candidate"]["stagedIntervals"] = false;
+    reverted["candidate"]["randomDirections"] = false;
+    const auto restored = object::EnemySpawnConfig::FromJson(reverted);
+    require(restored.healthOverride == 30 && !restored.randomDirections && restored.IntervalAt(50) == 4,
+        "Individual comparison switches return to baseline behavior");
+    for (int invalidCase = 0; invalidCase < 3; ++invalidCase)
+    {
+        auto invalid = source;
+        if (invalidCase == 0) invalid["balanceSet"] = "typo";
+        if (invalidCase == 1) invalid["candidate"]["health"] = 25;
+        if (invalidCase == 2) invalid["candidate"]["seed"] = -1;
+        bool rejected = false;
+        try { object::EnemySpawnConfig::FromJson(invalid); } catch (const std::exception&) { rejected = true; }
+        require(rejected, "Comparison rejects invalid selection, HP or seed");
+    }
+
+    // 機会ごとに撃破して位置見送りを避け、予約時刻と新規Spawnerの同一シード列を比較する。
+    const std::vector<double> times{3,7,11,15,19,23,26,29,32,35,38,41,43.5,46,48.5,51,53.5,56,58.5};
+    std::vector<int> reference;
+    for (int fps : {30,60,120})
+    {
+        object::ObjectManager objects;
+        auto* base = new object::MovingBase;
+        objects.AddObject(base); objects.InitBeforeUpdate();
+        object::EnemySpawner spawner(config, enemy, world);
+        std::vector<int> directions;
+        size_t count = 0;
+        for (int frame = 1; frame <= fps * 60; ++frame)
+        {
+            require(!spawner.Update(0, objects, *base, distant), "Pause preserves candidate schedule");
+            if (!spawner.Update(1.0f / fps, objects, *base, distant)) continue;
+            require(count < times.size() && std::abs(frame / double(fps) - times[count]) <= 1.0 / fps,
+                "Candidate preserves scheduled deadlines across 20/40 seconds");
+            auto item = std::dynamic_pointer_cast<object::Enemy>(objects.GetObjForTag(object::ENEMY).front());
+            require(item->Health() == 20, "Candidate HP reaches spawned Enemy");
+            const auto offset = item->Center() - base->Center();
+            directions.push_back(offset.y == 0 ? 0 : offset.y < 0 ? 1 : 2);
+            item->TakeDamage(20); item.reset(); objects.RefreshObjects();
+            ++count;
+        }
+        require(count == 19, "Candidate has nineteen opportunities");
+        // 算法や方向割当を不用意に変えて、同じシードの既存比較を再現不能にしない。
+        require(directions == std::vector<int>({2,1,2,1,0,1,1,0,0,0,1,1,1,0,1,1,1,0,0}),
+            "Seed1901 matches the recorded direction sequence");
+        if (reference.empty()) reference = directions;
+        else require(reference == directions, "Seed1901 restarts identically at each frame rate");
+        std::cout << "PASS: candidate " << fps << "fps, 19 deadlines and seed1901\n";
+    }
+
+    // 上限・位置不成立でも1機会ぶんの乱数を進め、回復直後には埋め戻さない。
+    for (bool atCap : {false, true})
+    {
+        object::ObjectManager objects;
+        auto* base = new object::MovingBase;
+        objects.AddObject(base); objects.InitBeforeUpdate();
+        object::EnemySpawner spawner(config, enemy, world);
+        const std::vector<math::Vector2f> offsets{{480,0},{339.41125f,-339.41125f},{339.41125f,339.41125f}};
+        for (int i = 0; i < (atCap ? 8 : 3); ++i)
+            objects.AddInitializedObject(std::make_unique<object::Enemy>(
+                atCap ? math::Vector2f{100,100.0f + i * 64} : base->Center() + offsets[i], enemy));
+        require(!spawner.Update(3, objects, *base, distant), "Candidate skips cap or blocked positions");
+        for (auto& item : objects.GetObjForTag(object::ENEMY))
+            std::dynamic_pointer_cast<object::Enemy>(item)->TakeDamage(30);
+        objects.RefreshObjects();
+        require(!spawner.Update(0.1f, objects, *base, distant), "Skipped opportunity has no immediate refill");
+        require(spawner.Update(3.9f, objects, *base, distant), "Skipped opportunity waits full interval");
+        auto item = std::dynamic_pointer_cast<object::Enemy>(objects.GetObjForTag(object::ENEMY).front());
+        const auto offset = item->Center() - base->Center();
+        require((offset.y == 0 ? 0 : offset.y < 0 ? 1 : 2) == reference[1],
+            "Skip consumes same random opportunity as successful spawn");
+    }
+
+    // 最優先の候補にプレイヤーがいる場合は別の安全候補を使う。全候補が境界外なら見送る。
+    {
+        object::ObjectManager objects;
+        auto* base = new object::MovingBase;
+        objects.AddObject(base); objects.InitBeforeUpdate();
+        const std::vector<math::Vector2f> offsets{{480,0},{339.41125f,-339.41125f},{339.41125f,339.41125f}};
+        const auto player = base->Center() + offsets[reference[0]];
+        object::EnemySpawner spawner(config, enemy, world);
+        require(spawner.Update(3, objects, *base, player), "Random order falls back to safe candidate");
+        auto item = std::dynamic_pointer_cast<object::Enemy>(objects.GetObjForTag(object::ENEMY).front());
+        require(item->Center().Distance(player) >= 256, "Fallback respects player safety");
+        item->TakeDamage(20); item.reset(); objects.RefreshObjects();
+        object::EnemySpawner outside(config, enemy, {800,4096});
+        require(!outside.Update(3, objects, *base, distant), "Random candidates respect map boundary");
+        // 大きな遅延でも1体だけ生成し、現在区間の2.5秒を待ってから次の機会へ進む。
+        require(spawner.Update(100, objects, *base, distant), "Stall creates only one candidate");
+        require(objects.GetObjForTag(object::ENEMY).size() == 1 &&
+            !spawner.Update(0.01f, objects, *base, distant), "Stall has no accumulated burst");
+        base->TakeDamage(100);
+        require(!spawner.Update(100, objects, *base, distant), "Candidate stops after defeat");
+    }
+    gameSystem::AppCtx::Deactivate();
+}
 /// <summary>承認された出現条件と実個体の寿命・接近・負荷を既存基盤で確認する。</summary>
 void VerifyEnemySpawning()
 {
@@ -881,6 +1121,8 @@ int main() try
     VerifySimulationTime();
     VerifyFreshPlayObjects();
     VerifyStageEnd();
+    VerifyStagedCount();
+    VerifyBalanceSet();
     VerifyEnemySpawning();
     // UIManager経由の再利用要素とClear後の値リセットを検証する。描画は手動確認する。
     ui::UIManager hudManager;
