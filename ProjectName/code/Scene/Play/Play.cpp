@@ -111,7 +111,10 @@ namespace scene
             // 終了と期限が同フレームなら上の遷移が優先。Stepの走査中には追加しない。
             // プレイヤーが存在する場合だけ、その現在位置を使って生成安全距離を判定する。
             if (const auto player = m_player.lock(); player && m_spawner)
+            {
+                base->CheckPickup(player->Center(), player->pData.size);
                 m_spawner->Update(FrameRate::GetDeltaTime(), *m_objManager, *base, player->Center());
+            }
         }
 
         // クリア後の画面へ移動
@@ -141,6 +144,7 @@ namespace scene
                 if (auto* element = dynamic_cast<ui::PlayHud*>(m_hudManager.GetElement(m_hudID)))
                     element->SetValues(hud, {Camera::Instance().WorldToScreen(base->Center() - base->Size().Half()), base->Size()});
                 m_hudManager.Draw();
+                base->DrawExploration();
             }
         }
     }

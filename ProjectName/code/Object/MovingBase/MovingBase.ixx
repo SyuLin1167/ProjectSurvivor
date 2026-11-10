@@ -29,8 +29,14 @@ export namespace object
         math::Vector2f Center() const { return m_pos + m_config.BaseSize.Half(); }
         /// <summary>試作の被害を下限0で適用する。ゲーム更新の停止はPlayが担当する。</summary>
         /// <param name="damage">正の有限ダメージ。</param>
-        /// <returns>有効な拠点のHPを減少させた場合true。</returns>
+        /// <returns>有効な拠点の攻撃が成立した場合（無効化を含む）true。</returns>
         bool TakeDamage(float damage);
+        /// <summary>地点とプレイヤー矩形の初回接触で回収する。</summary>
+        /// <param name="center">プレイヤー中心座標。</param>
+        /// <param name="size">プレイヤー矩形寸法。</param>
+        void CheckPickup(math::Vector2f center, math::Vector2f size);
+        /// <summary>地点、帰還案内、残り防御回数を描く。</summary>
+        void DrawExploration() const;
         /// <summary>防衛の効果を検証するため残HPを返す。</summary>
         /// <returns>0〜100の試作HP。</returns>
         float Health() const { return m_health; }
@@ -44,6 +50,9 @@ export namespace object
         /// <returns>拠点の幅・高さ（u）。</returns>
         math::Vector2f Size() const { return m_config.BaseSize; }
     private:
+        bool m_collected{};
+        bool m_delivered{};
+        int m_shields{};
         float m_health = 100.0f; // DEC-02固定値。Phase 2では調整権限なし。
         phase1::Config m_config{}; // Phase 1試作設定（u / u/s）
         col2d::ColliderID m_id{};

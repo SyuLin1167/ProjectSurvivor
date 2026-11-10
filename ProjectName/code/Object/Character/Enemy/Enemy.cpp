@@ -62,7 +62,7 @@ namespace object
             // 敵から拠点への片方向マスク。P/敵同士は通過し、拠点側は押し戻さない。
             ColMgr().AddMask(id, col2d::RECT, ObjectTag::BASE);
             col2d::ContactListener contact;
-            contact.event = [this]() { OnBaseContact(); };
+            contact.event = [this]() { m_touching = true; };
             ColMgr().AddEvent(id, col2d::MakeKey(col2d::RECT, ObjectTag::BASE), contact);
             return;
         }
@@ -129,6 +129,8 @@ namespace object
         if (m_prototype)
         {
             m_pos = ColMgr().GetCollider(id)->GetColliderDef()->localPos;
+            // 全Colliderの帰還通知後に各敵の有効打を一度だけ精算する。
+            if (m_touching) OnBaseContact();
             if (!m_touching) m_contactRemaining = (std::max)(0.0, m_contactRemaining);
             m_wasTouching = m_touching;
         }
@@ -139,7 +141,6 @@ namespace object
         const auto base = m_base.lock();
         // 接触の事実はColliderイベントだけから受け取る。撃破済み/対象消失時は被害を出さない。
         if (!CanBeAttacked() || !base || (base->NowState() & MainState::DEAD)) return;
-        m_touching = true;
         if (!m_attackedThisFrame && m_contactRemaining <= 0.000001)
         {
             if (base->TakeDamage(CONTACT_DAMAGE))
