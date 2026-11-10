@@ -14,6 +14,11 @@ import <cmath>;
 
 namespace object
 {
+    namespace
+    {
+        const shape::Rect explorationSite{{2368 - 16, 2448 - 16}, {32, 32}};
+    }
+
     MovingBase::MovingBase()
     {
         m_config = phase1::Config::FromJson(gameSystem::AppCtx::FileSystem().jsonIO.Load(
@@ -35,6 +40,16 @@ namespace object
         def.isActive = true;
         def.isTrigger = false;
         m_id = ColMgr().CreateRectCollider(&def, size, MyObjectTag());
+        // 押し戻し前の矩形接触に由来する通知だけで帰還を成立させる。
+        col2d::ContactListener arrival;
+        arrival.event = [this]() {
+            if (m_collected && !m_delivered)
+            {
+                m_delivered = true;
+                m_shields = 2;
+            }
+        };
+        ColMgr().AddEvent(m_id, col2d::MakeKey(col2d::RECT, ObjectTag::PLAYER), arrival);
         // P・敵側だけに拠点マスクを登録し、拠点の前進を衝突で止めない。
     }
 
@@ -51,6 +66,11 @@ namespace object
         const auto* collider = ColMgrPtr() ? ColMgr().GetCollider(m_id) : nullptr;
         if ((m_state & MainState::DEAD) || !collider || !collider->GetColliderDef()->isActive ||
             m_health <= 0 || !std::isfinite(damage) || damage <= 0) return false;
+        if (m_shields > 0)
+        {
+            --m_shields;
+            return true;
+        }
         m_health = (std::max)(0.0f, m_health - damage);
         return true;
     }
@@ -58,6 +78,35 @@ namespace object
     void MovingBase::LateUpdate()
     {
         m_pos = ColMgr().GetCollider(m_id)->GetColliderDef()->localPos;
+    }
+
+    void MovingBase::CheckPickup(math::Vector2f center, math::Vector2f size)
+    {
+        if (!m_collected && explorationSite.AABB(shape::Rect{center - size.Half(), size}))
+            m_collected = true;
+    }
+
+    void MovingBase::DrawExploration() const
+    {
+        const auto color = GetColor(80, 245, 210);
+        if (m_delivered)
+        {
+            DrawFormatString(18, 170, color, "BASE SHIELD: %d / 2", m_shields);
+            return;
+        }
+        if (m_collected)
+        {
+            DrawString(18, 170, "Collected! Touch BASE to activate shield.", color);
+            return;
+        }
+        // 画面外の地点は画面端に同じ記号を置く。
+        DrawString(18, 170, "Optional: visit X and return to BASE to block 2 hits.", color);
+        const auto screen = gameSystem::Window::GetWindowData()->SIZE;
+        const auto point = gameSystem::Camera::Instance().WorldToScreen(explorationSite.Center());
+        const int x = std::clamp(static_cast<int>(point.x), 20, static_cast<int>(screen.x) - 20);
+        const int y = std::clamp(static_cast<int>(point.y), 20, static_cast<int>(screen.y) - 20);
+        DrawBox(x - 16, y - 16, x + 16, y + 16, color, false);
+        DrawString(x - 5, y - 8, "X", color);
     }
 
     void MovingBase::Draw()

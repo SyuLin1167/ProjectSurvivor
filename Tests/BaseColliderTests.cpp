@@ -318,6 +318,39 @@ void VerifyContactDamage()
     const auto config = phase2::EnemyConfig::FromJson(files.jsonIO.Load("ProjectName/resources/data/EnemyConfig.json"));
     auto& dt = const_cast<float&>(gameSystem::FrameRate::GetDeltaTime());
     const auto previousDt = dt;
+    // 同じ更新の敵2体と帰還。角に接する場合と微小な隙間を分け、攻撃間隔も検証する。
+    for (float gap : {0.0f, 0.125f})
+    {
+        col2d::ColliderManager manager;
+        auto base = std::make_shared<object::MovingBase>();
+        base->SetColliderManager(&manager);
+        base->Init();
+        base->CheckPickup({2368, 2448}, {32, 32});
+        object::Enemy front({832, 2048}, config), rear({704, 2048}, config);
+        for (auto* enemy : {&front, &rear})
+        {
+            enemy->SetColliderManager(&manager);
+            enemy->GetReferenceObject([&](uint32_t) { return std::vector<std::shared_ptr<object::GameObject>>{base}; });
+            enemy->Init();
+        }
+        col2d::ColliderDef p{};
+        p.localPos = {816 + gap, 2080};
+        p.isActive = true;
+        p.isTrigger = false;
+        p.contactAfterMove = true;
+        auto player = manager.CreateRectCollider(&p, {32, 32}, object::PLAYER);
+        manager.AddMask(player, col2d::RECT, object::BASE);
+        dt = 0;
+        for (int frame = 0; frame < 2; ++frame)
+        {
+            front.Update(); rear.Update();
+            manager.Step();
+            front.LateUpdate(); rear.LateUpdate();
+            require(base->Health() == (gap == 0 ? 100 : 80), "Corner delivers before both hits, gap does not; cooldown respected");
+        }
+        base->TakeDamage(10);
+        require(base->Health() == (gap == 0 ? 90 : 70), "Exactly two hits blocked; repeated contact cannot recharge");
+    }
     for (int fps : {30, 60, 120})
     {
         object::ObjectManager objects;
