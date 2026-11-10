@@ -182,3 +182,6 @@ Phase 4／#19比較限定。C0/C1はHP20・4秒固定・初回3秒・seed1901・
 1機会で候補順を1回確定し、異なる安全方向から最大2体。1体目を2体目の安全判定・枠数へ含める。生存6/7/8なら最大2/1/0、安全候補1個なら1体。プール空きがなければ不足分を見送り、既に登録した個体は取り消さない。1体以上なら期限基準の次周期、0体なら処理時点から4秒待ち。未生成分の蓄積・追加抽選なし。次の通常更新から行動し、結果判定を生成より優先する。
 
 実行用EnemySpawnConfig.jsonはbalanceSet=candidate、candidate.health=20、stagedIntervals=false、randomDirections=true、seed=1901とする。stagedCount=falseがC0、trueがC1。C1と段階周期の併用は拒否する。従来baselineと旧v1（stagedIntervals=true、stagedCount=false）は保持。既定選択はbaselineのまま、C0/C1の試遊結果と採否は#19へ記録する。PR #40に集約し、マージは別承認。
+### 任意探索1地点の横距離比較（2026-11-10 JST）
+
+プロジェクトオーナーが比較案Bを限定承認。[比較条件・試遊記録 #44](https://github.com/SyuLin1167/ProjectSurvivor/issues/44)。対象main 39d49a7。新規Playの地点中心は `Phase1Config.json` の `useExplorationDistance520` が false（省略可）ならA (2368,2448)、trueならB (2368,2568)。両条件とも実行用 `EnemySpawnConfig.json` はC1（candidate、HP20、stagedIntervals=false、randomDirections=true、seed=1901、stagedCount=true）。60秒・既存速度・攻撃10・帰還後2回無効化を共通とし、C0は復帰用。520uの採否は比較試遊後の企画判断とする。

@@ -319,13 +319,21 @@ void VerifyContactDamage()
     auto& dt = const_cast<float&>(gameSystem::FrameRate::GetDeltaTime());
     const auto previousDt = dt;
     // 同じ更新の敵2体と帰還。角に接する場合と微小な隙間を分け、攻撃間隔も検証する。
-    for (float gap : {0.0f, 0.125f})
+    const auto stagePath = files.GetDataDir() / "Phase1Config.json";
+    const auto stage = files.jsonIO.Load(stagePath);
+    struct PickupCase { bool use520; float pickupY; float gap; bool delivered; };
+    // A・Bで同じ帰還経路を使い、Bでは旧地点で拾えないことも確認する。
+    for (const auto trial : {PickupCase{false, 2448, 0, true}, PickupCase{false, 2448, 0.125f, false},
+                             PickupCase{true, 2568, 0, true}, PickupCase{true, 2448, 0, false}})
     {
+        auto selected = stage;
+        selected["useExplorationDistance520"] = trial.use520;
+        files.jsonIO.Write(stagePath, selected);
         col2d::ColliderManager manager;
         auto base = std::make_shared<object::MovingBase>();
         base->SetColliderManager(&manager);
         base->Init();
-        base->CheckPickup({2368, 2448}, {32, 32});
+        base->CheckPickup({2368, trial.pickupY}, {32, 32});
         object::Enemy front({832, 2048}, config), rear({704, 2048}, config);
         for (auto* enemy : {&front, &rear})
         {
@@ -334,7 +342,7 @@ void VerifyContactDamage()
             enemy->Init();
         }
         col2d::ColliderDef p{};
-        p.localPos = {816 + gap, 2080};
+        p.localPos = {816 + trial.gap, 2080};
         p.isActive = true;
         p.isTrigger = false;
         p.contactAfterMove = true;
@@ -346,11 +354,12 @@ void VerifyContactDamage()
             front.Update(); rear.Update();
             manager.Step();
             front.LateUpdate(); rear.LateUpdate();
-            require(base->Health() == (gap == 0 ? 100 : 80), "Corner delivers before both hits, gap does not; cooldown respected");
+            require(base->Health() == (trial.delivered ? 100 : 80), "Only selected site and actual base contact deliver");
         }
         base->TakeDamage(10);
-        require(base->Health() == (gap == 0 ? 90 : 70), "Exactly two hits blocked; repeated contact cannot recharge");
+        require(base->Health() == (trial.delivered ? 90 : 70), "Exactly two hits blocked; repeated contact cannot recharge");
     }
+    files.jsonIO.Write(stagePath, stage);
     for (int fps : {30, 60, 120})
     {
         object::ObjectManager objects;
