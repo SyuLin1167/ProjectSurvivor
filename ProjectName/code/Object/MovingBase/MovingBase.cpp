@@ -14,15 +14,14 @@ import <cmath>;
 
 namespace object
 {
-    namespace
-    {
-        const shape::Rect explorationSite{{2368 - 16, 2448 - 16}, {32, 32}};
-    }
-
     MovingBase::MovingBase()
     {
-        m_config = phase1::Config::FromJson(gameSystem::AppCtx::FileSystem().jsonIO.Load(
-            gameSystem::AppCtx::FileSystem().GetDataDir() / "Phase1Config"));
+        auto& files = gameSystem::AppCtx::FileSystem();
+        const auto data = files.jsonIO.Load(files.GetDataDir() / "Phase1Config");
+        m_config = phase1::Config::FromJson(data);
+        // 旧設定も基準Aで開始する。表示と回収判定がずれないよう同じ矩形を使う。
+        const float centerY = data.value("useExplorationDistance520", false) ? 2568.0f : 2448.0f;
+        m_explorationSite = shape::Rect{{2368 - 16, centerY - 16}, {32, 32}};
     }
 
     MovingBase::~MovingBase()
@@ -82,7 +81,7 @@ namespace object
 
     void MovingBase::CheckPickup(math::Vector2f center, math::Vector2f size)
     {
-        if (!m_collected && explorationSite.AABB(shape::Rect{center - size.Half(), size}))
+        if (!m_collected && m_explorationSite.AABB(shape::Rect{center - size.Half(), size}))
             m_collected = true;
     }
 
@@ -102,7 +101,7 @@ namespace object
         // 画面外の地点は画面端に同じ記号を置く。
         DrawString(18, 170, "Optional: visit X and return to BASE to block 2 hits.", color);
         const auto screen = gameSystem::Window::GetWindowData()->SIZE;
-        const auto point = gameSystem::Camera::Instance().WorldToScreen(explorationSite.Center());
+        const auto point = gameSystem::Camera::Instance().WorldToScreen(m_explorationSite.Center());
         const int x = std::clamp(static_cast<int>(point.x), 20, static_cast<int>(screen.x) - 20);
         const int y = std::clamp(static_cast<int>(point.y), 20, static_cast<int>(screen.y) - 20);
         DrawBox(x - 16, y - 16, x + 16, y + 16, color, false);

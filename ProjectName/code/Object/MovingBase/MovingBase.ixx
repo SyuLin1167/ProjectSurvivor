@@ -1,6 +1,7 @@
 ﻿export module Object.MovingBase;
 import Object.GameObject;
 import Phase1.Config;
+import MyLib.Shape.Rect;
 
 export namespace object
 {
@@ -50,6 +51,7 @@ export namespace object
         /// <returns>拠点の幅・高さ（u）。</returns>
         math::Vector2f Size() const { return m_config.BaseSize; }
     private:
+        shape::Rect m_explorationSite{{0, 0}, {32, 32}};
         bool m_collected{};
         bool m_delivered{};
         int m_shields{};
