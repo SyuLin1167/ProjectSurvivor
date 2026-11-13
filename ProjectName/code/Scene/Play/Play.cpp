@@ -49,7 +49,9 @@ namespace scene
             auto& files = AppCtx::FileSystem();
             const auto enemies = phase2::EnemyConfig::FromJson(files.jsonIO.Load(files.GetDataDir() / "EnemyConfig"));
             const auto spawn = object::EnemySpawnConfig::FromJson(files.jsonIO.Load(files.GetDataDir() / "EnemySpawnConfig"));
-            const auto world = phase1::Config::FromJson(files.jsonIO.Load(files.GetDataDir() / "Phase1Config"));
+            const auto stageConfig = files.jsonIO.Load(files.GetDataDir() / "Phase1Config");
+            const auto world = phase1::Config::FromJson(stageConfig);
+            m_showNearestEnemy = stageConfig.value("showNearestEnemy", false);
             // 新規Play専用のプール・初回待機時間・方向と乱数を作り、前回の状態を引き継がない。
             m_spawner.emplace(spawn, enemies, math::Vector2f{world.WorldWidth, world.WorldHeight});
             // 固定3体は生成しない。初期化／ロード中には生成時計を進めない。
@@ -139,12 +141,15 @@ namespace scene
             {
                 // 初回描画も含め、そのPlayの実値を読む。共有・静的なHUD状態を残さない。
                 const auto result = m_stage->ResultValue();
-                const auto hud = ui::MakeHudValues(base->Health(), result.progress,
+                auto hud = ui::MakeHudValues(base->Health(), result.progress,
                     m_stage->Distance(), m_stage->RemainingDistance(), base->Center() - player->Center());
+                // 描画時の中心座標だけを保持し、撃破・再試行をまたいで敵参照を残さない。
+                hud.showNearestEnemy = m_showNearestEnemy;
+                if (m_showNearestEnemy) hud.toEnemy = ui::NearestEnemyOffset(*m_objManager, base->Center());
                 if (auto* element = dynamic_cast<ui::PlayHud*>(m_hudManager.GetElement(m_hudID)))
                     element->SetValues(hud, {Camera::Instance().WorldToScreen(base->Center() - base->Size().Half()), base->Size()});
                 m_hudManager.Draw();
-                base->DrawExploration();
+                base->DrawExploration(ui::PlayHudPanel(m_showNearestEnemy));
             }
         }
     }

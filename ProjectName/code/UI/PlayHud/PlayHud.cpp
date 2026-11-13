@@ -8,9 +8,32 @@ module UI.PlayHud;
 import GameSystem.CameraGeometry;
 import GameSystem.Window;
 import UI.DisplayElements;
+import Object.Enemy;
 
 namespace ui
 {
+    std::optional<math::Vector2f> NearestEnemyOffset(object::ObjectManager& objects, math::Vector2f baseCenter)
+    {
+        std::optional<math::Vector2f> nearest;
+        float bestSquared{};
+        uint64_t bestId{};
+        // 表示範囲やプレイヤーの射程に依存せず、撃破済み・無効な個体を除く。
+        for (const auto& item : objects.GetObjForTag(object::ENEMY))
+        {
+            const auto enemy = std::dynamic_pointer_cast<object::Enemy>(item);
+            if (!enemy || !enemy->CanBeAttacked()) continue;
+            const auto delta = enemy->Center() - baseCenter;
+            const float squared = delta.x * delta.x + delta.y * delta.y;
+            if (!nearest || squared < bestSquared || (squared == bestSquared && enemy->TargetId() < bestId))
+            {
+                nearest = delta;
+                bestSquared = squared;
+                bestId = enemy->TargetId();
+            }
+        }
+        return nearest;
+    }
+
     /// <summary>位置とワールド差分から同じ形の方向矢印を描く。</summary>
     /// <param name="position">矢印中心の画面座標（px）。</param>
     /// <param name="delta">Pから拠点への差分（u）。</param>
@@ -64,7 +87,11 @@ namespace ui
         const shape::Rect viewport{{0, 0}, {static_cast<float>(screen.x), static_cast<float>(screen.y)}};
         const auto marker = cameraGeometry::BaseMarker(baseScreenRect, viewport);
         // Object描画後に背景板ごと重ね、カメラや敵の描画順で文字が隠れないようにする。
-        DrawBox(12, 12, 590, 200, GetColor(15, 20, 25), true);
+        // 探索案内はy=170。操作案内と最寄り敵を独立した行に配置する。
+        const auto panel = PlayHudPanel(values.showNearestEnemy);
+        const int panelBottom = static_cast<int>(panel.Bottom());
+        DrawBox(static_cast<int>(panel.Left()), static_cast<int>(panel.Top()),
+            static_cast<int>(panel.Right()), panelBottom, GetColor(15, 20, 25), true);
         DrawStageStatus(values.health, values.progress, 24, 24);
         // 距離の表示丸めでも到達を早めない。残距離は到達まで最低1uと表示する。
         DrawLabel(std::format("TRAVEL: {}u / {}u | REMAIN: {}u",
@@ -74,11 +101,18 @@ namespace ui
         DrawLabel(std::format("BASE: {} | {:.1f}u | {} | {}",
             DirectionText(values.toBase), values.baseDistance, values.isNear ? "NEAR" : "FAR",
             marker.offscreen ? "OFFSCREEN" : "ONSCREEN"), 64, 132, GetColor(255, 190, 80));
-        DrawLabel("WASD / arrows: move | Auto attack | R: Title", 24, 174);
+        DrawLabel("WASD / arrows: move | Auto attack | R: Title", 24, 198);
+        if (values.showNearestEnemy)
+        {
+            const auto& delta = values.toEnemy;
+            DrawLabel(delta ? std::format("最寄り敵：{} | {:.1f}u（拠点基準）", DirectionText(*delta), delta->Length())
+                            : "最寄り敵：なし", 24, 226);
+        }
         if (marker.offscreen)
         {
             // 画面外判定は画面全体。配置だけHUDより下の領域へ収め、上端で重ならないようにする。
-            const shape::Rect markerArea{{0, 210}, {static_cast<float>(screen.x), static_cast<float>(screen.y - 210)}};
+            const float markerTop = static_cast<float>(panelBottom + 10);
+            const shape::Rect markerArea{{0, markerTop}, {static_cast<float>(screen.x), screen.y - markerTop}};
             const auto position = cameraGeometry::BaseMarker(baseScreenRect, markerArea).position;
             DrawBaseArrow(position, values.toBase);
             DrawLabel("BASE", position.x - 20, position.y + 18, GetColor(255, 190, 80));

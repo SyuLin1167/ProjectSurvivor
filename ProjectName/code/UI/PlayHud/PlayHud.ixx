@@ -6,9 +6,18 @@ export module UI.PlayHud;
 import UI.UIBase;
 import MyLib.Math.Vector2;
 import MyLib.Shape.Rect;
+import Object.ObjectManager;
+import <optional>;
 
 export namespace ui
 {
+    /// <summary>地点マーカーと共有するHUD背景板の画面矩形を返す。</summary>
+    /// <param name="showEnemy">最寄り敵の行を表示する場合true。</param>
+    /// <returns>文字を保護する背景板の範囲（px）。</returns>
+    inline shape::Rect PlayHudPanel(bool showEnemy)
+    {
+        return {{12, 12}, {578, showEnemy ? 240.0f : 212.0f}};
+    }
     /// <summary>そのフレームの実状態から作るHUD値。ゲームオブジェクトを所有しない。</summary>
     struct HudValues
     {
@@ -19,7 +28,15 @@ export namespace ui
         math::Vector2f toBase;
         float baseDistance;
         bool isNear;
+        bool showNearestEnemy{};
+        std::optional<math::Vector2f> toEnemy{};
     };
+
+    /// <summary>拠点から最寄りの有効敵への差分を求める。同距離は安定ID順。</summary>
+    /// <param name="objects">現在のPlayに登録されたオブジェクト。</param>
+    /// <param name="baseCenter">拠点中心のワールド座標（u）。</param>
+    /// <returns>拠点から敵中心への差分。敵がいなければ空。</returns>
+    std::optional<math::Vector2f> NearestEnemyOffset(object::ObjectManager& objects, math::Vector2f baseCenter);
 
     /// <summary>状態値を表示範囲へ制限し、既存の中心間距離・NEAR基準を求める。</summary>
     /// <param name="health">拠点の現在HP。</param>

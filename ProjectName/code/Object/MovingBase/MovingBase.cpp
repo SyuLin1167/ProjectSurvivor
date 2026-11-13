@@ -85,7 +85,7 @@ namespace object
             m_collected = true;
     }
 
-    void MovingBase::DrawExploration() const
+    void MovingBase::DrawExploration(const shape::Rect& hudPanel) const
     {
         const auto color = GetColor(80, 245, 210);
         if (m_delivered)
@@ -103,7 +103,9 @@ namespace object
         const auto screen = gameSystem::Window::GetWindowData()->SIZE;
         const auto point = gameSystem::Camera::Instance().WorldToScreen(m_explorationSite.Center());
         const int x = std::clamp(static_cast<int>(point.x), 20, static_cast<int>(screen.x) - 20);
-        const int y = std::clamp(static_cast<int>(point.y), 20, static_cast<int>(screen.y) - 20);
+        // 地点の表示だけを背景板の下に避ける。ワールド上の回収判定は移動しない。
+        const int top = x - 16 <= hudPanel.Right() ? static_cast<int>(hudPanel.Bottom()) + 20 : 20;
+        const int y = std::clamp(static_cast<int>(point.y), top, static_cast<int>(screen.y) - 20);
         DrawBox(x - 16, y - 16, x + 16, y + 16, color, false);
         DrawString(x - 5, y - 8, "X", color);
     }
