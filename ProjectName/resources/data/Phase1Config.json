@@ -12,5 +12,6 @@
   "baseCenterX": 768,
   "baseCenterY": 2048,
   "trialEndX": 5568,
-  "useExplorationDistance520": false
+  "useExplorationDistance520": false,
+  "showNearestEnemy": false
 }

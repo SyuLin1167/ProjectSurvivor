@@ -917,6 +917,26 @@ void VerifyEnemySpawning()
     require(adjusted.interval == 3 && adjusted.firstDelay == 2 && adjusted.distance == 640 && adjusted.limit == 12,
         "Delegated JSON changes are preserved");
     const math::Vector2f world{16384, 4096}, distantPlayer{16,16};
+    // 画面外の単体も対象。撃破直後は一覧から除去される前でも次の生存敵へ切り替える。
+    {
+        object::ObjectManager objects;
+        const math::Vector2f baseCenter{768, 2048};
+        require(!ui::NearestEnemyOffset(objects, baseCenter), "Empty scene has no nearest enemy");
+        auto far = std::make_shared<object::Enemy>(baseCenter + math::Vector2f{1800, -2400}, enemy);
+        objects.AddInitializedObject(far);
+        auto offset = ui::NearestEnemyOffset(objects, baseCenter);
+        require(offset && offset->Length() == 3000 && std::string(ui::DirectionText(*offset)) == "UP-RIGHT",
+            "Offscreen enemy uses base-to-center distance and direction");
+        auto close = std::make_shared<object::Enemy>(baseCenter + math::Vector2f{-40, 0}, enemy);
+        objects.AddInitializedObject(close);
+        offset = ui::NearestEnemyOffset(objects, baseCenter);
+        require(offset && offset->x == -40, "Closest living enemy wins");
+        close->TakeDamage(30);
+        offset = ui::NearestEnemyOffset(objects, baseCenter);
+        require(offset && offset->x == 1800, "Dead enemy is immediately excluded");
+        far->TakeDamage(30);
+        require(!ui::NearestEnemyOffset(objects, baseCenter), "No stale target after final kill");
+    }
     auto& dt = const_cast<float&>(gameSystem::FrameRate::GetDeltaTime());
     const float previousDt = dt;
     for (int fps : {30, 60, 120})

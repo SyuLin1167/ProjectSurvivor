@@ -37,7 +37,8 @@ export namespace object
         /// <param name="size">プレイヤー矩形寸法。</param>
         void CheckPickup(math::Vector2f center, math::Vector2f size);
         /// <summary>地点、帰還案内、残り防御回数を描く。</summary>
-        void DrawExploration() const;
+        /// <param name="hudPanel">地点マーカーが文字を覆わないようにする画面領域。</param>
+        void DrawExploration(const shape::Rect& hudPanel) const;
         /// <summary>防衛の効果を検証するため残HPを返す。</summary>
         /// <returns>0〜100の試作HP。</returns>
         float Health() const { return m_health; }
