@@ -169,6 +169,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\code\Asset\AlphaSprites.ixx" />
     <ClCompile Include="..\code\UI\PlayHud\PlayHud.ixx" />
     <ClCompile Include="..\code\UI\PlayHud\PlayHud.cpp" />
     <ClCompile Include="..\code\Object\EnemySpawner\EnemySpawner.ixx" />

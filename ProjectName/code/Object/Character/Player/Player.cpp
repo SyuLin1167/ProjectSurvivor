@@ -20,6 +20,7 @@ import Component.MoveWithKey;
 import Component.Animator;
 import Component.AudioSource;
 import Asset.Animation;
+import Asset.AlphaSprites;
 import Asset.Sound;
 import Collider;
 
@@ -200,6 +201,7 @@ namespace object
         }
         m_lastHit = target;
         m_lastHitCenter = target->Center();
+        m_lastHitKilled = target->Health() <= 0;
         m_hitDisplayRemaining = 0.15f; // 命中確認だけの短い表示。正式アニメーションではない。
         // 通常の端数は保持し、大きな遅延の攻撃回数は捨てる。連射ループは設けない。
         m_attackRemaining = m_attack.Interval +
@@ -252,9 +254,31 @@ namespace object
         {
             const auto target = std::dynamic_pointer_cast<Enemy>(m_lastHit.lock());
             const auto hit = Camera::Instance().WorldToScreen(target ? target->Center() : m_lastHitCenter);
-            DrawCircle(static_cast<int>(hit.x), static_cast<int>(hit.y), 22, GetColor(255, 255, 255), false);
+            if (m_phase1Config.alphaCombat)
+            {
+                // 命中は短い閃光、撃破は外側へ広がる破片。敵の寿命とは独立に消える。
+                const int x = int(hit.x), y = int(hit.y);
+                const int r = 17 + int((0.15f - m_hitDisplayRemaining) * 120);
+                if (m_lastHitKilled)
+                {
+                    const auto gold = GetColor(255, 191, 73);
+                    for (int sx : {-1, 1}) for (int sy : {-1, 1})
+                        DrawLine(x + sx * r, y + sy * r, x + sx * (r - 8), y + sy * (r - 8), gold, 3);
+                }
+                else
+                {
+                    DrawLine(x - r, y + r, x + r, y - r, GetColor(255, 242, 182), 4);
+                    DrawCircle(x, y, r, GetColor(245, 142, 75), false);
+                }
+            }
+            else DrawCircle(static_cast<int>(hit.x), static_cast<int>(hit.y), 22, GetColor(255, 255, 255), false);
         }
         const auto p = Camera::Instance().WorldToScreen(m_pos);
+        if (m_phase1Config.alphaCombat)
+        {
+            alphaSprites::Draw(alphaSprites::Sprite::Player, int(p.x), int(p.y), int(pData.size.x));
+            return;
+        }
         DrawBox(static_cast<int>(p.x), static_cast<int>(p.y),
             static_cast<int>(p.x + pData.size.x), static_cast<int>(p.y + pData.size.y),
             GetColor(40, 140, 255), true);

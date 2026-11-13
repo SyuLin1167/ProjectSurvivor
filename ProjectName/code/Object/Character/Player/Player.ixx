@@ -86,6 +86,7 @@ export namespace object
         std::weak_ptr<GameObject> m_lastHit; // 表示用。撃破した敵の寿命を延ばさない。
         math::Vector2f m_lastHitCenter{};
         float m_hitDisplayRemaining{};
+        bool m_lastHitKilled{}; // 撃破後の演出には座標だけを使用する。
         bool m_prototype; // Phase 1試作経路の選択
         phase1::Config m_phase1Config{}; // JSONから読み込んだ試作設定
         math::Vector2f m_cameraCenter{};

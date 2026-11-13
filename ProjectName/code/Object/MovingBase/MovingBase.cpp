@@ -5,6 +5,7 @@ module Object.MovingBase;
 import Object.BaseMotion;
 import MyLib.File.FileSystem;
 import GameSystem.Camera;
+import Asset.AlphaSprites;
 import GameSystem.CameraGeometry;
 import GameSystem.Window;
 import MyLib.Shape.Rect;
@@ -54,6 +55,7 @@ namespace object
 
     void MovingBase::Update()
     {
+        m_hurtTime = (std::max)(0.0f, m_hurtTime - m_deltaTime);
         m_velocity = phase1::BaseDisplacement(Center().x,
             m_config.TrialEndX, m_config.BaseSpeed, m_deltaTime);
         ColMgr().GetCollider(m_id)->SetVelocity(m_velocity);
@@ -71,6 +73,7 @@ namespace object
             return true;
         }
         m_health = (std::max)(0.0f, m_health - damage);
+        if (m_config.alphaCombat) m_hurtTime = 0.22f;
         return true;
     }
 
@@ -120,6 +123,19 @@ namespace object
         // 描画だけを省く。Update/LateUpdateと進行値・距離の表示は画面外でも継続する。
         if (!marker.offscreen)
         {
+            if (m_config.alphaCombat)
+            {
+                const int x = int(baseRect.Left()), y = int(baseRect.Top());
+                alphaSprites::DrawCaravan(x, y);
+                // シールドで防いだ攻撃には被害枠を表示しない。
+                if (m_hurtTime > 0)
+                {
+                    const int pad = 2 + int((0.22f - m_hurtTime) * 32);
+                    DrawBox(x - pad, y - pad, int(baseRect.Right()) + pad, int(baseRect.Bottom()) + pad,
+                        GetColor(255, 69, 58), false);
+                }
+                return;
+            }
             DrawBox(static_cast<int>(baseRect.Left()), static_cast<int>(baseRect.Top()),
                 static_cast<int>(baseRect.Right()), static_cast<int>(baseRect.Bottom()),
                 GetColor(255, 155, 40), true);

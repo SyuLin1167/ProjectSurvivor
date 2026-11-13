@@ -42,7 +42,8 @@ namespace object
             auto& slot = m_pool->slots[i];
             if (slot) continue;
             // 再利用する領域へ新個体を構築し、HP・接触時計・対象参照を初期状態に戻す。
-            slot.emplace(center, m_enemy);
+            constexpr std::array kinds{EnemyKind::Normal, EnemyKind::Runner, EnemyKind::Normal, EnemyKind::Heavy};
+            slot.emplace(center, m_enemy, m_config.alphaCombat ? kinds[m_nextKind] : EnemyKind::Classic);
             // 領域は再利用するが個体の寿命は分ける。古いweak_ptrを新個体へ復活させない。
             // deleterがプールを保持するため、Spawnerが先に破棄されても領域は有効。
             return std::shared_ptr<Enemy>(&*slot, [pool = m_pool, i](Enemy*) { pool->slots[i].reset(); });
@@ -101,6 +102,7 @@ namespace object
                 if (!enemy) break; // 撃破個体への所有参照が残る場合も、使用中領域を上書きしない。
                 // 参照解決とCollider登録後に、同機会の後続候補の距離判定・枠数へ含める。
                 manager.AddInitializedObject(std::move(enemy));
+                if (m_config.alphaCombat) m_nextKind = (m_nextKind + 1) % 4;
                 centers.push_back(position);
                 ++generated; // どの個体も登録時は行動させず、次フレームの通常更新で扱う。
             }

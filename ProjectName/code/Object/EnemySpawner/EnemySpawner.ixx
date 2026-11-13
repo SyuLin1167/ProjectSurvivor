@@ -28,6 +28,7 @@ export namespace object
         bool stagedIntervals = false, randomDirections = false;
         uint32_t seed = 1901;
         bool stagedCount = false; // #19 v2のみ、期限20秒以降を最大2体にする。
+        bool alphaCombat{};
         /// <summary>有限値・整数上限と承認範囲を確認する。</summary>
         void Validate() const
         {
@@ -129,5 +130,6 @@ export namespace object
         double m_elapsed = 0;
         std::mt19937 m_random;
         int m_direction = 0;
+        unsigned m_nextKind{}; // 実際に登録した個体数で4枠を巡回。Retryで先頭へ戻る。
     };
 }
