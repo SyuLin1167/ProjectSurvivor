@@ -1,6 +1,7 @@
 ﻿module;
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 export module GameSystem.FrameRate;
 
@@ -46,19 +47,27 @@ export namespace gameSystem
         /// <param name="seconds">残り時間。</param>
         /// <param name="dt">共通ゲーム経過秒。</param>
         /// <param name="keepOverrun">周期の端数補正用に負値を許可する。</param>
+        /// <returns>残り時間が1マイクロ秒以内なら完了。</returns>
         template<class T>
-        static void Countdown(T& seconds, float dt, bool keepOverrun = false)
+        static bool Countdown(T& seconds, float dt, bool keepOverrun = false)
         {
-            if (dt <= 0) return;
-            seconds -= static_cast<T>(dt);
-            if (!keepOverrun && seconds < 0) seconds = 0;
+            if (dt > 0 && seconds > 0) seconds -= static_cast<T>(dt);
+            const bool complete = seconds <= static_cast<T>(0.000001);
+            if (complete && !keepOverrun) seconds = 0;
+            return complete;
         }
 
         /// <summary>現在のゲーム経過秒をカウンターに加える。</summary>
         /// <param name="elapsed">累積時間。</param>
         /// <param name="dt">共通ゲーム経過秒。</param>
+        /// <param name="limit">完了する秒数。省略すると経過時間を積算し続ける。</param>
+        /// <returns>上限に達した場合true。</returns>
         template<class T>
-        static void CountUp(T& elapsed, float dt) { if (dt > 0) elapsed += dt; }
+        static bool CountUp(T& elapsed, float dt, T limit = std::numeric_limits<T>::infinity())
+        {
+            if (dt > 0) elapsed = (std::min)(limit, elapsed + static_cast<T>(dt));
+            return elapsed >= limit;
+        }
         FrameRate(FrameRate&&) = delete;
 
         /// <summary>

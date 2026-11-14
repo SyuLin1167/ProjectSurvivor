@@ -179,8 +179,7 @@ namespace object
         m_killPosition.reset();
         FrameRate::Countdown(m_boostSeconds, m_deltaTime);
         m_hitEffect.Update(m_deltaTime);
-        if (m_attackRemaining > 0) FrameRate::Countdown(m_attackRemaining, m_deltaTime, true);
-        if (m_attackRemaining > 0.000001 || !m_referenceObjects) return;
+        if (!FrameRate::Countdown(m_attackRemaining, m_deltaTime, true) || !m_referenceObjects) return;
         std::shared_ptr<Enemy> target;
         float nearest = m_attack.Range;
         // 1回の取得結果だけを使用する。永続的なshared_ptrで敵の破棄を妨げない。

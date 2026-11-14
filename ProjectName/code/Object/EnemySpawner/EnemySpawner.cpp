@@ -56,8 +56,7 @@ namespace object
         if (!std::isfinite(dt) || dt <= 0 || base.Health() <= 0 || (base.NowState() & MainState::DEAD)) return false;
         // 次の生成期限まで待つ。微小な誤差で生成が1フレーム遅れないよう許容幅を設ける。
         gameSystem::FrameRate::CountUp(m_elapsed, dt);
-        gameSystem::FrameRate::Countdown(m_remaining, dt, true);
-        if (m_remaining > 0.000001) return false;
+        if (!gameSystem::FrameRate::Countdown(m_remaining, dt, true)) return false;
         // 予約済み期限の区間を使うため、20/40秒を跨いでも期限を繰り上げない。
         const double due = m_elapsed + m_remaining;
         const double interval = m_config.IntervalAt(due);

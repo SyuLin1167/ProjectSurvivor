@@ -12,7 +12,9 @@ import <utility>;
 import MyLib.Math.Vector2;
 import GameSystem.Camera;
 import GameSystem.Window;
-import <vector>;
+import Object.Item;
+import Object.Repair;
+import Object.Boost;
 import <random>;
 import <algorithm>;
 import GameSystem.FrameRate;
@@ -23,36 +25,6 @@ export namespace object
     /// <summary>このPlayの戦利品と短い回収表示を管理する。敵への参照は保持しない。</summary>
     class CombatDrops
     {
-        /// <summary>固定スロットの戦利品。接触通知だけを記録し、勝敗判定後に効果を適用する。</summary>
-        struct Item
-        {
-            math::Vector2f center{};
-            float remaining = 20;
-            bool touching{};
-            col2d::ColliderManager* manager{};
-            col2d::ColliderID id{};
-            /// <summary>期限切れ・取得・シーン終了のいずれでも登録を解除する。</summary>
-            virtual ~Item() { if (manager) manager->Destroy(id); }
-            /// <summary>成功時は回復量（強化は0）、取得不能なら負値を返す。</summary>
-            /// <param name="player">取得者。</param>
-            /// <param name="base">修理対象。</param>
-            /// <returns>取得結果。</returns>
-            virtual float Apply(Player& player, MovingBase& base) const = 0;
-        };
-        /// <summary>拠点が満HPならフィールドに残る修理品。</summary>
-        struct Repair final : Item
-        {
-            float Apply(Player&, MovingBase& base) const override
-            {
-                const float healed = base.Repair();
-                return healed > 0 ? healed : -1;
-            }
-        };
-        /// <summary>プレイヤーの強化時間を更新する戦利品。</summary>
-        struct Boost final : Item
-        {
-            float Apply(Player& player, MovingBase&) const override { player.BoostAttack(); return 0; }
-        };
         using Slot = std::variant<std::monostate, Repair, Boost>;
         /// <summary>占有中スロットの共通アイテムを参照する。</summary>
         /// <param name="slot">固定プールの1枠。</param>
@@ -115,8 +87,7 @@ export namespace object
                 if (!item) continue;
                 const bool touched = std::exchange(item->touching, false);
                 if (dt <= 0) continue;
-                gameSystem::FrameRate::Countdown(item->remaining, dt);
-                if (item->remaining <= 0) { slot.emplace<std::monostate>(); continue; }
+                if (gameSystem::FrameRate::Countdown(item->remaining, dt)) { slot.emplace<std::monostate>(); continue; }
                 if (!touched) continue;
                 const float effect = item->Apply(player, base);
                 if (effect < 0) continue; // 満HPなら次の接触で再評価する。
