@@ -6,6 +6,7 @@ import MyLib.Math.Vector2;
 import GameSystem.Camera;
 import Asset.AlphaSprites;
 import <algorithm>;
+import GameSystem.FrameRate;
 import <cmath>;
 
 using namespace math;
@@ -106,7 +107,6 @@ namespace object
         if (!m_prototype) return;
         m_touching = false;
         m_attackedThisFrame = false;
-        if (m_contactRemaining > 0) m_contactRemaining -= m_deltaTime;
         m_velocity = {};
         // DEAD対象は参照が残っていても追跡しない。対象なしでは前フレームの変位も消す。
         if (!(m_state & MainState::DEAD))
@@ -132,7 +132,8 @@ namespace object
         {
             m_pos = ColMgr().GetCollider(id)->GetColliderDef()->localPos;
             // 全Colliderの帰還通知後に各敵の有効打を一度だけ精算する。
-            if (m_touching) OnBaseContact();
+            // 非接触中も時計を進め、期限到達と接触が揃った更新でだけ攻撃する。
+            if (gameSystem::FrameRate::Countdown(m_contactRemaining, m_deltaTime, true) && m_touching) OnBaseContact();
             if (!m_touching) m_contactRemaining = (std::max)(0.0, m_contactRemaining);
             m_wasTouching = m_touching;
         }
@@ -143,7 +144,7 @@ namespace object
         const auto base = m_base.lock();
         // 接触の事実はColliderイベントだけから受け取る。撃破済み/対象消失時は被害を出さない。
         if (!CanBeAttacked() || !base || (base->NowState() & MainState::DEAD)) return;
-        if (!m_attackedThisFrame && m_contactRemaining <= 0.000001)
+        if (!m_attackedThisFrame)
         {
             if (base->TakeDamage(CONTACT_DAMAGE))
             {

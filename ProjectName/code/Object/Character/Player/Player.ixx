@@ -4,6 +4,8 @@ import Phase1.Config;
 import Object.PlayerAttackConfig;
 
 import <future>;
+import <optional>;
+import <utility>;
 
 import Object.GameObject;
 import Component.CombatEffect;
@@ -76,12 +78,23 @@ export namespace object
             static constexpr const char* WALK = "PlayerWALK"; // 歩行
         };
 
+        /// <summary>この更新で撃破した位置を一度だけ渡す。</summary>
+        /// <returns>撃破がなければ空。</returns>
+        auto TakeKillPosition() { return std::exchange(m_killPosition, std::nullopt); }
+        /// <summary>強化時間を更新する。倍率は加算しない。</summary>
+        void BoostAttack() { m_boostSeconds = 10.0; }
+        /// <summary>強化中のHUDに使用する。</summary>
+        /// <returns>ゲーム時間での残り秒。</returns>
+        double BoostSeconds() const { return m_boostSeconds; }
+
         PlayerData pData; // プレイヤー情報
         col2d::ColliderID id;   // コライダーの識別子
     private:
         /// <summary>1更新につき最大1体へ、承認済みの自動攻撃を適用する。</summary>
         void UpdateAutoAttack();
         phase2::PlayerAttackConfig m_attack{};
+        std::optional<math::Vector2f> m_killPosition;
+        double m_boostSeconds{};
         double m_attackRemaining{}; // 秒。初回と対象なしでは即時発動可能。
         std::function<std::vector<std::shared_ptr<GameObject>>(uint32_t)> m_referenceObjects;
         std::weak_ptr<GameObject> m_lastHit; // 表示用。撃破した敵の寿命を延ばさない。

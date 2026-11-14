@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <filesystem>
+#include <fstream>
 #include <chrono>
 #include <thread>
 
@@ -15,6 +16,7 @@ import MyLib.Math.Vector2;
 import MyLib.Shape.Rect;
 import Object.Enemy;
 import Object.Player;
+import Object.CombatDrops;
 import Object.PlayerAttackConfig;
 import <algorithm>;
 import Object.EnemyConfig;
@@ -217,6 +219,63 @@ void VerifyAutoAttack()
         require(killed.expired() && objects.GetObjForTag(object::ENEMY).empty(),
             "HP20 comparison dies on second attack and is released");
         objects.Update(); // 除去後の更新でも攻撃対象の参照を持ち越さない。
+    }
+    // 実Playerの撃破通知から回収までを通し、プール個体への参照を残さないことを確認。
+    {
+        const auto path = files.GetDataDir() / "Phase1Config.json";
+        auto stage = files.jsonIO.Load(path);
+        stage["alphaCombat"] = true;
+        std::ofstream(path) << stage.dump();
+        object::ObjectManager objects;
+        auto* player = new object::Player(true);
+        auto* base = new object::MovingBase;
+        objects.AddObject(player);
+        objects.AddObject(base);
+        objects.InitBeforeUpdate();
+        object::CombatDrops drops(objects.Colliders());
+        const auto variants = comparisonData.at("alphaTypes");
+        object::EnemyCatalog catalog(comparison, &variants);
+        dt = 0.5f;
+        for (int i = 0; i < 48; ++i)
+        {
+            auto enemy = std::make_shared<object::Enemy>(player->Center(), catalog.Next());
+            catalog.Registered();
+            objects.AddInitializedObject(enemy);
+            for (int frame = 0; frame < 5 && enemy->Health() > 0; ++frame) objects.Update();
+            auto position = player->TakeKillPosition();
+            require(position.has_value() && !player->TakeKillPosition(), "Single kill event for every alpha type");
+            drops.Roll(*position);
+            // 満タン中に拾える強化だけ取り除き、後で修理品が残っていることを確認する。
+            drops.Collect(dt, *player, *base);
+        }
+        objects.Update(); // 満HPで残った品の次フレームの接触通知を得る。
+        require(base->TakeDamage(25), "Base can take damage before repair");
+        drops.Collect(dt, *player, *base);
+        require(base->Health() == 100, "Full-health repair stays available and clamps to max");
+        // 遠方に残した戦利品で上限に達した条件と切り分け、足元での再取得を確認する。
+        object::CombatDrops nearby(objects.Colliders());
+        int refreshed = 0;
+        for (int i = 0; i < 48 && refreshed < 2; ++i)
+        {
+            nearby.Roll(player->Center());
+            objects.Update(); // 円トリガーとプレイヤー矩形を実際に接触させる。
+            nearby.Collect(dt, *player, *base);
+            if (player->BoostSeconds() == 10) ++refreshed;
+        }
+        require(refreshed == 2 && player->BoostSeconds() == 10, "Repeated pickups refresh duration");
+        auto target = std::make_shared<object::Enemy>(player->Center(), config);
+        objects.AddInitializedObject(target);
+        objects.Update();
+        require(target->Health() == 15, "Boost deals 15 damage without stacking");
+        dt = 0;
+        objects.Update();
+        require(player->BoostSeconds() == 9.5, "Paused time preserves boost");
+        dt = 0.5f;
+        for (int i = 0; i < 19; ++i) objects.Update();
+        require(player->BoostSeconds() == 0, "Boost expires after ten game seconds");
+        std::filesystem::copy_file("ProjectName/resources/data/Phase1Config.json", path,
+            std::filesystem::copy_options::overwrite_existing);
+        std::cout << "PASS: alpha kill, drop, repair, boost and expiry\n";
     }
     // 個別許可を一般的なHP調整権限へ広げないため、未承認の中間値は拒否する。
     comparisonData["health"] = 25;

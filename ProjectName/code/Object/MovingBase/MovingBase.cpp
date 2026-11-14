@@ -77,6 +77,14 @@ namespace object
         return true;
     }
 
+    float MovingBase::Repair()
+    {
+        if (m_health <= 0) return 0;
+        const float recovered = (std::min)(40.0f, 100.0f - m_health);
+        m_health += recovered;
+        return recovered;
+    }
+
     void MovingBase::LateUpdate()
     {
         m_pos = ColMgr().GetCollider(m_id)->GetColliderDef()->localPos;

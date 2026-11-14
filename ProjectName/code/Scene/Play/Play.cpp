@@ -54,7 +54,11 @@ namespace scene
             const auto stageConfig = files.jsonIO.Load(files.GetDataDir() / "Phase1Config");
             const auto world = phase1::Config::FromJson(stageConfig);
             m_showNearestEnemy = stageConfig.value("showNearestEnemy", false);
-            if (world.alphaCombat) alphaSprites::Load(); // LoadingSceneのタスク受付中に登録する。
+            if (world.alphaCombat)
+            {
+                m_drops.emplace(m_objManager->Colliders());
+                alphaSprites::Load(); // LoadingSceneの受付中に登録する。
+            }
             // 新規Play専用のプール・初回待機時間・方向と乱数を作り、前回の状態を引き継がない。
             m_spawner.emplace(spawn, enemies, math::Vector2f{world.WorldWidth, world.WorldHeight},
                 world.alphaCombat ? &data.at("alphaTypes") : nullptr);
@@ -118,6 +122,12 @@ namespace scene
             // プレイヤーが存在する場合だけ、その現在位置を使って生成安全距離を判定する。
             if (const auto player = m_player.lock(); player && m_spawner)
             {
+                // 勝敗判定後にだけ回収・生成を許す。新しい品は次の更新から拾える。
+                if (m_drops)
+                {
+                    m_drops->Collect(FrameRate::GetDeltaTime(), *player, *base);
+                    if (const auto position = player->TakeKillPosition()) m_drops->Roll(*position);
+                }
                 base->CheckPickup(player->Center(), player->pData.size);
                 m_spawner->Update(FrameRate::GetDeltaTime(), *m_objManager, *base, player->Center());
             }
@@ -152,7 +162,9 @@ namespace scene
                 if (m_showNearestEnemy) hud.toEnemy = ui::NearestEnemyOffset(*m_objManager, base->Center());
                 if (auto* element = dynamic_cast<ui::PlayHud*>(m_hudManager.GetElement(m_hudID)))
                     element->SetValues(hud, {Camera::Instance().WorldToScreen(base->Center() - base->Size().Half()), base->Size()});
+                if (m_drops) m_drops->DrawField();
                 m_hudManager.Draw();
+                if (m_drops) m_drops->DrawStatus(player->BoostSeconds());
                 base->DrawExploration(ui::PlayHudPanel(m_showNearestEnemy));
             }
         }

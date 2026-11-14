@@ -2,6 +2,7 @@
 #include <DxLib.h>
 export module Component.CombatEffect;
 import <algorithm>;
+import GameSystem.FrameRate;
 
 export namespace component
 {
@@ -33,7 +34,7 @@ export namespace component
 
         /// <summary>表示時間をゲーム更新と同期させる。</summary>
         /// <param name="dt">ゲーム内の経過秒。</param>
-        void Update(float dt) { elapsed = (std::min)(duration, elapsed + dt); }
+        void Update(float dt) { gameSystem::FrameRate::CountUp(elapsed, dt, duration); }
 
         /// <summary>表示期間内かを確認する。</summary>
         /// <returns>描画対象ならtrue。</returns>
