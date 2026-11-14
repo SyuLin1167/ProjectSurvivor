@@ -20,6 +20,7 @@ import Component.MoveWithKey;
 import Component.Animator;
 import Component.AudioSource;
 import Asset.Animation;
+import Asset.AlphaSprites;
 import Asset.Sound;
 import Collider;
 
@@ -173,7 +174,7 @@ namespace object
 
     void Player::UpdateAutoAttack()
     {
-        m_hitDisplayRemaining = (std::max)(0.0f, m_hitDisplayRemaining - m_deltaTime);
+        m_hitEffect.Update(m_deltaTime);
         if (m_attackRemaining > 0) m_attackRemaining -= m_deltaTime;
         if (m_attackRemaining > 0.000001 || !m_referenceObjects) return;
         std::shared_ptr<Enemy> target;
@@ -200,7 +201,7 @@ namespace object
         }
         m_lastHit = target;
         m_lastHitCenter = target->Center();
-        m_hitDisplayRemaining = 0.15f; // 命中確認だけの短い表示。正式アニメーションではない。
+        m_hitEffect.Hit(m_phase1Config.alphaCombat, target->Health() <= 0);
         // 通常の端数は保持し、大きな遅延の攻撃回数は捨てる。連射ループは設けない。
         m_attackRemaining = m_attack.Interval +
             (m_attackRemaining > -m_attack.Interval ? m_attackRemaining : 0.0);
@@ -248,13 +249,18 @@ namespace object
     void Player::Draw()
     {
         if (!m_prototype) return;
-        if (m_hitDisplayRemaining > 0)
+        if (m_hitEffect.Active())
         {
             const auto target = std::dynamic_pointer_cast<Enemy>(m_lastHit.lock());
             const auto hit = Camera::Instance().WorldToScreen(target ? target->Center() : m_lastHitCenter);
-            DrawCircle(static_cast<int>(hit.x), static_cast<int>(hit.y), 22, GetColor(255, 255, 255), false);
+            m_hitEffect.Draw(int(hit.x), int(hit.y));
         }
         const auto p = Camera::Instance().WorldToScreen(m_pos);
+        if (m_phase1Config.alphaCombat)
+        {
+            alphaSprites::Draw(alphaSprites::Sprite::Player, int(p.x), int(p.y), int(pData.size.x));
+            return;
+        }
         DrawBox(static_cast<int>(p.x), static_cast<int>(p.y),
             static_cast<int>(p.x + pData.size.x), static_cast<int>(p.y + pData.size.y),
             GetColor(40, 140, 255), true);

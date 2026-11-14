@@ -82,6 +82,7 @@ export namespace object
         /// <returns>残HP。</returns>
         float Health() const { return m_health; }
     private:
+        phase2::EnemyConfig::Look m_look{};
         /// <summary>拠点接触イベントから敵固有の間隔で被害を与える。1更新内の重複通知は無視する。</summary>
         void OnBaseContact();
         bool m_touching{}; // この更新で接触通知を受けたか。

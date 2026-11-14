@@ -99,7 +99,8 @@ export namespace object
         /// <param name="config">承認範囲の出現設定。</param>
         /// <param name="enemy">既存の敵能力設定。</param>
         /// <param name="worldSize">マップの幅・高さ（u）。</param>
-        EnemySpawner(EnemySpawnConfig config, phase2::EnemyConfig enemy, math::Vector2f worldSize);
+        /// <param name="variants">Alphaの敵種定義。構築中だけ使用する。</param>
+        EnemySpawner(EnemySpawnConfig config, phase2::EnemyConfig enemy, math::Vector2f worldSize, const json* variants = nullptr);
         /// <summary>継続中のフレーム末尾で1機会を処理し、設定に応じ最大2体を生成する。見送り分は蓄積しない。</summary>
         /// <param name="dt">共通ゲーム経過秒数。停止中は0。</param>
         /// <param name="manager">更新・Stepが完了したシーンの管理。</param>
@@ -123,7 +124,7 @@ export namespace object
         std::array<int, 3> NextDirections();
         std::shared_ptr<Pool> m_pool = std::make_shared<Pool>();
         EnemySpawnConfig m_config;
-        phase2::EnemyConfig m_enemy;
+        EnemyCatalog m_catalog;
         math::Vector2f m_worldSize;
         double m_remaining;
         double m_elapsed = 0;

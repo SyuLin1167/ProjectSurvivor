@@ -12,6 +12,7 @@ export namespace phase1
     struct Config
     {
         float WorldWidth{};    // マップ横幅(u)
+        bool alphaCombat{};    // Playable Alphaの敵構成・表示を一括選択する。
         float WorldHeight{};   // マップ縦幅(u)
         float PlayerSize{};    // 正方形プレイヤーの一辺(u)
         float PlayerSpeed{};   // 移動速度(u/s)
@@ -28,6 +29,7 @@ export namespace phase1
         static Config FromJson(const nlohmann::json& data)
         {
             Config c;
+            c.alphaCombat = data.value("alphaCombat", false);
             c.WorldWidth = data.at("worldWidth").get<float>();
             c.WorldHeight = data.at("worldHeight").get<float>();
             c.PlayerSize = data.at("playerSize").get<float>();

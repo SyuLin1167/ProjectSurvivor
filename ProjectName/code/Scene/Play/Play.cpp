@@ -21,6 +21,7 @@ import Object.Goal;
 import GameSystem.Camera;
 import GameSystem.FrameRate;
 import Asset.Graph;
+import Asset.AlphaSprites;
 import AppContext;
 import GameSystem.Window;
 import <algorithm>;
@@ -47,13 +48,16 @@ namespace scene
                 m_objManager->GetObjForTag(object::BASE).front());
             // 毎回設定を読み直し、敵能力・出現条件・候補判定用のマップ寸法を揃える。
             auto& files = AppCtx::FileSystem();
-            const auto enemies = phase2::EnemyConfig::FromJson(files.jsonIO.Load(files.GetDataDir() / "EnemyConfig"));
-            const auto spawn = object::EnemySpawnConfig::FromJson(files.jsonIO.Load(files.GetDataDir() / "EnemySpawnConfig"));
+            const auto data = files.jsonIO.Load(files.GetDataDir() / "EnemyConfig");
+            const auto enemies = phase2::EnemyConfig::FromJson(data);
+            auto spawn = object::EnemySpawnConfig::FromJson(files.jsonIO.Load(files.GetDataDir() / "EnemySpawnConfig"));
             const auto stageConfig = files.jsonIO.Load(files.GetDataDir() / "Phase1Config");
             const auto world = phase1::Config::FromJson(stageConfig);
             m_showNearestEnemy = stageConfig.value("showNearestEnemy", false);
+            if (world.alphaCombat) alphaSprites::Load(); // LoadingSceneのタスク受付中に登録する。
             // 新規Play専用のプール・初回待機時間・方向と乱数を作り、前回の状態を引き継がない。
-            m_spawner.emplace(spawn, enemies, math::Vector2f{world.WorldWidth, world.WorldHeight});
+            m_spawner.emplace(spawn, enemies, math::Vector2f{world.WorldWidth, world.WorldHeight},
+                world.alphaCombat ? &data.at("alphaTypes") : nullptr);
             // 固定3体は生成しない。初期化／ロード中には生成時計を進めない。
             return;
         }

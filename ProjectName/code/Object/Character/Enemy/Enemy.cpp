@@ -4,6 +4,7 @@
 module Object.Enemy;
 import MyLib.Math.Vector2;
 import GameSystem.Camera;
+import Asset.AlphaSprites;
 import <algorithm>;
 import <cmath>;
 
@@ -26,6 +27,7 @@ namespace object
         m_health = config.Health;
         m_radius = config.Radius;
         m_speed = config.Speed;
+        m_look = config.look;
 
     }
 
@@ -156,6 +158,14 @@ namespace object
     void Enemy::Draw()
     {
         const auto sp = gameSystem::Camera::Instance().WorldToScreen(m_pos);
+        if (m_look != phase2::EnemyConfig::Look::Classic)
+        {
+            auto sprite = alphaSprites::Sprite::Normal;
+            if (m_look == phase2::EnemyConfig::Look::Runner) sprite = alphaSprites::Sprite::Runner;
+            if (m_look == phase2::EnemyConfig::Look::Heavy) sprite = alphaSprites::Sprite::Heavy;
+            alphaSprites::Draw(sprite, int(sp.x) - 16, int(sp.y) - 16, 32);
+            return;
+        }
         if (m_prototype)
         {
             DrawCircle(static_cast<int>(sp.x), static_cast<int>(sp.y), static_cast<int>(m_radius), GetColor(220, 60, 100), TRUE);

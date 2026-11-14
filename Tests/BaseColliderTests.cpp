@@ -704,6 +704,42 @@ void VerifyStagedCount()
     const auto enemy = phase2::EnemyConfig::FromJson(files.jsonIO.Load("ProjectName/resources/data/EnemyConfig.json"));
     const math::Vector2f world{16384,4096}, distant{16,16};
     require(config.CountAt(19.999) == 1 && config.CountAt(20) == 2, "Count uses scheduled boundary");
+    // 同じC1時計で60秒進め、成功生成順・耐久・追跡速度と撃破後のプール再利用を確認する。
+    {
+        auto alpha = config;
+        const auto types = files.jsonIO.Load("ProjectName/resources/data/EnemyConfig.json").at("alphaTypes");
+        object::ObjectManager objects;
+        auto* base = new object::MovingBase;
+        objects.AddObject(base);
+        objects.InitBeforeUpdate();
+        object::EnemySpawner spawner(alpha, enemy, world, &types);
+        auto& dt = const_cast<float&>(gameSystem::FrameRate::GetDeltaTime());
+        const auto previousDt = dt;
+        dt = 1.0f / 60;
+        const float hp[] = {20, 10, 20, 40};
+        const float speed[] = {120, 176, 120, 94};
+        int spawned = 0;
+        for (int frame = 0; frame < 3600; ++frame)
+        {
+            if (!spawner.Update(dt, objects, *base, distant)) continue;
+            const auto items = objects.GetObjForTag(object::ENEMY);
+            std::vector<math::Vector2f> before;
+            for (const auto& item : items) before.push_back(std::dynamic_pointer_cast<object::Enemy>(item)->Center());
+            objects.Update();
+            for (size_t i = 0; i < items.size(); ++i)
+            {
+                const auto unit = std::dynamic_pointer_cast<object::Enemy>(items[i]);
+                const int slot = spawned++ % 4;
+                require(unit->Health() == hp[slot] &&
+                    std::abs(unit->Center().Distance(before[i]) - speed[slot] * dt) < 0.002f,
+                    "Alpha mixed roster uses expected HP and pursuit speed");
+                unit->TakeDamage(40);
+            }
+            objects.RefreshObjects();
+        }
+        require(spawned == 25, "Alpha roster preserves sixty-second C1 schedule");
+        dt = previousDt;
+    }
     auto invalid = data; invalid["candidate"]["stagedIntervals"] = true;
     bool rejected = false;
     try { object::EnemySpawnConfig::FromJson(invalid); } catch (const std::exception&) { rejected = true; }

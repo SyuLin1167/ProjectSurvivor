@@ -16,6 +16,7 @@ import MyLib.Math.Vector2;
 import MyLib.TileChunkUtil;
 import GameSystem.Camera;
 import Asset.DivisionGraph;
+import Asset.AlphaSprites;
 import GameSystem.Window;
 
 using namespace gameSystem;
@@ -143,6 +144,20 @@ namespace object
             const int startY = (std::max)(0, static_cast<int>(offset.y) / spacing * spacing);
             const int endX = static_cast<int>((std::min)(m_phase1Config.WorldWidth, offset.x + screen.x));
             const int endY = static_cast<int>((std::min)(m_phase1Config.WorldHeight, offset.y + screen.y));
+            if (m_phase1Config.alphaCombat)
+            {
+                // 共通タイルを可視範囲だけ敷き、拠点の街道は轍で示す。
+                for (int y = startY; y < endY; y += spacing)
+                    for (int x = startX; x < endX; x += spacing)
+                    {
+                        const auto p = camera.WorldToScreen(float(x), float(y));
+                        alphaSprites::Draw(alphaSprites::Sprite::Ground, int(p.x), int(p.y), spacing);
+                    }
+                const auto road = camera.WorldToScreen(0, m_phase1Config.BaseCenter.y);
+                for (int track : {-22, 22})
+                    DrawLine(0, int(road.y) + track, int(screen.x), int(road.y) + track, GetColor(92, 81, 57), 3);
+                return;
+            }
             for (int x = startX; x <= endX; x += spacing)
             {
                 const auto p = camera.WorldToScreen(static_cast<float>(x), 0);

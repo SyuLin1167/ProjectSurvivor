@@ -1,5 +1,9 @@
-{
+﻿{
     "health": 30,
     "radius": 16,
-    "speed": 120
+    "speed": 120,
+    "alphaTypes": {
+        "runner": { "health": 10, "speed": 176 },
+        "heavy": { "health": 40, "speed": 94 }
+    }
 }

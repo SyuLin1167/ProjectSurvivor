@@ -6,6 +6,7 @@ import Object.PlayerAttackConfig;
 import <future>;
 
 import Object.GameObject;
+import Component.CombatEffect;
 import Object.PlayerData;
 
 /// <summary>
@@ -85,7 +86,7 @@ export namespace object
         std::function<std::vector<std::shared_ptr<GameObject>>(uint32_t)> m_referenceObjects;
         std::weak_ptr<GameObject> m_lastHit; // 表示用。撃破した敵の寿命を延ばさない。
         math::Vector2f m_lastHitCenter{};
-        float m_hitDisplayRemaining{};
+        component::CombatEffect m_hitEffect;
         bool m_prototype; // Phase 1試作経路の選択
         phase1::Config m_phase1Config{}; // JSONから読み込んだ試作設定
         math::Vector2f m_cameraCenter{};
