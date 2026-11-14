@@ -14,7 +14,7 @@ export namespace alphaSprites
     {
         auto* graph = gameSystem::AppCtx::AssetMgr().Fetch<asset::Graph>();
         if (graph->GetHandle("alpha_combat") < 0)
-            graph->CreateHandle("alpha_combat", "alpha_combat.png");
+            gameSystem::AppCtx::AssetMgr().LoadAsync<asset::Graph>("alpha_combat", "alpha_combat.png");
     }
 
     /// <summary>シート内の指定矩形を画面座標へ描画する。</summary>

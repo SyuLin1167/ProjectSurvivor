@@ -6,13 +6,11 @@ import <algorithm>;
 
 namespace object
 {
-    EnemySpawner::EnemySpawner(EnemySpawnConfig config, phase2::EnemyConfig enemy, math::Vector2f worldSize)
-        : m_config(config), m_enemy(enemy), m_worldSize(worldSize), m_remaining(config.firstDelay), m_random(config.seed)
+    EnemySpawner::EnemySpawner(EnemySpawnConfig config, phase2::EnemyConfig enemy, math::Vector2f worldSize, const json* variants)
+        : m_config(config), m_catalog({config.healthOverride.value_or(enemy.Health), enemy.Radius, enemy.Speed}, variants), m_worldSize(worldSize), m_remaining(config.firstDelay), m_random(config.seed)
     {
         // JSON以外から構築された場合も、承認範囲外の値を開始前に拒否する。
         m_config.Validate();
-        // 能力の他項目は共有し、候補セットで明示されたHPだけを置き換える。
-        if (m_config.healthOverride) m_enemy.Health = *m_config.healthOverride;
     }
 
     std::array<int, 3> EnemySpawner::NextDirections()
@@ -42,8 +40,7 @@ namespace object
             auto& slot = m_pool->slots[i];
             if (slot) continue;
             // 再利用する領域へ新個体を構築し、HP・接触時計・対象参照を初期状態に戻す。
-            constexpr std::array kinds{EnemyKind::Normal, EnemyKind::Runner, EnemyKind::Normal, EnemyKind::Heavy};
-            slot.emplace(center, m_enemy, m_config.alphaCombat ? kinds[m_nextKind] : EnemyKind::Classic);
+            slot.emplace(center, m_catalog.Next());
             // 領域は再利用するが個体の寿命は分ける。古いweak_ptrを新個体へ復活させない。
             // deleterがプールを保持するため、Spawnerが先に破棄されても領域は有効。
             return std::shared_ptr<Enemy>(&*slot, [pool = m_pool, i](Enemy*) { pool->slots[i].reset(); });
@@ -86,7 +83,7 @@ namespace object
                 centers.size() < static_cast<size_t>(m_config.limit); ++candidate)
             {
                 const auto position = baseCenter + directions[directionsOrder[candidate]] * m_config.distance;
-                const float radius = m_enemy.Radius;
+                const float radius = m_catalog.Next().Radius;
                 // 円がマップからはみ出す、またはプレイヤーに近すぎる場合は次の候補へ進む。
                 if (position.x < radius || position.y < radius || position.x > m_worldSize.x - radius ||
                     position.y > m_worldSize.y - radius || position.Distance(playerCenter) < 256) continue;
@@ -102,7 +99,7 @@ namespace object
                 if (!enemy) break; // 撃破個体への所有参照が残る場合も、使用中領域を上書きしない。
                 // 参照解決とCollider登録後に、同機会の後続候補の距離判定・枠数へ含める。
                 manager.AddInitializedObject(std::move(enemy));
-                if (m_config.alphaCombat) m_nextKind = (m_nextKind + 1) % 4;
+                m_catalog.Registered();
                 centers.push_back(position);
                 ++generated; // どの個体も登録時は行動させず、次フレームの通常更新で扱う。
             }

@@ -20,17 +20,14 @@ namespace object
         m_pos = { 16 * 30,16 * 50 };
     }
 
-    Enemy::Enemy(Vector2f center, const phase2::EnemyConfig& config, EnemyKind kind) : Enemy()
+    Enemy::Enemy(Vector2f center, const phase2::EnemyConfig& config) : Enemy()
     {
         m_prototype = true;
         m_pos = center;
         m_health = config.Health;
         m_radius = config.Radius;
         m_speed = config.Speed;
-        m_kind = kind;
-        // 共通の追跡AIに対し、耐久と速度だけで迎撃の優先順位を変える。
-        if (kind == EnemyKind::Runner) { m_health = 10; m_speed = 176; }
-        if (kind == EnemyKind::Heavy) { m_health = 40; m_speed = 94; }
+        m_look = config.look;
 
     }
 
@@ -161,11 +158,11 @@ namespace object
     void Enemy::Draw()
     {
         const auto sp = gameSystem::Camera::Instance().WorldToScreen(m_pos);
-        if (m_kind != EnemyKind::Classic)
+        if (m_look != phase2::EnemyConfig::Look::Classic)
         {
             auto sprite = alphaSprites::Sprite::Normal;
-            if (m_kind == EnemyKind::Runner) sprite = alphaSprites::Sprite::Runner;
-            if (m_kind == EnemyKind::Heavy) sprite = alphaSprites::Sprite::Heavy;
+            if (m_look == phase2::EnemyConfig::Look::Runner) sprite = alphaSprites::Sprite::Runner;
+            if (m_look == phase2::EnemyConfig::Look::Heavy) sprite = alphaSprites::Sprite::Heavy;
             alphaSprites::Draw(sprite, int(sp.x) - 16, int(sp.y) - 16, 32);
             return;
         }

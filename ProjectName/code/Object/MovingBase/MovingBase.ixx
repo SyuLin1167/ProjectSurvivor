@@ -1,5 +1,6 @@
 ﻿export module Object.MovingBase;
 import Object.GameObject;
+import Component.CombatEffect;
 import Phase1.Config;
 import MyLib.Shape.Rect;
 
@@ -56,7 +57,7 @@ export namespace object
         bool m_collected{};
         bool m_delivered{};
         int m_shields{};
-        float m_hurtTime{}; // 実HPが減った直後だけ描画する秒数。
+        component::CombatEffect m_hurtEffect;
         float m_health = 100.0f; // DEC-02固定値。Phase 2では調整権限なし。
         phase1::Config m_config{}; // Phase 1試作設定（u / u/s）
         col2d::ColliderID m_id{};

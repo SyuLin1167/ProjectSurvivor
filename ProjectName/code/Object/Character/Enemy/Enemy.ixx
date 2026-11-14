@@ -10,8 +10,6 @@ import Object.EnemyConfig;
 export namespace object
 {
     constexpr float MAX_HEALTH = 1.0f;  // 最大体力
-    /// <summary>追跡と当たり判定を共有する敵の外見・能力の種類。</summary>
-    enum class EnemyKind { Classic, Normal, Runner, Heavy };
 
     /// <summary>
     /// 敵の役割
@@ -27,8 +25,7 @@ export namespace object
         /// <summary>試作用追跡敵を初期状態で構築する。</summary>
         /// <param name="center">円中心のワールド初期座標（u）。</param>
         /// <param name="config">EnemyConfig::FromJsonで検証した敵設定。</param>
-        /// <param name="kind">旧比較条件またはAlphaの敵種。</param>
-        Enemy(math::Vector2f center, const phase2::EnemyConfig& config, EnemyKind kind = EnemyKind::Classic);
+        Enemy(math::Vector2f center, const phase2::EnemyConfig& config);
 
         /// <summary>キャラバンへの弱参照を取得する。</summary>
         /// <param name="referenceObj">タグに一致するオブジェクト一覧の取得関数。</param>
@@ -85,7 +82,7 @@ export namespace object
         /// <returns>残HP。</returns>
         float Health() const { return m_health; }
     private:
-        EnemyKind m_kind{EnemyKind::Classic};
+        phase2::EnemyConfig::Look m_look{};
         /// <summary>拠点接触イベントから敵固有の間隔で被害を与える。1更新内の重複通知は無視する。</summary>
         void OnBaseContact();
         bool m_touching{}; // この更新で接触通知を受けたか。

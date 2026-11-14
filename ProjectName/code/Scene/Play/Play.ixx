@@ -66,7 +66,6 @@ export namespace scene
         bool m_cleared;     // クリアフラグ
         bool m_prototype;
         bool m_showNearestEnemy{};
-        bool m_alphaCombat{};
         std::optional<object::EnemySpawner> m_spawner; // 新規Playごとの生成状態
         std::optional<StageState> m_stage; // 新規Playごとの進行・終了状態
         std::weak_ptr<object::Player> m_player; // HUD用。所有権を延長しない。

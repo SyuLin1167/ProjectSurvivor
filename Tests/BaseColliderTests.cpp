@@ -707,12 +707,12 @@ void VerifyStagedCount()
     // 同じC1時計で60秒進め、成功生成順・耐久・追跡速度と撃破後のプール再利用を確認する。
     {
         auto alpha = config;
-        alpha.alphaCombat = true;
+        const auto types = files.jsonIO.Load("ProjectName/resources/data/EnemyConfig.json").at("alphaTypes");
         object::ObjectManager objects;
         auto* base = new object::MovingBase;
         objects.AddObject(base);
         objects.InitBeforeUpdate();
-        object::EnemySpawner spawner(alpha, enemy, world);
+        object::EnemySpawner spawner(alpha, enemy, world, &types);
         auto& dt = const_cast<float&>(gameSystem::FrameRate::GetDeltaTime());
         const auto previousDt = dt;
         dt = 1.0f / 60;

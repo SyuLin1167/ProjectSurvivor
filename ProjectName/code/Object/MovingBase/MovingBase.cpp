@@ -55,7 +55,7 @@ namespace object
 
     void MovingBase::Update()
     {
-        m_hurtTime = (std::max)(0.0f, m_hurtTime - m_deltaTime);
+        m_hurtEffect.Update(m_deltaTime);
         m_velocity = phase1::BaseDisplacement(Center().x,
             m_config.TrialEndX, m_config.BaseSpeed, m_deltaTime);
         ColMgr().GetCollider(m_id)->SetVelocity(m_velocity);
@@ -73,7 +73,7 @@ namespace object
             return true;
         }
         m_health = (std::max)(0.0f, m_health - damage);
-        if (m_config.alphaCombat) m_hurtTime = 0.22f;
+        if (m_config.alphaCombat) m_hurtEffect.Hurt();
         return true;
     }
 
@@ -128,12 +128,7 @@ namespace object
                 const int x = int(baseRect.Left()), y = int(baseRect.Top());
                 alphaSprites::DrawCaravan(x, y);
                 // シールドで防いだ攻撃には被害枠を表示しない。
-                if (m_hurtTime > 0)
-                {
-                    const int pad = 2 + int((0.22f - m_hurtTime) * 32);
-                    DrawBox(x - pad, y - pad, int(baseRect.Right()) + pad, int(baseRect.Bottom()) + pad,
-                        GetColor(255, 69, 58), false);
-                }
+                m_hurtEffect.Draw(x, y, int(baseRect.Right()), int(baseRect.Bottom()));
                 return;
             }
             DrawBox(static_cast<int>(baseRect.Left()), static_cast<int>(baseRect.Top()),
