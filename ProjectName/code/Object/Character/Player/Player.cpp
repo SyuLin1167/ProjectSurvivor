@@ -174,6 +174,9 @@ namespace object
 
     void Player::UpdateAutoAttack()
     {
+        // 同一更新の撃破だけを渡し、非アクティブ時は強化時間を消費しない。
+        m_killPosition.reset();
+        m_boostSeconds = (std::max)(0.0, m_boostSeconds - m_deltaTime);
         m_hitEffect.Update(m_deltaTime);
         if (m_attackRemaining > 0) m_attackRemaining -= m_deltaTime;
         if (m_attackRemaining > 0.000001 || !m_referenceObjects) return;
@@ -194,11 +197,13 @@ namespace object
         }
         // 命中直前にも有効性と射程を確認。対象なしで攻撃時間を借金として蓄積しない。
         if (!target || !target->CanBeAttacked() || Center().Distance(target->Center()) > m_attack.Range ||
-            !target->TakeDamage(m_attack.Damage))
+            !target->TakeDamage(m_attack.Damage * (m_boostSeconds > 0.000001 ? 1.5f : 1.0f)))
         {
             m_attackRemaining = 0;
             return;
         }
+        if (m_phase1Config.alphaCombat && target->Health() <= 0)
+            m_killPosition = target->Center();
         m_lastHit = target;
         m_lastHitCenter = target->Center();
         m_hitEffect.Hit(m_phase1Config.alphaCombat, target->Health() <= 0);

@@ -6,6 +6,7 @@ import Asset.Graph;
 import Scene.StageState;
 import Object.MovingBase;
 import Object.Player;
+import Object.CombatDrops;
 import Object.EnemySpawner;
 import <optional>;
 
@@ -65,6 +66,7 @@ export namespace scene
         ui::UIElementID m_hudID{};
         bool m_cleared;     // クリアフラグ
         bool m_prototype;
+        std::optional<object::CombatDrops> m_drops; // Alphaの新規Playごとに空から開始。
         bool m_showNearestEnemy{};
         std::optional<object::EnemySpawner> m_spawner; // 新規Playごとの生成状態
         std::optional<StageState> m_stage; // 新規Playごとの進行・終了状態

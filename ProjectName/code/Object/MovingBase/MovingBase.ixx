@@ -33,6 +33,9 @@ export namespace object
         /// <param name="damage">正の有限ダメージ。</param>
         /// <returns>有効な拠点の攻撃が成立した場合（無効化を含む）true。</returns>
         bool TakeDamage(float damage);
+        /// <summary>試作アイテムで生存中の拠点を最大HPまで修理する。</summary>
+        /// <returns>実際の回復量。満タン・破壊済みなら0。</returns>
+        float Repair();
         /// <summary>地点とプレイヤー矩形の初回接触で回収する。</summary>
         /// <param name="center">プレイヤー中心座標。</param>
         /// <param name="size">プレイヤー矩形寸法。</param>
