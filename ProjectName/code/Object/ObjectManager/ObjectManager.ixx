@@ -25,6 +25,9 @@ export namespace object
         /// デストラクタ
         /// </summary>
         ~ObjectManager();
+        /// <summary>シーンに属する一時アイテムの接触を通常のStepに登録する。</summary>
+        /// <returns>このシーンが所有する衝突管理。</returns>
+        col2d::ColliderManager& Colliders() { return m_colMgr; }
 
         /// <summary>
         /// オブジェクト追加

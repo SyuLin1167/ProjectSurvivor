@@ -232,7 +232,7 @@ void VerifyAutoAttack()
         objects.AddObject(player);
         objects.AddObject(base);
         objects.InitBeforeUpdate();
-        object::CombatDrops drops;
+        object::CombatDrops drops(objects.Colliders());
         const auto variants = comparisonData.at("alphaTypes");
         object::EnemyCatalog catalog(comparison, &variants);
         dt = 0.5f;
@@ -248,17 +248,21 @@ void VerifyAutoAttack()
             // 満タン中に拾える強化だけ取り除き、後で修理品が残っていることを確認する。
             drops.Collect(dt, *player, *base);
         }
+        objects.Update(); // 満HPで残った品の次フレームの接触通知を得る。
         require(base->TakeDamage(25), "Base can take damage before repair");
         drops.Collect(dt, *player, *base);
         require(base->Health() == 100, "Full-health repair stays available and clamps to max");
         // 遠方に残した戦利品で上限に達した条件と切り分け、足元での再取得を確認する。
-        object::CombatDrops nearby;
-        for (int i = 0; i < 12; ++i)
+        object::CombatDrops nearby(objects.Colliders());
+        int refreshed = 0;
+        for (int i = 0; i < 48 && refreshed < 2; ++i)
         {
             nearby.Roll(player->Center());
+            objects.Update(); // 円トリガーとプレイヤー矩形を実際に接触させる。
             nearby.Collect(dt, *player, *base);
+            if (player->BoostSeconds() == 10) ++refreshed;
         }
-        require(player->BoostSeconds() == 10, "Repeated pickups refresh duration");
+        require(refreshed == 2 && player->BoostSeconds() == 10, "Repeated pickups refresh duration");
         auto target = std::make_shared<object::Enemy>(player->Center(), config);
         objects.AddInitializedObject(target);
         objects.Update();

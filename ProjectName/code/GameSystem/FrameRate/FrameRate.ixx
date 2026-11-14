@@ -41,6 +41,24 @@ export namespace gameSystem
         /// コピー禁止令
         /// </summary>
         FrameRate(const FrameRate&) = delete;
+
+        /// <summary>ゲーム時間で残り秒数を減らす。周期処理だけ期限超過分を保持できる。</summary>
+        /// <param name="seconds">残り時間。</param>
+        /// <param name="dt">共通ゲーム経過秒。</param>
+        /// <param name="keepOverrun">周期の端数補正用に負値を許可する。</param>
+        template<class T>
+        static void Countdown(T& seconds, float dt, bool keepOverrun = false)
+        {
+            if (dt <= 0) return;
+            seconds -= static_cast<T>(dt);
+            if (!keepOverrun && seconds < 0) seconds = 0;
+        }
+
+        /// <summary>現在のゲーム経過秒をカウンターに加える。</summary>
+        /// <param name="elapsed">累積時間。</param>
+        /// <param name="dt">共通ゲーム経過秒。</param>
+        template<class T>
+        static void CountUp(T& elapsed, float dt) { if (dt > 0) elapsed += dt; }
         FrameRate(FrameRate&&) = delete;
 
         /// <summary>

@@ -20,6 +20,7 @@ export namespace object
         PLAYER = 1 << 1,
         ENEMY = 1 << 2,
         GOAL = 1 << 3,
+        ITEM = 1 << 5,
         BASE = 1 << 4, // Phase 1の移動拠点
     };
 
@@ -34,6 +35,7 @@ export namespace object
         ENEMY,
         GOAL,
         BASE,
+        ITEM,
     };
 
     /// <summary>
@@ -47,6 +49,7 @@ export namespace object
         {ObjectTag::ENEMY,"enemy"},
         {ObjectTag::GOAL,"goal"},
         {ObjectTag::BASE,"base"},
+        {ObjectTag::ITEM,"item"},
     };
 
     /// <summary>
@@ -60,5 +63,6 @@ export namespace object
         {"enemy",ObjectTag::ENEMY},
         {"goal",ObjectTag::GOAL},
         {"base",ObjectTag::BASE},
+        {"item",ObjectTag::ITEM},
     };
 }

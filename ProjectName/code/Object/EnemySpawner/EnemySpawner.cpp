@@ -3,6 +3,7 @@ import Object.Enemy;
 import <array>;
 import <vector>;
 import <algorithm>;
+import GameSystem.FrameRate;
 
 namespace object
 {
@@ -54,8 +55,8 @@ namespace object
         // 停止中・不正な経過時間・終了済みの拠点では、生成時計を進めずfalseを返す。
         if (!std::isfinite(dt) || dt <= 0 || base.Health() <= 0 || (base.NowState() & MainState::DEAD)) return false;
         // 次の生成期限まで待つ。微小な誤差で生成が1フレーム遅れないよう許容幅を設ける。
-        m_elapsed += dt;
-        m_remaining -= dt;
+        gameSystem::FrameRate::CountUp(m_elapsed, dt);
+        gameSystem::FrameRate::Countdown(m_remaining, dt, true);
         if (m_remaining > 0.000001) return false;
         // 予約済み期限の区間を使うため、20/40秒を跨いでも期限を繰り上げない。
         const double due = m_elapsed + m_remaining;

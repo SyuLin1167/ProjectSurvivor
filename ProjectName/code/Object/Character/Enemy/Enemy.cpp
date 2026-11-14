@@ -6,6 +6,7 @@ import MyLib.Math.Vector2;
 import GameSystem.Camera;
 import Asset.AlphaSprites;
 import <algorithm>;
+import GameSystem.FrameRate;
 import <cmath>;
 
 using namespace math;
@@ -106,7 +107,7 @@ namespace object
         if (!m_prototype) return;
         m_touching = false;
         m_attackedThisFrame = false;
-        if (m_contactRemaining > 0) m_contactRemaining -= m_deltaTime;
+        if (m_contactRemaining > 0) gameSystem::FrameRate::Countdown(m_contactRemaining, m_deltaTime, true);
         m_velocity = {};
         // DEAD対象は参照が残っていても追跡しない。対象なしでは前フレームの変位も消す。
         if (!(m_state & MainState::DEAD))

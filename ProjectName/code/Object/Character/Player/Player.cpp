@@ -8,6 +8,7 @@ module Object.Player;
 import Phase1.Config;
 import Object.Enemy;
 import <algorithm>;
+import GameSystem.FrameRate;
 import Component.MovementMath;
 
 import MyLib.File.FileSystem;
@@ -176,9 +177,9 @@ namespace object
     {
         // 同一更新の撃破だけを渡し、非アクティブ時は強化時間を消費しない。
         m_killPosition.reset();
-        m_boostSeconds = (std::max)(0.0, m_boostSeconds - m_deltaTime);
+        FrameRate::Countdown(m_boostSeconds, m_deltaTime);
         m_hitEffect.Update(m_deltaTime);
-        if (m_attackRemaining > 0) m_attackRemaining -= m_deltaTime;
+        if (m_attackRemaining > 0) FrameRate::Countdown(m_attackRemaining, m_deltaTime, true);
         if (m_attackRemaining > 0.000001 || !m_referenceObjects) return;
         std::shared_ptr<Enemy> target;
         float nearest = m_attack.Range;

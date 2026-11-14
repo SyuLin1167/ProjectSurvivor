@@ -56,7 +56,7 @@ namespace scene
             m_showNearestEnemy = stageConfig.value("showNearestEnemy", false);
             if (world.alphaCombat)
             {
-                m_drops.emplace();
+                m_drops.emplace(m_objManager->Colliders());
                 alphaSprites::Load(); // LoadingSceneの受付中に登録する。
             }
             // 新規Play専用のプール・初回待機時間・方向と乱数を作り、前回の状態を引き継がない。
