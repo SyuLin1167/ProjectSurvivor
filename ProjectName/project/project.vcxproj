@@ -182,7 +182,7 @@
     <ClCompile Include="..\code\UI\DisplayElements\DisplayElements.ixx" />
     <ClCompile Include="..\code\UI\DisplayElements\DisplayElements.cpp" />
     <ClCompile Include="..\code\Scene\Play\StageState.ixx" />
-    <ClCompile Include="..\code\Phase1Config.ixx" />
+    <ClCompile Include="..\code\Scene\Play\StageConfig.ixx" />
     <ClCompile Include="..\code\Object\Character\Player\PlayerAttackConfig.ixx" />
     <ClCompile Include="..\code\Object\Character\Enemy\EnemyConfig.ixx" />
     <ClCompile Include="..\code\GameSystem\Camera\CameraGeometry.ixx" />

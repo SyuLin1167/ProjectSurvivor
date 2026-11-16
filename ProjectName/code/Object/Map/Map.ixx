@@ -1,6 +1,6 @@
 ﻿export module Object.Map;
 
-import Phase1.Config;
+import Scene.StageConfig;
 
 import Object.GameObject;
 import Object.MapInfo;
@@ -27,7 +27,10 @@ export namespace object
         /// <summary>
         /// コンストラクタ
         /// </summary>
-        explicit Map(bool prototype = false);
+        Map();
+        /// @brief 検証済みの寸法を使って見下ろしマップを構築する。
+        /// @param config この試行の設定。
+        explicit Map(const stage::StageConfig& config);
 
         /// <summary>
         /// デストラクタ
@@ -68,7 +71,7 @@ export namespace object
 
     private:
         bool m_prototype; // Phase 1試作経路の選択
-        phase1::Config m_phase1Config{}; // JSONから読み込んだ試作設定
+        stage::StageConfig m_stageConfig{}; // JSONから読み込んだ試作設定
         MapInfo m_mapInfo;                  // マップ情報
         std::unordered_map<size_t, std::vector<size_t>> m_mapData;   //マップデータ
 

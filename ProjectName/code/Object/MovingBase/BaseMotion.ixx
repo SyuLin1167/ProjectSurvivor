@@ -4,7 +4,7 @@
 export module Object.BaseMotion;
 import MyLib.Math.Vector2;
 
-export namespace phase1
+export namespace movement
 {
     /// <summary>Phase 1の直進方向を返し、方向決定を座標更新から分離する。</summary>
     /// <returns>+X方向の単位ベクトル。</returns>

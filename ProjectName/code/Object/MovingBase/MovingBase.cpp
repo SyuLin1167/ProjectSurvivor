@@ -15,13 +15,10 @@ import <cmath>;
 
 namespace object
 {
-    MovingBase::MovingBase()
+    MovingBase::MovingBase(const stage::StageConfig& config) : m_config(config)
     {
-        auto& files = gameSystem::AppCtx::FileSystem();
-        const auto data = files.jsonIO.Load(files.GetDataDir() / "Phase1Config");
-        m_config = phase1::Config::FromJson(data);
         // 旧設定も基準Aで開始する。表示と回収判定がずれないよう同じ矩形を使う。
-        const float centerY = data.value("useExplorationDistance520", false) ? 2568.0f : 2448.0f;
+        const float centerY = config.useExplorationDistance520 ? 2568.0f : 2448.0f;
         m_explorationSite = shape::Rect{{2368 - 16, centerY - 16}, {32, 32}};
     }
 
@@ -56,7 +53,7 @@ namespace object
     void MovingBase::Update()
     {
         m_hurtEffect.Update(m_deltaTime);
-        m_velocity = phase1::BaseDisplacement(Center().x,
+        m_velocity = movement::BaseDisplacement(Center().x,
             m_config.TrialEndX, m_config.BaseSpeed, m_deltaTime);
         ColMgr().GetCollider(m_id)->SetVelocity(m_velocity);
         // 座標はここでは足さず、既存ColliderManager::Stepに一度だけ反映させる。

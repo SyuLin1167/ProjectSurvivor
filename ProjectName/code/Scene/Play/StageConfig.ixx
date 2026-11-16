@@ -3,15 +3,17 @@
 #include <cmath>
 #include <stdexcept>
 
-export module Phase1.Config;
+export module Scene.StageConfig;
 import MyLib.Math.Vector2;
 
-export namespace phase1
+export namespace stage
 {
     /// <summary>DEC-01の試作値。JSONを正本とし、未読込の値をゲームへ流さない。</summary>
-    struct Config
+    struct StageConfig
     {
         float WorldWidth{};    // マップ横幅(u)
+        bool showNearestEnemy{};
+        bool useExplorationDistance520{};
         bool alphaCombat{};    // Playable Alphaの敵構成・表示を一括選択する。
         float WorldHeight{};   // マップ縦幅(u)
         float PlayerSize{};    // 正方形プレイヤーの一辺(u)
@@ -26,9 +28,11 @@ export namespace phase1
         /// <summary>JSONを読み込み、寸法・初期位置・承認された速度範囲を検証する。不正時は例外を送出する。</summary>
         /// <param name="data">Phase1Config.jsonの設定オブジェクト。</param>
         /// <returns>承認範囲と寸法・位置を検証済みの試作設定。</returns>
-        static Config FromJson(const nlohmann::json& data)
+        static StageConfig FromJson(const nlohmann::json& data)
         {
-            Config c;
+            StageConfig c;
+            c.showNearestEnemy = data.value("showNearestEnemy", false);
+            c.useExplorationDistance520 = data.value("useExplorationDistance520", false);
             c.alphaCombat = data.value("alphaCombat", false);
             c.WorldWidth = data.at("worldWidth").get<float>();
             c.WorldHeight = data.at("worldHeight").get<float>();

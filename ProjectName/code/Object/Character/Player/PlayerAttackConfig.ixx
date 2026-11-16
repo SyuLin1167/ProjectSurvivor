@@ -3,7 +3,7 @@ import MyLib.File.JsonIO;
 import <cmath>;
 import <stdexcept>;
 
-export namespace phase2
+export namespace combat
 {
     /// <summary>DEC-02の単体自動攻撃設定。数値は試作限定。</summary>
     struct PlayerAttackConfig

@@ -16,6 +16,7 @@ import MyLib.Math.Vector2;
 import MyLib.Shape.Rect;
 import Object.Enemy;
 import Object.Player;
+import Scene.StageConfig;
 import Object.CombatDrops;
 import Object.PlayerAttackConfig;
 import <algorithm>;
@@ -35,6 +36,23 @@ import UI.PlayHud;
 import UI.DisplayElements;
 import UI.UIManager;
 import <stdexcept>;
+
+/// @brief 各ケースが用意した現在のJSONから、本番と同じ検証済み設定を得る。
+/// @return テスト中のステージ設定。
+stage::StageConfig ReadStageConfig()
+{
+    auto& files = gameSystem::AppCtx::FileSystem();
+    return stage::StageConfig::FromJson(files.jsonIO.Load(files.GetDataDir() / "Phase1Config"));
+}
+
+/// @brief テスト用の攻撃設定とステージ設定をプレイヤーに渡す。
+/// @return ObjectManagerに所有権を渡す新規個体。
+object::Player* CreateStagePlayer()
+{
+    auto& files = gameSystem::AppCtx::FileSystem();
+    return new object::Player(ReadStageConfig(), combat::PlayerAttackConfig::FromJson(
+        files.jsonIO.Load(files.GetDataDir() / "PlayerAttackConfig")));
+}
 
 /// <summary>回帰条件に失敗した場合は理由を表示してテストを終了する。</summary>
 /// <param name="condition">成立を期待する検証条件。</param>
@@ -124,12 +142,12 @@ void VerifyEnemyPursuit()
     auto& dt = const_cast<float&>(gameSystem::FrameRate::GetDeltaTime());
     const float previousDt = dt;
     const auto source = files.jsonIO.Load("ProjectName/resources/data/EnemyConfig.json");
-    const auto initial = phase2::EnemyConfig::FromJson(source);
+    const auto initial = combat::EnemyConfig::FromJson(source);
     require(initial.Health == 30 && initial.Radius == 16 && initial.Speed == 120, "Committed JSON matches approved defaults");
     auto invalid = source;
     invalid["speed"] = 141;
     bool rejected = false;
-    try { phase2::EnemyConfig::FromJson(invalid); }
+    try { combat::EnemyConfig::FromJson(invalid); }
     catch (const std::exception&) { rejected = true; }
     require(rejected, "JSON rejects speed outside delegated range");
     for (int scenario = 0; scenario < 4; ++scenario)
@@ -139,10 +157,10 @@ void VerifyEnemyPursuit()
         const bool changed = scenario == 3;
         const int fps = scenario == 0 ? 30 : scenario == 2 ? 120 : 60;
         if (changed) data["speed"] = 140;
-        const auto config = phase2::EnemyConfig::FromJson(data);
+        const auto config = combat::EnemyConfig::FromJson(data);
         dt = 1.0f / fps;
         object::ObjectManager objects;
-        auto* base = new object::MovingBase();
+        auto* base = new object::MovingBase(ReadStageConfig());
         objects.AddObject(base);
         const std::vector<math::Vector2f> positions{{changed ? 1344.0f : 1280.0f, 2048}, {1024,1728}, {1024,2368}};
         for (auto position : positions)
@@ -189,24 +207,24 @@ void VerifyAutoAttack()
     for (const auto name : {"Phase1Config.json", "PlayerAttackConfig.json"})
         std::filesystem::copy_file(std::filesystem::path("ProjectName/resources/data") / name,
             files.GetDataDir() / name, std::filesystem::copy_options::overwrite_existing);
-    const auto config = phase2::EnemyConfig::FromJson(files.jsonIO.Load("ProjectName/resources/data/EnemyConfig.json"));
+    const auto config = combat::EnemyConfig::FromJson(files.jsonIO.Load("ProjectName/resources/data/EnemyConfig.json"));
     auto& dt = const_cast<float&>(gameSystem::FrameRate::GetDeltaTime());
     const auto previousDt = dt;
     auto attackData = files.jsonIO.Load("ProjectName/resources/data/PlayerAttackConfig.json");
-    const auto attack = phase2::PlayerAttackConfig::FromJson(attackData);
+    const auto attack = combat::PlayerAttackConfig::FromJson(attackData);
     require(attack.Range == 160 && attack.Damage == 10 && attack.Interval == 0.5f, "Approved attack defaults");
     attackData["damage"] = 11;
     bool rejected = false;
-    try { phase2::PlayerAttackConfig::FromJson(attackData); }
+    try { combat::PlayerAttackConfig::FromJson(attackData); }
     catch (const std::exception&) { rejected = true; }
     require(rejected, "Fixed damage cannot be changed through JSON");
     // HP20比較は既存JSON経路で読み込み、実Playerの2発目で敵と判定が除去されることを確認する。
     auto comparisonData = files.jsonIO.Load("ProjectName/resources/data/EnemyConfig.json");
     comparisonData["health"] = 20;
-    const auto comparison = phase2::EnemyConfig::FromJson(comparisonData);
+    const auto comparison = combat::EnemyConfig::FromJson(comparisonData);
     {
         object::ObjectManager objects;
-        objects.AddObject(new object::Player(true));
+        objects.AddObject(CreateStagePlayer());
         auto* enemy = new object::Enemy({612, 2048}, comparison);
         objects.AddObject(enemy);
         objects.InitBeforeUpdate();
@@ -227,8 +245,8 @@ void VerifyAutoAttack()
         stage["alphaCombat"] = true;
         std::ofstream(path) << stage.dump();
         object::ObjectManager objects;
-        auto* player = new object::Player(true);
-        auto* base = new object::MovingBase;
+        auto* player = CreateStagePlayer();
+        auto* base = new object::MovingBase(ReadStageConfig());
         objects.AddObject(player);
         objects.AddObject(base);
         objects.InitBeforeUpdate();
@@ -280,13 +298,13 @@ void VerifyAutoAttack()
     // 個別許可を一般的なHP調整権限へ広げないため、未承認の中間値は拒否する。
     comparisonData["health"] = 25;
     bool healthRejected = false;
-    try { phase2::EnemyConfig::FromJson(comparisonData); }
+    try { combat::EnemyConfig::FromJson(comparisonData); }
     catch (const std::exception&) { healthRejected = true; }
     require(healthRejected, "Unapproved HP25 remains rejected");
     for (int fps : {30, 60, 120})
     {
         object::ObjectManager objects;
-        auto* player = new object::Player(true);
+        auto* player = CreateStagePlayer();
         objects.AddObject(player);
         auto* first = new object::Enemy({672, 2048}, config);
         auto* second = new object::Enemy({352, 2048}, config);
@@ -324,7 +342,7 @@ void VerifyAutoAttack()
     }
     {
         object::ObjectManager objects;
-        auto* player = new object::Player(true);
+        auto* player = CreateStagePlayer();
         objects.AddObject(player);
         auto* far = new object::Enemy({673, 2048}, config);
         auto* near = new object::Enemy({512, 2048}, config);
@@ -374,7 +392,7 @@ void VerifyContactDamage()
 {
     gameSystem::AppCtx::Activate();
     auto& files = gameSystem::AppCtx::FileSystem();
-    const auto config = phase2::EnemyConfig::FromJson(files.jsonIO.Load("ProjectName/resources/data/EnemyConfig.json"));
+    const auto config = combat::EnemyConfig::FromJson(files.jsonIO.Load("ProjectName/resources/data/EnemyConfig.json"));
     auto& dt = const_cast<float&>(gameSystem::FrameRate::GetDeltaTime());
     const auto previousDt = dt;
     // 同じ更新の敵2体と帰還。角に接する場合と微小な隙間を分け、攻撃間隔も検証する。
@@ -389,7 +407,7 @@ void VerifyContactDamage()
         selected["useExplorationDistance520"] = trial.use520;
         files.jsonIO.Write(stagePath, selected);
         col2d::ColliderManager manager;
-        auto base = std::make_shared<object::MovingBase>();
+        auto base = std::make_shared<object::MovingBase>(ReadStageConfig());
         base->SetColliderManager(&manager);
         base->Init();
         base->CheckPickup({2368, trial.pickupY}, {32, 32});
@@ -422,7 +440,7 @@ void VerifyContactDamage()
     for (int fps : {30, 60, 120})
     {
         object::ObjectManager objects;
-        auto* base = new object::MovingBase();
+        auto* base = new object::MovingBase(ReadStageConfig());
         objects.AddObject(base);
         objects.AddObject(new object::Enemy({832, 2048}, config)); // 正面から接触。
         objects.AddObject(new object::Enemy({704, 2048}, config)); // 背後から接触。
@@ -453,7 +471,7 @@ void VerifyContactDamage()
     {
         // タイマーの再接触・遅延を、実Colliderの移動で再現する。専用の本番APIは増やさない。
         col2d::ColliderManager colliders;
-        auto base = std::make_shared<object::MovingBase>();
+        auto base = std::make_shared<object::MovingBase>(ReadStageConfig());
         base->SetColliderManager(&colliders);
         base->Init();
         object::Enemy enemy({768, 2048}, config);
@@ -508,8 +526,8 @@ void VerifyContactDamage()
     }
     {
         object::ObjectManager objects;
-        auto* player = new object::Player(true);
-        auto* base = new object::MovingBase();
+        auto* player = CreateStagePlayer();
+        auto* base = new object::MovingBase(ReadStageConfig());
         auto* enemy = new object::Enemy({720, 2048}, config);
         objects.AddObject(player); objects.AddObject(base); objects.AddObject(enemy);
         objects.InitBeforeUpdate();
@@ -558,7 +576,7 @@ void VerifyFreshPlayObjects()
 {
     gameSystem::AppCtx::Activate();
     auto& files = gameSystem::AppCtx::FileSystem();
-    const auto config = phase2::EnemyConfig::FromJson(files.jsonIO.Load("ProjectName/resources/data/EnemyConfig.json"));
+    const auto config = combat::EnemyConfig::FromJson(files.jsonIO.Load("ProjectName/resources/data/EnemyConfig.json"));
     auto& dt = const_cast<float&>(gameSystem::FrameRate::GetDeltaTime());
     const float previousDt = dt;
     for (int trial = 0; trial < 3; ++trial)
@@ -566,8 +584,8 @@ void VerifyFreshPlayObjects()
         std::weak_ptr<object::GameObject> oldEnemy;
         {
             object::ObjectManager objects;
-            auto* player = new object::Player(true);
-            auto* base = new object::MovingBase();
+            auto* player = CreateStagePlayer();
+            auto* base = new object::MovingBase(ReadStageConfig());
             auto* nearby = new object::Enemy({512, 2048}, config);
             auto* touching = new object::Enemy({768, 2048}, config);
             objects.AddObject(player); objects.AddObject(base);
@@ -646,6 +664,8 @@ void VerifyStageEnd()
         files.GetDataDir() / "EnemySpawnConfig.json", std::filesystem::copy_options::overwrite_existing);
     // 継続出現の実Playを無操作で敗北まで進め、Resultへ値だけが渡ることを確認する。
     // そのResultを保持してStart/Retry共通の実LoadingSceneを通し、2回目も同条件に戻す。
+    const auto stagePath = files.GetDataDir() / "Phase1Config.json";
+    const auto initialStage = files.jsonIO.Load(stagePath);
     const auto spawnSource = files.jsonIO.Load("ProjectName/resources/data/EnemySpawnConfig.json");
     // Start/Retry共通のLoadingを基準・候補双方で通し、乱数や時計も新規Playへ持ち越さない。
     for (const auto selection : {"baseline", "candidate", "countControl", "countCandidate"})
@@ -684,6 +704,9 @@ void VerifyStageEnd()
                     "Finished Play never updates or issues another transition");
             const auto snapshot = result->ResultValue();
             if (trial == 0) { firstFrames = frames; firstProgress = snapshot.progress; }
+            else if (mode == "baseline")
+                require(frames == firstFrames && std::abs(snapshot.progress * 1.5f - firstProgress) < 0.00001f,
+                    "Retry reads new stage distance with identical combat");
             else require(frames == firstFrames && snapshot.progress == firstProgress,
                 "Restart restores HP, positions, attack timers and progress to the same result");
             play.reset();
@@ -694,6 +717,13 @@ void VerifyStageEnd()
                       << " progress=" << snapshot.progress << " HP=" << snapshot.health << '\n';
             if (trial == 0)
             {
+                if (mode == "baseline")
+                {
+                    // Retryの直前だけ終端を延長し、新規Playが設定を再取得することを確認する。
+                    auto longer = initialStage;
+                    longer["trialEndX"] = longer.at("baseCenterX").get<float>() + 7200.0f;
+                    files.jsonIO.Write(stagePath, longer);
+                }
                 auto retry = scene::Play::Start(result);
                 auto loading = std::get<scene::CmdReplace>(retry).build();
                 retry = std::monostate{};
@@ -712,8 +742,21 @@ void VerifyStageEnd()
                 require(play != nullptr, "Retry builds a new Play");
             }
         }
+        files.jsonIO.Write(stagePath, initialStage);
     }
     files.jsonIO.Write(files.GetDataDir() / "EnemySpawnConfig.json", spawnSource);
+    auto invalid = initialStage;
+    invalid.erase("playerSize");
+    files.jsonIO.Write(stagePath, invalid);
+    {
+        auto start = scene::Play::Start({});
+        auto loading = std::get<scene::CmdReplace>(start).build();
+        scene::SceneCmd failed;
+        for (int frame = 0; frame < 8 && std::holds_alternative<std::monostate>(failed); ++frame)
+            failed = loading->Update();
+        require(std::holds_alternative<scene::CmdQuit>(failed), "Missing setting stops Play loading");
+    }
+    files.jsonIO.Write(stagePath, initialStage);
     dt = previousDt;
     gameSystem::AppCtx::Deactivate();
     std::cout << "PASS: stage threshold, defeat/R priority, result latch and actual restart\n";
@@ -760,7 +803,7 @@ void VerifyStagedCount()
     data["candidate"]["stagedIntervals"] = false;
     data["candidate"]["stagedCount"] = true;
     const auto config = object::EnemySpawnConfig::FromJson(data);
-    const auto enemy = phase2::EnemyConfig::FromJson(files.jsonIO.Load("ProjectName/resources/data/EnemyConfig.json"));
+    const auto enemy = combat::EnemyConfig::FromJson(files.jsonIO.Load("ProjectName/resources/data/EnemyConfig.json"));
     const math::Vector2f world{16384,4096}, distant{16,16};
     require(config.CountAt(19.999) == 1 && config.CountAt(20) == 2, "Count uses scheduled boundary");
     // 同じC1時計で60秒進め、成功生成順・耐久・追跡速度と撃破後のプール再利用を確認する。
@@ -768,7 +811,7 @@ void VerifyStagedCount()
         auto alpha = config;
         const auto types = files.jsonIO.Load("ProjectName/resources/data/EnemyConfig.json").at("alphaTypes");
         object::ObjectManager objects;
-        auto* base = new object::MovingBase;
+        auto* base = new object::MovingBase(ReadStageConfig());
         objects.AddObject(base);
         objects.InitBeforeUpdate();
         object::EnemySpawner spawner(alpha, enemy, world, &types);
@@ -810,7 +853,7 @@ void VerifyStagedCount()
     {
         auto selected = config; selected.stagedCount = pair;
         object::ObjectManager objects;
-        auto* base = new object::MovingBase;
+        auto* base = new object::MovingBase(ReadStageConfig());
         objects.AddObject(base); objects.InitBeforeUpdate();
         object::EnemySpawner spawner(selected, enemy, world);
         int opportunities = 0, total = 0;
@@ -840,7 +883,7 @@ void VerifyStagedCount()
     for (int scenario = 0; scenario < 5; ++scenario)
     {
         object::ObjectManager objects;
-        auto* base = new object::MovingBase;
+        auto* base = new object::MovingBase(ReadStageConfig());
         objects.AddObject(base); objects.InitBeforeUpdate();
         object::EnemySpawner spawner(config, enemy, world);
         for (int i = 0; i < 5; ++i)
@@ -880,7 +923,7 @@ void VerifyBalanceSet()
         "Committed selection stays baseline");
     source["balanceSet"] = "candidate";
     const auto config = object::EnemySpawnConfig::FromJson(source);
-    const auto enemy = phase2::EnemyConfig::FromJson(files.jsonIO.Load("ProjectName/resources/data/EnemyConfig.json"));
+    const auto enemy = combat::EnemyConfig::FromJson(files.jsonIO.Load("ProjectName/resources/data/EnemyConfig.json"));
     const math::Vector2f world{16384,4096}, distant{16,16};
     require(config.healthOverride == 20 && config.seed == 1901 && config.stagedIntervals && config.randomDirections,
         "Candidate JSON selects approved set");
@@ -912,7 +955,7 @@ void VerifyBalanceSet()
     for (int fps : {30,60,120})
     {
         object::ObjectManager objects;
-        auto* base = new object::MovingBase;
+        auto* base = new object::MovingBase(ReadStageConfig());
         objects.AddObject(base); objects.InitBeforeUpdate();
         object::EnemySpawner spawner(config, enemy, world);
         std::vector<int> directions;
@@ -943,7 +986,7 @@ void VerifyBalanceSet()
     for (bool atCap : {false, true})
     {
         object::ObjectManager objects;
-        auto* base = new object::MovingBase;
+        auto* base = new object::MovingBase(ReadStageConfig());
         objects.AddObject(base); objects.InitBeforeUpdate();
         object::EnemySpawner spawner(config, enemy, world);
         const std::vector<math::Vector2f> offsets{{480,0},{339.41125f,-339.41125f},{339.41125f,339.41125f}};
@@ -965,7 +1008,7 @@ void VerifyBalanceSet()
     // 最優先の候補にプレイヤーがいる場合は別の安全候補を使う。全候補が境界外なら見送る。
     {
         object::ObjectManager objects;
-        auto* base = new object::MovingBase;
+        auto* base = new object::MovingBase(ReadStageConfig());
         objects.AddObject(base); objects.InitBeforeUpdate();
         const std::vector<math::Vector2f> offsets{{480,0},{339.41125f,-339.41125f},{339.41125f,339.41125f}};
         const auto player = base->Center() + offsets[reference[0]];
@@ -990,7 +1033,7 @@ void VerifyEnemySpawning()
 {
     gameSystem::AppCtx::Activate();
     auto& files = gameSystem::AppCtx::FileSystem();
-    const auto enemy = phase2::EnemyConfig::FromJson(files.jsonIO.Load("ProjectName/resources/data/EnemyConfig.json"));
+    const auto enemy = combat::EnemyConfig::FromJson(files.jsonIO.Load("ProjectName/resources/data/EnemyConfig.json"));
     const auto source = files.jsonIO.Load("ProjectName/resources/data/EnemySpawnConfig.json");
     const auto config = object::EnemySpawnConfig::FromJson(source);
     require(config.interval == 4 && config.firstDelay == 3 && config.distance == 480 && config.limit == 8,
@@ -1037,7 +1080,7 @@ void VerifyEnemySpawning()
     for (int fps : {30, 60, 120})
     {
         object::ObjectManager objects;
-        auto* base = new object::MovingBase;
+        auto* base = new object::MovingBase(ReadStageConfig());
         objects.AddObject(base); objects.InitBeforeUpdate();
         object::EnemySpawner spawner(config, enemy, world);
         int count = 0;
@@ -1058,7 +1101,7 @@ void VerifyEnemySpawning()
     }
     {
         object::ObjectManager objects;
-        auto* base = new object::MovingBase;
+        auto* base = new object::MovingBase(ReadStageConfig());
         objects.AddObject(base); objects.InitBeforeUpdate();
         object::EnemySpawner spawner(adjusted, enemy, world);
         require(!spawner.Update(1.9f, objects, *base, distantPlayer) && spawner.Update(0.1f, objects, *base, distantPlayer),
@@ -1073,7 +1116,7 @@ void VerifyEnemySpawning()
     // 返却前の領域を上書きせず、同じ領域の再構築で古い弱参照・HP・接触時計を継承しない。
     {
         object::ObjectManager objects;
-        auto* base = new object::MovingBase;
+        auto* base = new object::MovingBase(ReadStageConfig());
         objects.AddObject(base); objects.InitBeforeUpdate();
         auto spawner = std::make_unique<object::EnemySpawner>(config, enemy, world);
         require(spawner->Update(3, objects, *base, distantPlayer), "Pool first acquisition");
@@ -1104,7 +1147,7 @@ void VerifyEnemySpawning()
     }
     {
         object::ObjectManager objects;
-        auto* base = new object::MovingBase;
+        auto* base = new object::MovingBase(ReadStageConfig());
         objects.AddObject(base); objects.InitBeforeUpdate();
         object::EnemySpawner spawner(config, enemy, world);
         std::vector<std::shared_ptr<object::Enemy>> retained;
@@ -1123,7 +1166,7 @@ void VerifyEnemySpawning()
     for (int limit : {8, 12})
     {
         object::ObjectManager objects;
-        auto* base = new object::MovingBase;
+        auto* base = new object::MovingBase(ReadStageConfig());
         objects.AddObject(base); objects.InitBeforeUpdate();
         auto settings = config; settings.limit = limit;
         object::EnemySpawner spawner(settings, enemy, world);
@@ -1138,7 +1181,7 @@ void VerifyEnemySpawning()
     }
     {
         object::ObjectManager objects;
-        auto* base = new object::MovingBase;
+        auto* base = new object::MovingBase(ReadStageConfig());
         objects.AddObject(base); objects.InitBeforeUpdate();
         object::EnemySpawner blocked(config, enemy, {800,4096});
         require(!blocked.Update(3, objects, *base, distantPlayer) && objects.GetObjForTag(object::ENEMY).empty(),
@@ -1172,7 +1215,7 @@ void VerifyEnemySpawning()
     {
         dt = 1.0f / fps;
         object::ObjectManager objects;
-        auto* base = new object::MovingBase;
+        auto* base = new object::MovingBase(ReadStageConfig());
         objects.AddObject(base); objects.InitBeforeUpdate();
         const math::Vector2f offset = direction == 0 ? math::Vector2f{480,0} : math::Vector2f{1, direction == 1 ? -1.0f : 1.0f}.Norm() * 480;
         objects.AddInitializedObject(std::make_unique<object::Enemy>(base->Center() + offset, enemy));
@@ -1189,7 +1232,7 @@ void VerifyEnemySpawning()
     {
         dt = 1.0f / 60;
         object::ObjectManager objects;
-        auto* base = new object::MovingBase;
+        auto* base = new object::MovingBase(ReadStageConfig());
         objects.AddObject(base); objects.InitBeforeUpdate();
         for (int i = 0; i < count; ++i)
             objects.AddInitializedObject(std::make_unique<object::Enemy>(base->Center() + math::Vector2f{96, float(i * 4)}, enemy));
@@ -1339,7 +1382,7 @@ int main() try
             {
                 auto* b = manager.GetCollider(base);
                 const float center = b->GetColliderDef()->localPos.x + 48;
-                b->SetVelocity(phase1::BaseDisplacement(center, 15000, 80, 1.0f / fps));
+                b->SetVelocity(movement::BaseDisplacement(center, 15000, 80, 1.0f / fps));
                 // マスク未登録なので重なっても押し戻さない。Pの有無や変位でBを制御しない。
                 manager.GetCollider(player)->SetVelocity({scenario == 2 ? 240.0f / fps : 0, 0});
                 manager.Step();

@@ -7,7 +7,7 @@ import <vector>;
 import <cmath>;
 import <stdexcept>;
 
-export namespace phase2
+export namespace combat
 {
     /// <summary>敵能力の試作設定。JSONの値を検証してから生成・移動・描画へ渡す。</summary>
     struct EnemyConfig
@@ -41,7 +41,7 @@ export namespace object
     /// <summary>敵の能力と外見を開始時に登録し、生成に成功した順で次の種類を選ぶ。</summary>
     class EnemyCatalog
     {
-        using Config = phase2::EnemyConfig;
+        using Config = combat::EnemyConfig;
         std::array<Config, 3> types{};
         unsigned cursor{};
         bool mixed{};
