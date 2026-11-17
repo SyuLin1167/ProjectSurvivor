@@ -1,7 +1,5 @@
 ﻿module;
-#include <fstream>
 #include <DxLib.h>
-#include <json.hpp>
 
 module Object.Player;
 
@@ -11,21 +9,13 @@ import <algorithm>;
 import GameSystem.FrameRate;
 import Component.MovementMath;
 
-import MyLib.File.FileSystem;
 import MyLib.KeyStatus;
-import MyLib.Loading.LoadingContext;
 import MyLib.Math.Vector2;
 import GameSystem.Camera;
-import Component.Jump;
 import Component.MoveWithKey;
-import Component.Animator;
-import Component.AudioSource;
-import Asset.Animation;
 import Asset.AlphaSprites;
-import Asset.Sound;
 import Collider;
 
-using json = nlohmann::json;
 using namespace gameSystem;
 using namespace math;
 using namespace col2d;
@@ -33,7 +23,7 @@ using namespace col2d;
 namespace object
 {
     Player::Player(const stage::StageConfig& config, const combat::PlayerAttackConfig& attack)
-        : id(), m_attack(attack), m_prototype(true), m_stageConfig(config)
+        : id(), m_attack(attack), m_stageConfig(config)
     {
         // 承認値は中心座標。既存RectColliderに合わせて左上へ変換する。
         pData.size = { m_stageConfig.PlayerSize, m_stageConfig.PlayerSize };
@@ -41,29 +31,9 @@ namespace object
         pData.moveSpeed = { m_stageConfig.PlayerSpeed, m_stageConfig.PlayerSpeed };
     }
 
-    Player::Player() : id(), m_prototype(false)
-    {
-        // プレイヤー初期データ読み込み
-        json data = AppCtx::FileSystem().jsonIO.Load(AppCtx::FileSystem().GetDataDir() / "PlayerData");
-        pData.Input(data);
-
-        //プレイヤー画像読み込み
-        AppCtx::AssetMgr().Fetch<asset::Animation>()->CreateHandleAsync("Player", "player.png", pData.size.x, pData.size.y);
-
-        // 歩行サウンド定義
-        asset::SoundDef walkSoundDef{};
-        walkSoundDef.name = AssetName::WALK;
-        walkSoundDef.soundType = asset::SOUNDTYPE_SE_LOOP;
-        walkSoundDef.volume = 100;
-
-        // プレイヤーの歩行音読み込み
-        AppCtx::AssetMgr().Fetch<asset::Sound>()->AddSound(walkSoundDef, "SE_Footsteps.wav");
-    }
-
     Player::~Player()
     {
         // カメラ追従を解除(自分が登録した場合のみ)
-        gameSystem::Camera::Instance().ClearTarget(&m_pos);
         gameSystem::Camera::Instance().ClearTarget(&m_cameraCenter);
 
         // コライダーを破棄(イベントも同時に削除される)
@@ -71,18 +41,6 @@ namespace object
         {
             mgr->Destroy(id);
         }
-
-        if (m_prototype) return;
-
-        // プレイヤー画像削除
-        AppCtx::AssetMgr().Fetch<asset::Animation>()->DeleteHandle("Player");
-
-        // アニメーション削除
-        AppCtx::AssetMgr().Fetch<asset::Animation>()->DeleteAnim(AssetName::IDLE);
-        AppCtx::AssetMgr().Fetch<asset::Animation>()->DeleteAnim(AssetName::WALK);
-
-        // プレイヤーの歩行音削除
-        AppCtx::AssetMgr().Fetch<asset::Sound>()->DeleteHandle(AssetName::WALK);
     }
 
     void Player::Init()
@@ -90,81 +48,29 @@ namespace object
         // 初期位置設定
         m_pos = pData.pos;
 
-        // カメラ追従ターゲット設定
-        gameSystem::Camera::Instance().SetTarget(&m_pos);
-
         // 移動機能追加
         auto move = m_compMgr->AddComponent<component::MoveWithKey>(this);
         move->SetHorizontal(keyType.LEFT, keyType.RIGHT, pData.moveSpeed.x);
 
-        if (m_prototype)
-        {
-            move->SetVertical(keyType.UP, keyType.DOWN, pData.moveSpeed.y);
-            move->SetAlternativeKeys(keyType.A, keyType.D, keyType.W, keyType.S);
-            move->SetNormalizeDiagonal(true);
-            m_cameraCenter = m_pos + pData.size.Half();
-            Camera::Instance().SetTarget(&m_cameraCenter, true);
-            Camera::Instance().Update();
-            ColliderDef def{};
-            def.localPos = m_pos;
-            def.isActive = true;
-            def.isTrigger = false;
-            def.contactAfterMove = true;
-            id = ColMgr().CreateRectCollider(&def, pData.size, MyObjectTag());
-            // 拠点側は解決しない。移動後にPだけを押し戻し、拠点の自動前進を維持する。
-            ColMgr().AddMask(id, col2d::RECT, ObjectTag::BASE);
-            return;
-        }
-
-        // ジャンプ機能追加
-        auto jump = m_compMgr->AddComponent<component::Jump>(
-            this,
-            pData.moveSpeed.y,
-            std::bind(input::KeyStatus::CheckKey, keyType.SPACE, ON_PRESS)
-        );
-
-        // 当たり判定追加
-        ColliderDef colDef{};
-        colDef.localPos = m_pos;
-        colDef.isActive = true;
-        colDef.shouldCCD = true;
-        id = ColMgr().CreateRectCollider(&colDef, pData.size, MyObjectTag());
-        ColMgr().AddMask(id, col2d::CIRCLE, ObjectTag::ENEMY);
-
-        // 衝突イベント追加
-        ContactListener listener;
-        listener.when = [&](const ContactInfo& info) { return info.normal == NORMAL_TOP; };
-        listener.event = [&, jump]() { jump->CanJump();};
-        ColMgr().AddEvent(id, MakeKey(TILE, ObjectTag::MAP), listener);
-
-        // 待機アニメーション定義
-        asset::AnimationDef idleAnimDef{};
-        idleAnimDef.name = AssetName::IDLE;
-        idleAnimDef.type = asset::AnimType::LOOP;
-        idleAnimDef.animationSpeed = 4;
-        idleAnimDef.endFrame = 4;
-        idleAnimDef.size = pData.size;
-
-        // 歩行アニメーション定義
-        asset::AnimationDef walkAnimDef{};
-        walkAnimDef = idleAnimDef;
-        walkAnimDef.name = AssetName::WALK;
-        walkAnimDef.startFrame = 5;
-        walkAnimDef.endFrame = 8;
-
-        // アニメーション追加
-        AppCtx::AssetMgr().Fetch<asset::Animation>()->CreateAnimCategory("Player", { idleAnimDef,walkAnimDef });
-        auto anim = m_compMgr->AddComponent<component::Animator>(this);
-        anim->AddAnim(AssetName::IDLE);
-        anim->AddAnim(AssetName::WALK);
-
-        // サウンド再生コンポーネント追加
-        m_compMgr->AddComponent<component::AudioSource>(this);
+        move->SetVertical(keyType.UP, keyType.DOWN, pData.moveSpeed.y);
+        move->SetAlternativeKeys(keyType.A, keyType.D, keyType.W, keyType.S);
+        move->SetNormalizeDiagonal(true);
+        m_cameraCenter = m_pos + pData.size.Half();
+        Camera::Instance().SetTarget(&m_cameraCenter, true);
+        Camera::Instance().Update();
+        ColliderDef def{};
+        def.localPos = m_pos;
+        def.isActive = true;
+        def.isTrigger = false;
+        def.contactAfterMove = true;
+        id = ColMgr().CreateRectCollider(&def, pData.size, MyObjectTag());
+        // 拠点側は解決しない。移動後にPだけを押し戻し、拠点の自動前進を維持する。
+        ColMgr().AddMask(id, col2d::RECT, ObjectTag::BASE);
     }
 
     void Player::GetReferenceObject(std::function<std::vector<std::shared_ptr<GameObject>>(uint32_t)> referenceObj)
     {
-        if (m_prototype) m_referenceObjects = std::move(referenceObj);
+        m_referenceObjects = std::move(referenceObj);
     }
 
     void Player::UpdateAutoAttack()
@@ -208,30 +114,13 @@ namespace object
 
     void Player::Update()
     {
-        if (m_prototype)
-        {
-            UpdateAutoAttack();
-            // 移動予定量だけを制限し、座標更新はColliderManager::Stepに一度だけ任せる。
-            m_velocity.x = movement::BoundedDisplacement(m_pos.x, m_velocity.x,
-                pData.size.x, m_stageConfig.WorldWidth);
-            m_velocity.y = movement::BoundedDisplacement(m_pos.y, m_velocity.y,
-                pData.size.y, m_stageConfig.WorldHeight);
-            ColMgr().GetCollider(id)->SetVelocity(m_velocity);
-            return;
-        }
-        // 速度反映
+        UpdateAutoAttack();
+        // 移動予定量だけを制限し、座標更新はColliderManager::Stepに一度だけ任せる。
+        m_velocity.x = movement::BoundedDisplacement(m_pos.x, m_velocity.x,
+            pData.size.x, m_stageConfig.WorldWidth);
+        m_velocity.y = movement::BoundedDisplacement(m_pos.y, m_velocity.y,
+            pData.size.y, m_stageConfig.WorldHeight);
         ColMgr().GetCollider(id)->SetVelocity(m_velocity);
-
-        if (m_velocity.x != 0)
-        {
-            m_compMgr->GetComponent<component::Animator>()->SwitchAnim(AssetName::WALK, AssetName::IDLE);
-            m_compMgr->GetComponent<component::AudioSource>()->Play(AssetName::WALK);
-        }
-        else
-        {
-            m_compMgr->GetComponent<component::Animator>()->SwitchAnim(AssetName::IDLE, AssetName::WALK);
-            m_compMgr->GetComponent<component::AudioSource>()->Stop(AssetName::WALK);
-        }
     }
 
     void Player::LateUpdate()
@@ -242,12 +131,11 @@ namespace object
         // 速度更新
         m_velocity = ColMgr().GetCollider(id)->GetVelocity();
         // 衝突更新後の実座標から追従中心を更新し、描画とカメラのずれを防ぐ。
-        if (m_prototype) m_cameraCenter = m_pos + pData.size.Half();
+        m_cameraCenter = m_pos + pData.size.Half();
     }
 
     void Player::Draw()
     {
-        if (!m_prototype) return;
         if (m_hitEffect.Active())
         {
             const auto target = std::dynamic_pointer_cast<Enemy>(m_lastHit.lock());

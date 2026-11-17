@@ -1,6 +1,5 @@
 ﻿module;
 #include <DxLib.h>
-#include <thread>
 
 module Scene.Play;
 
@@ -18,69 +17,56 @@ import Scene.StageConfig;
 import MyLib.File.FileSystem;
 import Object.Map;
 import Object.MovingBase;
-import Object.Goal;
 import GameSystem.Camera;
 import GameSystem.FrameRate;
-import Asset.Graph;
 import Asset.AlphaSprites;
 import AppContext;
-import GameSystem.Window;
-import <algorithm>;
 
 using namespace gameSystem;
 
 namespace scene
 {
-    Play::Play(bool prototype)
-        : m_cleared(false)
-        , m_prototype(prototype)
+    namespace
     {
-        if (m_prototype)
+        /// @brief 試行開始時にJSONを読み、設定型の検証を適用する。
+        /// @param name 設定ファイルの名前。
+        /// @return 検証済みの設定。失敗は読み込み元へ伝播する。
+        template<class Config>
+        Config LoadConfig(const char* name)
         {
-            // 毎回設定を読み直し、敵能力・出現条件・候補判定用のマップ寸法を揃える。
+            auto& files = AppCtx::FileSystem();
+            return Config::FromJson(files.jsonIO.Load(files.GetDataDir() / name));
+        }
+
+        /// @brief ステージで使用する敵設定から試行専用の生成器を作る。
+        /// @param world マップ寸法と戦闘モードを含む設定。
+        /// @return 初期状態の生成器。
+        object::EnemySpawner CreateSpawner(const stage::StageConfig& world)
+        {
             auto& files = AppCtx::FileSystem();
             const auto data = files.jsonIO.Load(files.GetDataDir() / "EnemyConfig");
-            const auto enemies = combat::EnemyConfig::FromJson(data);
-            const auto spawn = object::EnemySpawnConfig::FromJson(files.jsonIO.Load(files.GetDataDir() / "EnemySpawnConfig"));
-            const auto world = stage::StageConfig::FromJson(files.jsonIO.Load(files.GetDataDir() / "Phase1Config"));
-            const auto attack = combat::PlayerAttackConfig::FromJson(files.jsonIO.Load(files.GetDataDir() / "PlayerAttackConfig"));
-            m_showNearestEnemy = world.showNearestEnemy;
-            m_hudID = m_hudManager.Create<ui::PlayHud>();
-            m_objManager->AddObject(new object::Player(world, attack));
-            m_player = std::dynamic_pointer_cast<object::Player>(
-                m_objManager->GetObjForTag(object::PLAYER).front());
-            m_objManager->AddObject(new object::Map(world));
-            auto* base = new object::MovingBase(world);
-            m_objManager->AddObject(base);
-            m_stage.emplace(base->StartX(), base->EndX());
-            m_base = std::dynamic_pointer_cast<object::MovingBase>(
-                m_objManager->GetObjForTag(object::BASE).front());
-            if (world.alphaCombat)
-            {
-                m_drops.emplace(m_objManager->Colliders());
-                alphaSprites::Load(); // LoadingSceneの受付中に登録する。
-            }
-            // 新規Play専用のプール・初回待機時間・方向と乱数を作り、前回の状態を引き継がない。
-            m_spawner.emplace(spawn, enemies, math::Vector2f{world.WorldWidth, world.WorldHeight},
+            return object::EnemySpawner(LoadConfig<object::EnemySpawnConfig>("EnemySpawnConfig"),
+                combat::EnemyConfig::FromJson(data), {world.WorldWidth, world.WorldHeight},
                 world.alphaCombat ? &data.at("alphaTypes") : nullptr);
-            // 固定3体は生成しない。初期化／ロード中には生成時計を進めない。
-            return;
         }
-        //オブジェクト追加
-        m_objManager->AddObject(new object::Player);
-        m_objManager->AddObject(new object::Enemy);
-        m_objManager->AddObject(new object::Map);
-        m_objManager->AddObject(new object::Goal(m_cleared));
-
-        // 背景画像読み込み
-        gameSystem::AppCtx::AssetMgr().LoadAsync<asset::Graph>("background", "Play.png");
     }
 
-    Play::~Play()
+    Play::Play() : Play(LoadConfig<stage::StageConfig>("Phase1Config")) {}
+
+    Play::Play(const stage::StageConfig& world)
+        : m_stage(world.BaseCenter.x, world.TrialEndX), m_spawner(CreateSpawner(world)),
+          m_showNearestEnemy(world.showNearestEnemy)
     {
-        if (m_prototype) return;
-        // 背景画像ハンドル削除
-        gameSystem::AppCtx::AssetMgr().DeleteHandle<asset::Graph>("background");
+        m_player = new object::Player(world, LoadConfig<combat::PlayerAttackConfig>("PlayerAttackConfig"));
+        m_objManager->AddObject(m_player);
+        m_objManager->AddObject(new object::Map(world));
+        m_base = new object::MovingBase(world);
+        m_objManager->AddObject(m_base);
+        if (world.alphaCombat)
+        {
+            m_drops.emplace(m_objManager->Colliders());
+            alphaSprites::Load();
+        }
     }
 
     void Play::Init()
@@ -91,131 +77,57 @@ namespace scene
         FrameRate::ResetSimulationTime();
     }
 
-    SceneCmd Play::Start(std::shared_ptr<SceneBase> hold, bool prototype)
+    SceneCmd Play::Start(std::shared_ptr<SceneBase> hold)
     {
-        return CmdReplace{ [hold = std::move(hold), prototype]() mutable {
+        return CmdReplace{ [hold = std::move(hold)]() mutable {
             return std::make_shared<LoadingScene>(LoadPolicy::PROGRESS,
-                [prototype]() { return std::make_shared<Play>(prototype); }, std::move(hold));
+                []() { return std::make_shared<Play>(); }, std::move(hold));
         } };
     }
 
     SceneCmd Play::Update()
     {
         // 結果確定後に再度Updateが呼ばれても、攻撃・移動・遷移を繰り返さない。
-        if (m_stage && m_stage->Finished()) return std::monostate{};
+        if (m_stage.Finished()) return std::monostate{};
         // オブジェクト更新
         m_objManager->Update();
 
         // Stepの接触被害とLateUpdateがすべて反映された後に判定する。
-        if (m_stage)
+        const auto end = m_stage.Advance(m_base->Center().x, m_base->Health(),
+            input::KeyStatus::CheckKey(keyType.R, ON_PRESS));
+        if (end == StageEnd::Success || end == StageEnd::Defeat)
+            return CmdReplace{ [result = m_stage.ResultValue()]() {
+                return std::make_shared<Result>(result);
+            } };
+        if (end == StageEnd::Aborted)
+            return CmdReplace{ []() { return std::make_shared<Title>(); } };
+        // 終了と期限が同フレームなら上の遷移が優先。Stepの走査中には追加しない。
+        // 勝敗判定後にだけ回収・生成を許す。新しい品は次の更新から拾える。
+        if (m_drops)
         {
-            const auto base = m_base.lock();
-            if (!base) return CmdQuit{}; // 拠点消失は通常の勝敗に偽装しない。
-            const auto end = m_stage->Advance(base->Center().x, base->Health(),
-                input::KeyStatus::CheckKey(keyType.R, ON_PRESS));
-            if (end == StageEnd::Success || end == StageEnd::Defeat)
-                return CmdReplace{ [result = m_stage->ResultValue()]() {
-                    return std::make_shared<Result>(result);
-                } };
-            if (end == StageEnd::Aborted)
-                return CmdReplace{ []() { return std::make_shared<Title>(); } };
-            // 終了と期限が同フレームなら上の遷移が優先。Stepの走査中には追加しない。
-            // プレイヤーが存在する場合だけ、その現在位置を使って生成安全距離を判定する。
-            if (const auto player = m_player.lock(); player && m_spawner)
-            {
-                // 勝敗判定後にだけ回収・生成を許す。新しい品は次の更新から拾える。
-                if (m_drops)
-                {
-                    m_drops->Collect(FrameRate::GetDeltaTime(), *player, *base);
-                    if (const auto position = player->TakeKillPosition()) m_drops->Roll(*position);
-                }
-                base->CheckPickup(player->Center(), player->pData.size);
-                m_spawner->Update(FrameRate::GetDeltaTime(), *m_objManager, *base, player->Center());
-            }
+            m_drops->Collect(FrameRate::GetDeltaTime(), *m_player, *m_base);
+            if (const auto position = m_player->TakeKillPosition()) m_drops->Roll(*position);
         }
-
-        // クリア後の画面へ移動
-        if (m_cleared)
-        {
-            return CmdReplace{ [](){ return std::make_shared<Result>(StageResult{StageEnd::Success, 100, 1}, false); } };
-        }
-
+        m_base->CheckPickup(m_player->Center(), m_player->pData.size);
+        m_spawner.Update(FrameRate::GetDeltaTime(), *m_objManager, *m_base, m_player->Center());
         // 継続
         return std::monostate{};
     }
 
     void Play::Draw()
     {
-        if (!m_prototype) DrawScrollingBackground();
         m_objManager->Draw();
-        if (m_stage)
-        {
-            const auto base = m_base.lock();
-            const auto player = m_player.lock();
-            if (base && player)
-            {
-                // 初回描画も含め、そのPlayの実値を読む。共有・静的なHUD状態を残さない。
-                const auto result = m_stage->ResultValue();
-                auto hud = ui::MakeHudValues(base->Health(), result.progress,
-                    m_stage->Distance(), m_stage->RemainingDistance(), base->Center() - player->Center());
-                // 描画時の中心座標だけを保持し、撃破・再試行をまたいで敵参照を残さない。
-                hud.showNearestEnemy = m_showNearestEnemy;
-                if (m_showNearestEnemy) hud.toEnemy = ui::NearestEnemyOffset(*m_objManager, base->Center());
-                if (auto* element = dynamic_cast<ui::PlayHud*>(m_hudManager.GetElement(m_hudID)))
-                    element->SetValues(hud, {Camera::Instance().WorldToScreen(base->Center() - base->Size().Half()), base->Size()});
-                if (m_drops) m_drops->DrawField();
-                m_hudManager.Draw();
-                if (m_drops) m_drops->DrawStatus(player->BoostSeconds());
-                base->DrawExploration(ui::PlayHudPanel(m_showNearestEnemy));
-            }
-        }
-    }
-
-    void Play::DrawScrollingBackground(float parallax)
-    {
-        // カメラオフセット取得
-        auto camOffset = gameSystem::Camera::Instance().GetOffset();
-
-        // グラフアセット取得
-        auto graph = gameSystem::AppCtx::AssetMgr().Fetch<asset::Graph>();
-        if (!graph)
-        {
-            return;
-        }
-
-        // 背景画像ハンドル取得
-        int bgHandle = graph->GetHandle("background");
-        if (bgHandle < 0)
-        {
-            return;
-        }
-
-        // 背景サイズとウィンドウサイズ取得
-        int bgW = 0, bgH = 0;
-        GetGraphSize(bgHandle, &bgW, &bgH);
-        auto winSize = Window::GetWindowData()->SIZE;
-
-        // カメラオフセットに対して背景のパララックス移動量
-        int scrollX = static_cast<int>(-camOffset.x * parallax);
-        int drawY = static_cast<int>(-camOffset.y * parallax);
-
-        // Yはそのまま描画（必要なら同様にタイル化可能）
-        int drawX1 = scrollX % bgW;
-        drawX1 = (drawX1 + bgW < 0) ? drawX1 += bgW : drawX1;
-        drawX1 = (drawX1 > bgW) ? drawX1 -= bgW : drawX1;
-
-        int drawX2 = scrollX % bgW + bgW;
-        drawX2 = (drawX2 + bgW < 0) ? drawX2 += bgW : drawX2;
-        drawX2 = (drawX2 > bgW) ? drawX2 -= bgW : drawX2;
-
-        // 2枚で水平ループ
-        DrawGraph(drawX1, drawY, bgHandle, true);
-        DrawGraph(drawX2, drawY, bgHandle, true);
-
-        // 画面幅を覆うために追加描画
-        if (winSize.x > bgW)
-        {
-            DrawGraph(drawX2 + bgW, drawY, bgHandle, true);
-        }
+        // 初回描画も含め、そのPlayの実値を読む。共有・静的なHUD状態を残さない。
+        const auto result = m_stage.ResultValue();
+        auto hud = ui::MakeHudValues(m_base->Health(), result.progress,
+            m_stage.Distance(), m_stage.RemainingDistance(), m_base->Center() - m_player->Center());
+        // 描画時の中心座標だけを保持し、撃破・再試行をまたいで敵参照を残さない。
+        hud.showNearestEnemy = m_showNearestEnemy;
+        if (m_showNearestEnemy) hud.toEnemy = ui::NearestEnemyOffset(*m_objManager, m_base->Center());
+        m_hud.SetValues(hud, {Camera::Instance().WorldToScreen(m_base->Center() - m_base->Size().Half()), m_base->Size()});
+        if (m_drops) m_drops->DrawField();
+        m_hud.Draw();
+        if (m_drops) m_drops->DrawStatus(m_player->BoostSeconds());
+        m_base->DrawExploration(ui::PlayHudPanel(m_showNearestEnemy));
     }
 }

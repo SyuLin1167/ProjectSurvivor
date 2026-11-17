@@ -9,7 +9,6 @@ import Object.EnemyConfig;
 /// </summary>
 export namespace object
 {
-    constexpr float MAX_HEALTH = 1.0f;  // 最大体力
 
     /// <summary>
     /// 敵の役割
@@ -17,11 +16,6 @@ export namespace object
     export class Enemy final :public GameObject
     {
     public:
-        /// <summary>
-        /// コンストラクタ
-        /// </summary>
-        Enemy();
-
         /// <summary>試作用追跡敵を初期状態で構築する。</summary>
         /// <param name="center">円中心のワールド初期座標（u）。</param>
         /// <param name="config">EnemyConfig::FromJsonで検証した敵設定。</param>
@@ -91,13 +85,11 @@ export namespace object
         bool m_wasTouching{}; // 再接触時に非接触時間の端数を次の攻撃へ繰り越さない。
         static constexpr float CONTACT_DAMAGE = 10.0f; // DEC-02固定値。
         static constexpr double CONTACT_INTERVAL = 1.0; // DEC-02固定値（秒）。
-        bool m_prototype = false;
-        float m_radius = 16.0f; // 旧サンプルの半径。試作ではJSON値を使用する。
+        float m_radius = 16.0f; // 生成時に設定する当たり判定の半径（u）。
         float m_speed{}; // u/s。試作の設定読み込み時に確定する。
         std::weak_ptr<MovingBase> m_base; // 所有しない。対象破棄後は追跡を停止する。
         bool m_colliderCreated = false; // Init前や失敗時に、未取得IDで他個体を破棄しない。
         col2d::ColliderID id;   // コライダーID
         float m_health;        // 体力
-        float m_damage;        // ダメージ
     };
 }

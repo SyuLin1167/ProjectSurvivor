@@ -80,7 +80,7 @@ export namespace ui
     /// <param name="y">画面上の上端（px）。</param>
     void DrawStageStatus(float health, float progress, int x, int y);
 
-    /// <summary>UIManagerが所有するプレイHUD。ゲーム参照を持たず、そのフレームの値だけを保持する。</summary>
+    /// <summary>Playが所有するプレイHUD。ゲーム参照を持たず、そのフレームの値だけを保持する。</summary>
     class PlayHud final : public UIBase
     {
     public:

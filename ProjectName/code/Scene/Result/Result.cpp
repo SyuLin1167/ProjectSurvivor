@@ -15,8 +15,8 @@ import UI.DisplayElements;
 
 namespace scene
 {
-    Result::Result(StageResult result, bool retryPrototype)
-        : m_result(result), m_retryPrototype(retryPrototype)
+    Result::Result(StageResult result)
+        : m_result(result)
     {
         const float centerX = gameSystem::Window::GetWindowData()->SIZE.x / 2.0f;
         const float x = centerX - 160;
@@ -49,7 +49,7 @@ namespace scene
         if (m_toRetry)
         {
             m_leaving = true;
-            return Play::Start(shared_from_this(), m_retryPrototype);
+            return Play::Start(shared_from_this());
         }
         if (m_toTitle)
         {

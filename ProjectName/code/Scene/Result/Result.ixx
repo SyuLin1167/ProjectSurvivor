@@ -11,8 +11,7 @@ export namespace scene
     public:
         /// <summary>終了値をコピーし、最小限の結果操作を登録する。</summary>
         /// <param name="result">成功または敗北の確定値。</param>
-        /// <param name="retryPrototype">再試行時に既存試作経路を使う場合true。</param>
-        explicit Result(StageResult result, bool retryPrototype = true);
+        explicit Result(StageResult result);
         /// <summary>このシーンが登録したボタンを破棄する。</summary>
         ~Result();
         /// <summary>結果は構築時に確定済みのため追加初期化は不要。</summary>
@@ -30,7 +29,6 @@ export namespace scene
         // シーン単位のUI所有。LoadingSceneが旧シーンを保持しても新画面へ混在させない。
         ui::UIManager m_hudManager;
         const StageResult m_result;
-        bool m_retryPrototype;
         bool m_toRetry = false;
         bool m_toTitle = false;
         bool m_leaving = false;
