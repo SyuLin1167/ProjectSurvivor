@@ -36,20 +36,7 @@ export namespace object
         template<typename... Args>
         inline void AddObject(GameObject* object, Args&&... args)
         {
-            // 更新中なら一時保存、そうでないなら新規追加
-            if (isUpdate)
-            {
-                object->SetColliderManager(&m_colMgr);
-                object->OnAttach();
-                pendingObjects.emplace_back(object);
-                return;
-            }
-
-            // 新規追加
-            object->SetColliderManager(&m_colMgr);
-            object->OnAttach();
-            auto obj = std::shared_ptr<GameObject>(object, std::forward<Args>(args)...);
-            objects[object->MyObjectTag()].emplace_back(obj);
+            QueueOrRegister(std::shared_ptr<GameObject>(object, std::forward<Args>(args)...));
         }
 
         /// <summary>更新走査の外で新しい個体だけを参照解決・初期化し、所有する。共有所有権とカスタム解放処理を保持する。</summary>
@@ -90,10 +77,19 @@ export namespace object
         void Draw();
 
     private:
+        /// @brief 所有権を受け取り、更新中の登録だけを保留する。
+        /// @param object 解放方法を保持する所有参照。
+        void QueueOrRegister(std::shared_ptr<GameObject> object);
+        /// @brief 空参照を拒否し、このシーンの衝突管理に所属させる。
+        /// @param object 所属させる所有参照。
+        void Attach(const std::shared_ptr<GameObject>& object);
+        /// @brief 既存個体への参照を解決してから初期化する。
+        /// @param object 所属済みの個体。
+        void Initialize(GameObject& object);
         // このシーン専用のコライダー管理(objectsより先に宣言=objectsの後に破棄される)
         col2d::ColliderManager m_colMgr;
-        std::unordered_map<uint32_t, std::vector<std::shared_ptr<GameObject>>> objects;
-        std::vector<GameObject*> pendingObjects;    //一時保存オブジェクト配列
-        bool isUpdate;                              //更新状況
+        std::unordered_map<uint32_t, std::vector<std::shared_ptr<GameObject>>> m_objects;
+        std::vector<std::shared_ptr<GameObject>> m_pendingObjects;    //一時保存オブジェクト配列
+        bool m_isUpdating;                              //更新状況
     };
 }

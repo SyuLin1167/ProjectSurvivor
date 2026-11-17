@@ -174,7 +174,7 @@
     <ClCompile Include="..\code\Object\Item\Item.ixx" />
     <ClCompile Include="..\code\Object\Item\Repair.ixx" />
     <ClCompile Include="..\code\Object\Item\Boost.ixx" />
-    <ClCompile Include="..\code\Object\Item\ItemManager.ixx" />
+    <ClCompile Include="..\code\Object\Item\CombatDrops.ixx" />
     <ClCompile Include="..\code\UI\PlayHud\PlayHud.ixx" />
     <ClCompile Include="..\code\UI\PlayHud\PlayHud.cpp" />
     <ClCompile Include="..\code\Object\EnemySpawner\EnemySpawner.ixx" />
