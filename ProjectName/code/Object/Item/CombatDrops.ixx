@@ -55,9 +55,7 @@ export namespace object
             for (auto& slot : items)
             {
                 if (Get(slot)) continue;
-                if (roll == 0) slot.emplace<Repair>();
-                else slot.emplace<Boost>();
-                auto* item = Get(slot);
+                Item* item = roll == 0 ? static_cast<Item*>(&slot.emplace<Repair>()) : &slot.emplace<Boost>();
                 item->center = center;
 
                 // 移動後のプレイヤー矩形だけを検出し、押し戻しは行わない。

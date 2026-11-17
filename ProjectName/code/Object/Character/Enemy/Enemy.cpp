@@ -60,7 +60,7 @@ namespace object
     bool Enemy::CanBeAttacked() const
     {
         const auto* collider = m_colliderCreated && ColMgrPtr() ? ColMgr().GetCollider(id) : nullptr;
-        return m_health > 0 && !(m_state & MainState::DEAD) &&
+        return !(m_state & MainState::DEAD) &&
             collider && collider->GetColliderDef()->isActive;
     }
 
@@ -81,11 +81,7 @@ namespace object
 
     void Enemy::Update()
     {
-        if(m_health <= 0.0f)
-            m_state = MainState::DEAD;
-
         m_touching = false;
-        m_attackedThisFrame = false;
         m_velocity = {};
         // DEAD対象は参照が残っていても追跡しない。対象なしでは前フレームの変位も消す。
         if (!(m_state & MainState::DEAD))
@@ -120,16 +116,10 @@ namespace object
         const auto base = m_base.lock();
         // 接触の事実はColliderイベントだけから受け取る。撃破済み/対象消失時は被害を出さない。
         if (!CanBeAttacked() || !base || (base->NowState() & MainState::DEAD)) return;
-        if (!m_attackedThisFrame)
-        {
-            if (base->TakeDamage(CONTACT_DAMAGE))
-            {
-                m_attackedThisFrame = true;
-                // 連続接触の通常端数のみ保持。長い遅延でも1フレーム1発、非接触中の蓄積なし。
-                m_contactRemaining = CONTACT_INTERVAL +
-                    (m_wasTouching && m_contactRemaining > -CONTACT_INTERVAL ? m_contactRemaining : 0.0);
-            }
-        }
+        if (!base->TakeDamage(CONTACT_DAMAGE)) return;
+        // 接触通知はLateUpdateで一度だけ消費し、連続接触の通常端数だけを持ち越す。
+        m_contactRemaining = CONTACT_INTERVAL +
+            (m_wasTouching && m_contactRemaining > -CONTACT_INTERVAL ? m_contactRemaining : 0.0);
     }
 
     void Enemy::Draw()

@@ -1,4 +1,5 @@
-﻿#include <cmath>
+﻿#include <functional>
+#include <cmath>
 #include <cstdlib>
 #include <iostream>
 #include <filesystem>
@@ -1206,6 +1207,29 @@ void VerifyEnemySpawning()
         require(destroyed && colliderManager && !colliderManager->GetCollider(failedID), "Failed spawn releases object and collider");
         require(base->TakeDamage(1), "Failed spawn does not remove base collider");
         require(objects.GetObjForTag(object::ENEMY).size() == 1, "Failed spawn not exposed in collection");
+        // 更新中に保留された個体でも、初期化例外時に指定の解放関数が一度だけ呼ばれる。
+        struct DeferredRegistration final : object::GameObject
+        {
+            std::function<void()> enqueue;
+            void Init() override {}
+            void Update() override { enqueue(); }
+            void Draw() override {}
+            object::ObjectTag MyObjectTag() const override { return object::ENEMY; }
+        };
+        {
+            int releases = 0;
+            object::ObjectManager deferred;
+            auto source = std::make_shared<DeferredRegistration>();
+            source->enqueue = [&] {
+                deferred.AddObject(new FailingSpawn(destroyed, colliderManager, failedID),
+                    [&](object::GameObject* obj) { ++releases; delete obj; });
+            };
+            deferred.AddInitializedObject(source);
+            try { deferred.Update(); }
+            catch (const std::runtime_error&) {}
+            require(releases == 1 && !deferred.Colliders().GetCollider(failedID) &&
+                deferred.GetObjForTag(object::ENEMY).size() == 1, "Deferred failure honors deleter and removes collider");
+        }
         require(occupied.Update(100, objects, *base, distantPlayer), "Long stall generates at most one");
         require(objects.GetObjForTag(object::ENEMY).size() == 2 && !occupied.Update(0.01f, objects, *base, distantPlayer),
             "No backlog burst after stall");

@@ -5,28 +5,42 @@ import <stdexcept>;
 namespace object
 {
     ObjectManager::ObjectManager()
-        : objects()
-        , pendingObjects()
-        , isUpdate(false)
+        : m_objects()
+        , m_pendingObjects()
+        , m_isUpdating(false)
     {
     }
 
     ObjectManager::~ObjectManager() = default;
 
-    void ObjectManager::AddInitializedObject(std::shared_ptr<GameObject> object)
+    void ObjectManager::Attach(const std::shared_ptr<GameObject>& object)
     {
-        // 更新・衝突の走査中の配列変更と、空参照の初期化を禁止する。
-        if (isUpdate || !object) throw std::logic_error("Dynamic addition requires an idle manager and a new object");
-        // 初期化中にColliderを作成できるよう、このシーンの管理へ所属させる。
+        if (!object) throw std::invalid_argument("Cannot attach an empty object");
         object->SetColliderManager(&m_colMgr);
         object->OnAttach();
-        // 既存オブジェクトへの参照を解決してから、新個体だけを初期化する。
-        object->GetReferenceObject([this](uint32_t tag) { return GetObjForTag(tag); });
-        object->Init();
-        // 既存個体は再初期化しない。失敗時も所有参照を解放し、プールの返却処理を維持する。
-        // 初期化成功後に一覧へ公開する。shared_ptrを移動し、プール返却用deleterを保持する。
+    }
+
+    void ObjectManager::Initialize(GameObject& object)
+    {
+        object.GetReferenceObject([this](uint32_t tag) { return GetObjForTag(tag); });
+        object.Init();
+    }
+
+    void ObjectManager::QueueOrRegister(std::shared_ptr<GameObject> object)
+    {
+        Attach(object);
+        if (m_isUpdating) m_pendingObjects.emplace_back(std::move(object));
+        else m_objects[object->MyObjectTag()].emplace_back(std::move(object));
+    }
+
+    void ObjectManager::AddInitializedObject(std::shared_ptr<GameObject> object)
+    {
+        if (m_isUpdating) throw std::logic_error("Dynamic addition requires an idle manager");
+        Attach(object);
+        Initialize(*object);
+        // 初期化成功後に公開する。失敗時も所有参照がプールの解放方法を保持する。
         const auto tag = object->MyObjectTag();
-        objects[tag].emplace_back(std::move(object));
+        m_objects[tag].emplace_back(std::move(object));
     }
 
     void ObjectManager::RemoveObject(class GameObject* object)
@@ -34,10 +48,10 @@ namespace object
         ObjectTag tag = object->MyObjectTag();
 
         //オブジェクトを削除
-        auto iter = std::find_if(objects[tag].begin(), objects[tag].end(), [object](const std::shared_ptr<GameObject>& ptr) { return ptr.get() == object; });
-        if (iter != objects[tag].end())
+        auto iter = std::find_if(m_objects[tag].begin(), m_objects[tag].end(), [object](const std::shared_ptr<GameObject>& ptr) { return ptr.get() == object; });
+        if (iter != m_objects[tag].end())
         {
-            objects[tag].erase(iter);
+            m_objects[tag].erase(iter);
         }
     }
 
@@ -46,24 +60,20 @@ namespace object
         //自身に必要なオブジェクトを取得
         for (auto tag : OBJECT_TAGS)
         {
-            for (auto& object : objects[tag])
+            for (auto& object : m_objects[tag])
             {
-                object->GetReferenceObject([this](uint32_t tag)
-                    {
-                        return this->GetObjForTag(tag);
-                    });
-                object->Init();
+                Initialize(*object);
             }
         }
     }
 
     void ObjectManager::Update()
     {
-        isUpdate = true;
+        m_isUpdating = true;
         for (auto tag : OBJECT_TAGS)
         {
             //オブジェクトを更新
-            for (auto& object : objects[tag])
+            for (auto& object : m_objects[tag])
             {
                 object->UpdateComponents();
                 object->Update();
@@ -75,7 +85,7 @@ namespace object
 
         for (auto tag : OBJECT_TAGS)
         {
-            for (auto& object : objects[tag])
+            for (auto& object : m_objects[tag])
             {
                 object->LateUpdate();
             }
@@ -83,7 +93,7 @@ namespace object
         gameSystem::Camera::Instance().Update();
 
         // 更新終了後の処理
-        isUpdate = false;
+        m_isUpdating = false;
         RefreshObjects();
     }
 
@@ -92,29 +102,28 @@ namespace object
         for (auto tag : OBJECT_TAGS)
         {
             //死亡状態のオブジェクトを削除
-            std::erase_if(objects[tag], [](const std::shared_ptr<GameObject>& object)
+            std::erase_if(m_objects[tag], [](const std::shared_ptr<GameObject>& object)
                 {
                     return (object->NowState() & MainState::DEAD) != 0;
                 });
 
-            //更新時に追加したオブジェクトを配列に格納
-            if (!pendingObjects.empty())
-            {
-                for (auto pendingObj : pendingObjects)
-                {
-                    pendingObj->Init();
-                    objects[pendingObj->MyObjectTag()].emplace_back(pendingObj);
-                }
-                pendingObjects.clear();
-            }
+        }
+
+        // 保留分を切り離し、初期化が失敗した場合も未公開の個体を正しい方法で解放する。
+        auto pending = std::move(m_pendingObjects);
+        m_pendingObjects.clear();
+        for (auto& object : pending)
+        {
+            Initialize(*object);
+            m_objects[object->MyObjectTag()].emplace_back(std::move(object));
         }
     }
 
     std::vector<std::shared_ptr<GameObject>> ObjectManager::GetObjForTag(uint32_t tag)
     {
-        if (objects.find(tag) != objects.end())
+        if (m_objects.find(tag) != m_objects.end())
         {
-            return objects[tag];
+            return m_objects[tag];
         }
         return {};
     }
@@ -124,7 +133,7 @@ namespace object
         for (auto tag : OBJECT_TAGS)
         {
             //オブジェクトを描画
-            for (auto& object : objects[tag])
+            for (auto& object : m_objects[tag])
             {
                 object->DrawComponents();
                 object->Draw();
