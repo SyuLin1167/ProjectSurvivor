@@ -667,7 +667,12 @@ void VerifyStageEnd()
     // 継続出現の実Playを無操作で敗北まで進め、Resultへ値だけが渡ることを確認する。
     // そのResultを保持してStart/Retry共通の実LoadingSceneを通し、2回目も同条件に戻す。
     const auto stagePath = files.GetDataDir() / "Phase1Config.json";
-    const auto initialStage = files.jsonIO.Load(stagePath);
+    auto initialStage = files.jsonIO.Load(stagePath);
+    require(stage::StageConfig::FromJson(initialStage).alphaCombat, "Shipped stage enables Alpha combat");
+    // この遷移テストは描画デバイスを作らないため、試験用コピーだけを画像不要の比較設定にする。
+    // Alphaの敵構成・撃破・ドロップは専用の既存ケースで実オブジェクトを検証する。
+    initialStage["alphaCombat"] = false;
+    files.jsonIO.Write(stagePath, initialStage);
     const auto spawnSource = files.jsonIO.Load("ProjectName/resources/data/EnemySpawnConfig.json");
     // Start/Retry共通のLoadingを基準・候補双方で通し、乱数や時計も新規Playへ持ち越さない。
     // 依頼ごとの開始HP・修理上限・表示値を同じ設定から確認する。
