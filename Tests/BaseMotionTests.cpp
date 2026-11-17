@@ -5,7 +5,7 @@
 #include <json.hpp>
 
 import Object.BaseMotion;
-import Phase1.Config;
+import Scene.StageConfig;
 
 /// <summary>回帰条件に失敗した場合は理由を表示してテストを終了する。</summary>
 /// <param name="condition">成立を期待する検証条件。</param>
@@ -22,7 +22,7 @@ int main()
     std::ifstream input("ProjectName/resources/data/Phase1Config.json");
     require(input.is_open(), "Open config from repository root");
     const auto data = nlohmann::json::parse(input);
-    const auto c = phase1::Config::FromJson(data);
+    const auto c = stage::StageConfig::FromJson(data);
     require(c.BaseSpeed == 80 && c.BaseSize.x == 96 && c.BaseSize.y == 64 &&
         c.BaseCenter.x == 768 && c.BaseCenter.y == 2048 && c.TrialEndX == 5568,
         "Approved base defaults");
@@ -34,7 +34,7 @@ int main()
         float x = c.BaseCenter.x;
         for (int frame = 0; frame < fps * 60; ++frame)
         {
-            const auto delta = phase1::BaseDisplacement(x, c.TrialEndX, c.BaseSpeed, 1.0f / fps);
+            const auto delta = movement::BaseDisplacement(x, c.TrialEndX, c.BaseSpeed, 1.0f / fps);
             require(delta.y == 0 && delta.x >= 0, "Forward movement stops at approved endpoint");
             x += delta.x;
         }
@@ -48,12 +48,12 @@ int main()
     // Pが10秒停止して拠点を先行させたあと追跡する数値シミュレーション。
     float base = c.BaseCenter.x, player = c.PlayerCenter.x;
     for (int i = 0; i < 600; ++i)
-        base += phase1::BaseDisplacement(base, c.TrialEndX, c.BaseSpeed, 1.0f / 60).x;
+        base += movement::BaseDisplacement(base, c.TrialEndX, c.BaseSpeed, 1.0f / 60).x;
     const float gap = base - player;
     int frames = 0;
     while (player < base && frames < 600)
     {
-        base += phase1::BaseDisplacement(base, c.TrialEndX, c.BaseSpeed, 1.0f / 60).x;
+        base += movement::BaseDisplacement(base, c.TrialEndX, c.BaseSpeed, 1.0f / 60).x;
         player += c.PlayerSpeed / 60;
         ++frames;
     }
@@ -63,20 +63,20 @@ int main()
         "Catch-up using relative speed");
 
     // 長いフレームが終端をまたいでも、終端中心に一度だけ到達して以後は動かない。
-    const auto last = phase1::BaseDisplacement(c.TrialEndX - 1, c.TrialEndX, c.BaseSpeed, 10);
+    const auto last = movement::BaseDisplacement(c.TrialEndX - 1, c.TrialEndX, c.BaseSpeed, 10);
     require(last.x == 1 && last.y == 0, "Clamp trial endpoint");
-    require(phase1::BaseDisplacement(c.TrialEndX, c.TrialEndX, c.BaseSpeed, 1).x == 0, "Endpoint stop");
-    require(phase1::BaseDisplacement(768, c.TrialEndX, c.BaseSpeed, 0).x == 0, "Zero delta time");
+    require(movement::BaseDisplacement(c.TrialEndX, c.TrialEndX, c.BaseSpeed, 1).x == 0, "Endpoint stop");
+    require(movement::BaseDisplacement(768, c.TrialEndX, c.BaseSpeed, 0).x == 0, "Zero delta time");
 
     // 同じデータ変換・移動関数でJSON変更の反映を実測（配布JSON自体は変更しない）。
     auto adjusted = data;
     adjusted["trialEndX"] = 7968;
-    const auto tune = phase1::Config::FromJson(adjusted);
+    const auto tune = stage::StageConfig::FromJson(adjusted);
     require(tune.TrialEndX - tune.BaseCenter.x == 7200 &&
-        phase1::BaseDisplacement(7967, tune.TrialEndX, tune.BaseSpeed, 2).x == 1,
+        movement::BaseDisplacement(7967, tune.TrialEndX, tune.BaseSpeed, 2).x == 1,
         "Approved JSON distance tuning changes endpoint");
     const auto rejected = [](const nlohmann::json& invalid) {
-        try { phase1::Config::FromJson(invalid); }
+        try { stage::StageConfig::FromJson(invalid); }
         catch (const std::exception&) { return true; }
         return false;
     };

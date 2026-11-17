@@ -25,7 +25,7 @@ export namespace object
         /// <summary>試作用追跡敵を初期状態で構築する。</summary>
         /// <param name="center">円中心のワールド初期座標（u）。</param>
         /// <param name="config">EnemyConfig::FromJsonで検証した敵設定。</param>
-        Enemy(math::Vector2f center, const phase2::EnemyConfig& config);
+        Enemy(math::Vector2f center, const combat::EnemyConfig& config);
 
         /// <summary>キャラバンへの弱参照を取得する。</summary>
         /// <param name="referenceObj">タグに一致するオブジェクト一覧の取得関数。</param>
@@ -82,7 +82,7 @@ export namespace object
         /// <returns>残HP。</returns>
         float Health() const { return m_health; }
     private:
-        phase2::EnemyConfig::Look m_look{};
+        combat::EnemyConfig::Look m_look{};
         /// <summary>拠点接触イベントから敵固有の間隔で被害を与える。1更新内の重複通知は無視する。</summary>
         void OnBaseContact();
         bool m_touching{}; // この更新で接触通知を受けたか。

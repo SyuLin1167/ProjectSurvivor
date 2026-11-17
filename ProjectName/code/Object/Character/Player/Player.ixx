@@ -1,6 +1,6 @@
 ﻿export module Object.Player;
 
-import Phase1.Config;
+import Scene.StageConfig;
 import Object.PlayerAttackConfig;
 
 import <future>;
@@ -25,8 +25,11 @@ export namespace object
         /// <summary>
         /// コンストラクタ
         /// </summary>
-        /// <param name="prototype">trueならPhase 1の見下ろし試作設定と移動を使用する。</param>
-        explicit Player(bool prototype = false);
+        Player();
+        /// @brief 検証済み設定を保持し、プレイヤーの初期矩形と移動速度を設定する。
+        /// @param config この試行のステージ設定。
+        /// @param attack 通常攻撃の設定。
+        Player(const stage::StageConfig& config, const combat::PlayerAttackConfig& attack);
 
         /// <summary>
         /// デストラクタ
@@ -92,7 +95,7 @@ export namespace object
     private:
         /// <summary>1更新につき最大1体へ、承認済みの自動攻撃を適用する。</summary>
         void UpdateAutoAttack();
-        phase2::PlayerAttackConfig m_attack{};
+        combat::PlayerAttackConfig m_attack{};
         std::optional<math::Vector2f> m_killPosition;
         double m_boostSeconds{};
         double m_attackRemaining{}; // 秒。初回と対象なしでは即時発動可能。
@@ -101,7 +104,7 @@ export namespace object
         math::Vector2f m_lastHitCenter{};
         component::CombatEffect m_hitEffect;
         bool m_prototype; // Phase 1試作経路の選択
-        phase1::Config m_phase1Config{}; // JSONから読み込んだ試作設定
+        stage::StageConfig m_stageConfig{}; // JSONから読み込んだ試作設定
         math::Vector2f m_cameraCenter{};
     };
 }

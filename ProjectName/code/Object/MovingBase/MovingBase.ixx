@@ -1,7 +1,7 @@
 ﻿export module Object.MovingBase;
 import Object.GameObject;
 import Component.CombatEffect;
-import Phase1.Config;
+import Scene.StageConfig;
 import MyLib.Shape.Rect;
 
 export namespace object
@@ -10,8 +10,9 @@ export namespace object
     class MovingBase final : public GameObject
     {
     public:
-        /// <summary>試作設定を読み込み、HP100で生成する。</summary>
-        MovingBase();
+        /// <summary>HP100で拠点と探索地点を生成する。</summary>
+        /// <param name="config">検証済みのステージ設定。</param>
+        explicit MovingBase(const stage::StageConfig& config);
         /// <summary>所有するコライダーを解放する。</summary>
         ~MovingBase();
         /// <summary>承認された中心座標から拠点矩形とコライダーを初期化する。</summary>
@@ -62,7 +63,7 @@ export namespace object
         int m_shields{};
         component::CombatEffect m_hurtEffect;
         float m_health = 100.0f; // DEC-02固定値。Phase 2では調整権限なし。
-        phase1::Config m_config{}; // Phase 1試作設定（u / u/s）
+        stage::StageConfig m_config{}; // Phase 1試作設定（u / u/s）
         col2d::ColliderID m_id{};
     };
 }

@@ -21,7 +21,7 @@ namespace object
         m_pos = { 16 * 30,16 * 50 };
     }
 
-    Enemy::Enemy(Vector2f center, const phase2::EnemyConfig& config) : Enemy()
+    Enemy::Enemy(Vector2f center, const combat::EnemyConfig& config) : Enemy()
     {
         m_prototype = true;
         m_pos = center;
@@ -159,11 +159,11 @@ namespace object
     void Enemy::Draw()
     {
         const auto sp = gameSystem::Camera::Instance().WorldToScreen(m_pos);
-        if (m_look != phase2::EnemyConfig::Look::Classic)
+        if (m_look != combat::EnemyConfig::Look::Classic)
         {
             auto sprite = alphaSprites::Sprite::Normal;
-            if (m_look == phase2::EnemyConfig::Look::Runner) sprite = alphaSprites::Sprite::Runner;
-            if (m_look == phase2::EnemyConfig::Look::Heavy) sprite = alphaSprites::Sprite::Heavy;
+            if (m_look == combat::EnemyConfig::Look::Runner) sprite = alphaSprites::Sprite::Runner;
+            if (m_look == combat::EnemyConfig::Look::Heavy) sprite = alphaSprites::Sprite::Heavy;
             alphaSprites::Draw(sprite, int(sp.x) - 16, int(sp.y) - 16, 32);
             return;
         }

@@ -5,7 +5,7 @@
 #include <json.hpp>
 
 import Component.MovementMath;
-import Phase1.Config;
+import Scene.StageConfig;
 import GameSystem.CameraGeometry;
 import MyLib.Math.Vector2;
 import MyLib.Shape.Rect;
@@ -43,13 +43,13 @@ int main()
     std::ifstream input("ProjectName/resources/data/Phase1Config.json");
     require(input.is_open(), "Open config from repository root");
     const auto data = nlohmann::json::parse(input);
-    const auto config = phase1::Config::FromJson(data);
+    const auto config = stage::StageConfig::FromJson(data);
     require(config.PlayerSpeed == 240 && config.PlayerSize == 32 &&
         config.WorldWidth == 16384 && config.WorldHeight == 4096 &&
         config.PlayerCenter.x == 512 && config.PlayerCenter.y == 2048 && config.GridSize == 128,
         "Approved DEC-01 initial values");
     const auto rejected = [](const nlohmann::json& invalid) {
-        try { phase1::Config::FromJson(invalid); }
+        try { stage::StageConfig::FromJson(invalid); }
         catch (const std::exception&) { return true; }
         return false;
     };
@@ -67,7 +67,7 @@ int main()
     require(rejected(invalid), "Negative world size");
     auto adjusted = data; adjusted["playerSpeed"] = 200;
     bool rejectedSpeed = false;
-    try { (void)phase1::Config::FromJson(adjusted); } catch (...) { rejectedSpeed = true; }
+    try { (void)stage::StageConfig::FromJson(adjusted); } catch (...) { rejectedSpeed = true; }
     require(rejectedSpeed, "DEC-03 rejects historical speed tuning");
 
     // 全16組合せで逆方向相殺、無入力、方向の符号と単位長への正規化を確認する。

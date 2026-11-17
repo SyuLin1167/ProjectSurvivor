@@ -13,7 +13,8 @@ import Object.ObjectManager;
 import Object.Player;
 import Object.Enemy;
 import Object.EnemyConfig;
-import Phase1.Config;
+import Object.PlayerAttackConfig;
+import Scene.StageConfig;
 import MyLib.File.FileSystem;
 import Object.Map;
 import Object.MovingBase;
@@ -36,24 +37,24 @@ namespace scene
     {
         if (m_prototype)
         {
+            // 毎回設定を読み直し、敵能力・出現条件・候補判定用のマップ寸法を揃える。
+            auto& files = AppCtx::FileSystem();
+            const auto data = files.jsonIO.Load(files.GetDataDir() / "EnemyConfig");
+            const auto enemies = combat::EnemyConfig::FromJson(data);
+            const auto spawn = object::EnemySpawnConfig::FromJson(files.jsonIO.Load(files.GetDataDir() / "EnemySpawnConfig"));
+            const auto world = stage::StageConfig::FromJson(files.jsonIO.Load(files.GetDataDir() / "Phase1Config"));
+            const auto attack = combat::PlayerAttackConfig::FromJson(files.jsonIO.Load(files.GetDataDir() / "PlayerAttackConfig"));
+            m_showNearestEnemy = world.showNearestEnemy;
             m_hudID = m_hudManager.Create<ui::PlayHud>();
-            m_objManager->AddObject(new object::Player(true));
+            m_objManager->AddObject(new object::Player(world, attack));
             m_player = std::dynamic_pointer_cast<object::Player>(
                 m_objManager->GetObjForTag(object::PLAYER).front());
-            m_objManager->AddObject(new object::Map(true));
-            auto* base = new object::MovingBase;
+            m_objManager->AddObject(new object::Map(world));
+            auto* base = new object::MovingBase(world);
             m_objManager->AddObject(base);
             m_stage.emplace(base->StartX(), base->EndX());
             m_base = std::dynamic_pointer_cast<object::MovingBase>(
                 m_objManager->GetObjForTag(object::BASE).front());
-            // 毎回設定を読み直し、敵能力・出現条件・候補判定用のマップ寸法を揃える。
-            auto& files = AppCtx::FileSystem();
-            const auto data = files.jsonIO.Load(files.GetDataDir() / "EnemyConfig");
-            const auto enemies = phase2::EnemyConfig::FromJson(data);
-            auto spawn = object::EnemySpawnConfig::FromJson(files.jsonIO.Load(files.GetDataDir() / "EnemySpawnConfig"));
-            const auto stageConfig = files.jsonIO.Load(files.GetDataDir() / "Phase1Config");
-            const auto world = phase1::Config::FromJson(stageConfig);
-            m_showNearestEnemy = stageConfig.value("showNearestEnemy", false);
             if (world.alphaCombat)
             {
                 m_drops.emplace(m_objManager->Colliders());

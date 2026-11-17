@@ -5,7 +5,7 @@
 
 module Object.Player;
 
-import Phase1.Config;
+import Scene.StageConfig;
 import Object.Enemy;
 import <algorithm>;
 import GameSystem.FrameRate;
@@ -32,23 +32,17 @@ using namespace col2d;
 
 namespace object
 {
-    Player::Player(bool prototype)
-        :id()
-        , m_prototype(prototype)
+    Player::Player(const stage::StageConfig& config, const combat::PlayerAttackConfig& attack)
+        : id(), m_attack(attack), m_prototype(true), m_stageConfig(config)
     {
-        if (m_prototype)
-        {
-            // 既存JsonIOで試作値を読み込む。欠損・不正な設定は例外として報告する。
-            m_phase1Config = phase1::Config::FromJson(AppCtx::FileSystem().jsonIO.Load(
-                AppCtx::FileSystem().GetDataDir() / "Phase1Config"));
-            m_attack = phase2::PlayerAttackConfig::FromJson(AppCtx::FileSystem().jsonIO.Load(
-                AppCtx::FileSystem().GetDataDir() / "PlayerAttackConfig"));
-            // 承認値は中心座標。既存RectColliderに合わせて左上へ変換する。
-            pData.size = { m_phase1Config.PlayerSize, m_phase1Config.PlayerSize };
-            pData.pos = m_phase1Config.PlayerCenter - m_phase1Config.PlayerSize / 2;
-            pData.moveSpeed = { m_phase1Config.PlayerSpeed, m_phase1Config.PlayerSpeed };
-            return;
-        }
+        // 承認値は中心座標。既存RectColliderに合わせて左上へ変換する。
+        pData.size = { m_stageConfig.PlayerSize, m_stageConfig.PlayerSize };
+        pData.pos = m_stageConfig.PlayerCenter - m_stageConfig.PlayerSize / 2;
+        pData.moveSpeed = { m_stageConfig.PlayerSpeed, m_stageConfig.PlayerSpeed };
+    }
+
+    Player::Player() : id(), m_prototype(false)
+    {
         // プレイヤー初期データ読み込み
         json data = AppCtx::FileSystem().jsonIO.Load(AppCtx::FileSystem().GetDataDir() / "PlayerData");
         pData.Input(data);
@@ -202,11 +196,11 @@ namespace object
             m_attackRemaining = 0;
             return;
         }
-        if (m_phase1Config.alphaCombat && target->Health() <= 0)
+        if (m_stageConfig.alphaCombat && target->Health() <= 0)
             m_killPosition = target->Center();
         m_lastHit = target;
         m_lastHitCenter = target->Center();
-        m_hitEffect.Hit(m_phase1Config.alphaCombat, target->Health() <= 0);
+        m_hitEffect.Hit(m_stageConfig.alphaCombat, target->Health() <= 0);
         // 通常の端数は保持し、大きな遅延の攻撃回数は捨てる。連射ループは設けない。
         m_attackRemaining = m_attack.Interval +
             (m_attackRemaining > -m_attack.Interval ? m_attackRemaining : 0.0);
@@ -219,9 +213,9 @@ namespace object
             UpdateAutoAttack();
             // 移動予定量だけを制限し、座標更新はColliderManager::Stepに一度だけ任せる。
             m_velocity.x = movement::BoundedDisplacement(m_pos.x, m_velocity.x,
-                pData.size.x, m_phase1Config.WorldWidth);
+                pData.size.x, m_stageConfig.WorldWidth);
             m_velocity.y = movement::BoundedDisplacement(m_pos.y, m_velocity.y,
-                pData.size.y, m_phase1Config.WorldHeight);
+                pData.size.y, m_stageConfig.WorldHeight);
             ColMgr().GetCollider(id)->SetVelocity(m_velocity);
             return;
         }
@@ -261,7 +255,7 @@ namespace object
             m_hitEffect.Draw(int(hit.x), int(hit.y));
         }
         const auto p = Camera::Instance().WorldToScreen(m_pos);
-        if (m_phase1Config.alphaCombat)
+        if (m_stageConfig.alphaCombat)
         {
             alphaSprites::Draw(alphaSprites::Sprite::Player, int(p.x), int(p.y), int(pData.size.x));
             return;

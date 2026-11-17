@@ -7,7 +7,7 @@
 
 module Object.Map;
 
-import Phase1.Config;
+import Scene.StageConfig;
 
 import <future>;
 
@@ -24,16 +24,11 @@ using namespace math;
 
 namespace object
 {
-    Map::Map(bool prototype) : m_prototype(prototype)
+    Map::Map(const stage::StageConfig& config)
+        : m_prototype(true), m_stageConfig(config) {}
+
+    Map::Map() : m_prototype(false)
     {
-        if (m_prototype)
-        {
-            // 既存JsonIOで試作値を読み込む。欠損・不正な設定は例外として報告する。
-            m_phase1Config = phase1::Config::FromJson(AppCtx::FileSystem().jsonIO.Load(
-                AppCtx::FileSystem().GetDataDir() / "Phase1Config"));
-            // 空き地にはタイル画像・TileColliderが不要。ワールド寸法はInitで直接設定する。
-            return;
-        }
         // マップ構成読み込み
         auto path = AppCtx::FileSystem().Resolve("data://MapTip.csv");
         auto mapDataArray = AppCtx::FileSystem().csvIO.CreateArray<size_t>(path);
@@ -107,7 +102,7 @@ namespace object
         // 試作ではJSONのワールド寸法をそのまま使用し、グリッド数への丸めを避ける。
         if (m_prototype)
         {
-            Camera::Instance().SetWorldSize({m_phase1Config.WorldWidth, m_phase1Config.WorldHeight});
+            Camera::Instance().SetWorldSize({m_stageConfig.WorldWidth, m_stageConfig.WorldHeight});
             return;
         }
         // ワールドサイズ設定
@@ -139,12 +134,12 @@ namespace object
             auto& camera = Camera::Instance();
             const auto offset = camera.GetOffset();
             const auto screen = Window::GetWindowData()->SIZE;
-            const int spacing = m_phase1Config.GridSize;
+            const int spacing = m_stageConfig.GridSize;
             const int startX = (std::max)(0, static_cast<int>(offset.x) / spacing * spacing);
             const int startY = (std::max)(0, static_cast<int>(offset.y) / spacing * spacing);
-            const int endX = static_cast<int>((std::min)(m_phase1Config.WorldWidth, offset.x + screen.x));
-            const int endY = static_cast<int>((std::min)(m_phase1Config.WorldHeight, offset.y + screen.y));
-            if (m_phase1Config.alphaCombat)
+            const int endX = static_cast<int>((std::min)(m_stageConfig.WorldWidth, offset.x + screen.x));
+            const int endY = static_cast<int>((std::min)(m_stageConfig.WorldHeight, offset.y + screen.y));
+            if (m_stageConfig.alphaCombat)
             {
                 // 共通タイルを可視範囲だけ敷き、拠点の街道は轍で示す。
                 for (int y = startY; y < endY; y += spacing)
@@ -153,7 +148,7 @@ namespace object
                         const auto p = camera.WorldToScreen(float(x), float(y));
                         alphaSprites::Draw(alphaSprites::Sprite::Ground, int(p.x), int(p.y), spacing);
                     }
-                const auto road = camera.WorldToScreen(0, m_phase1Config.BaseCenter.y);
+                const auto road = camera.WorldToScreen(0, m_stageConfig.BaseCenter.y);
                 for (int track : {-22, 22})
                     DrawLine(0, int(road.y) + track, int(screen.x), int(road.y) + track, GetColor(92, 81, 57), 3);
                 return;
@@ -171,7 +166,7 @@ namespace object
                     static_cast<int>(p.y), GetColor(45, 55, 65));
             }
             const auto origin = camera.WorldToScreen(0, 0);
-            const auto end = camera.WorldToScreen(m_phase1Config.WorldWidth - 1, m_phase1Config.WorldHeight - 1);
+            const auto end = camera.WorldToScreen(m_stageConfig.WorldWidth - 1, m_stageConfig.WorldHeight - 1);
             DrawBox(static_cast<int>(origin.x), static_cast<int>(origin.y),
                 static_cast<int>(end.x), static_cast<int>(end.y), GetColor(220, 220, 220), false);
             return;
