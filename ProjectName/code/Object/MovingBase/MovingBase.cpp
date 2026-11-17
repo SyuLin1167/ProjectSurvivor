@@ -15,7 +15,8 @@ import <cmath>;
 
 namespace object
 {
-    MovingBase::MovingBase(const stage::StageConfig& config) : m_config(config)
+    MovingBase::MovingBase(const stage::StageConfig& config, int healthBonus)
+        : m_maxHealth(100.0f + healthBonus), m_health(m_maxHealth), m_config(config)
     {
         // 旧設定も基準Aで開始する。表示と回収判定がずれないよう同じ矩形を使う。
         const float centerY = config.useExplorationDistance520 ? 2568.0f : 2448.0f;
@@ -77,7 +78,7 @@ namespace object
     float MovingBase::Repair()
     {
         if (m_health <= 0) return 0;
-        const float recovered = (std::min)(40.0f, 100.0f - m_health);
+        const float recovered = (std::min)(40.0f, m_maxHealth - m_health);
         m_health += recovered;
         return recovered;
     }

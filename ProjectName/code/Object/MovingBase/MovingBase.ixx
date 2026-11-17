@@ -10,9 +10,10 @@ export namespace object
     class MovingBase final : public GameObject
     {
     public:
-        /// <summary>HP100で拠点と探索地点を生成する。</summary>
+        /// <summary>試行の初期HPで拠点と探索地点を生成する。</summary>
         /// <param name="config">検証済みのステージ設定。</param>
-        explicit MovingBase(const stage::StageConfig& config);
+        /// @param healthBonus 基準HPに加える依頼補正。修理上限にも適用する。
+        explicit MovingBase(const stage::StageConfig& config, int healthBonus = 0);
         /// <summary>所有するコライダーを解放する。</summary>
         ~MovingBase();
         /// <summary>承認された中心座標から拠点矩形とコライダーを初期化する。</summary>
@@ -45,8 +46,11 @@ export namespace object
         /// <param name="hudPanel">地点マーカーが文字を覆わないようにする画面領域。</param>
         void DrawExploration(const shape::Rect& hudPanel) const;
         /// <summary>防衛の効果を検証するため残HPを返す。</summary>
-        /// <returns>0〜100の試作HP。</returns>
+        /// <returns>現在のHP。</returns>
         float Health() const { return m_health; }
+        /// @brief 修理と表示が共有する上限を返す。
+        /// @return 依頼補正込みの最大HP。
+        float MaxHealth() const { return m_maxHealth; }
         /// <summary>開始時に読み込んだ拠点中心Xを返す。</summary>
         /// <returns>開始X（u）。</returns>
         float StartX() const { return m_config.BaseCenter.x; }
@@ -62,7 +66,8 @@ export namespace object
         bool m_delivered{};
         int m_shields{};
         component::CombatEffect m_hurtEffect;
-        float m_health = 100.0f; // DEC-02固定値。Phase 2では調整権限なし。
+        const float m_maxHealth; // この試行の修理上限。
+        float m_health;
         stage::StageConfig m_config{}; // Phase 1試作設定（u / u/s）
         col2d::ColliderID m_id{};
     };

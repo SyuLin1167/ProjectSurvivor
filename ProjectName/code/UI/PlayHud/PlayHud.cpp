@@ -62,20 +62,20 @@ namespace ui
         label.Draw();
     }
 
-    void DrawStageStatus(float health, float progress, int x, int y)
+    void DrawStageStatus(float health, float maxHealth, float progress, int x, int y)
     {
-        DrawLabel(std::format("CARAVAN HP: {:.0f} / 100", health), static_cast<float>(x), static_cast<float>(y));
+        DrawLabel(std::format("CARAVAN HP: {:.0f} / {:.0f}", health, maxHealth), static_cast<float>(x), static_cast<float>(y));
         Gauge gauge;
         gauge.SetPosition({static_cast<float>(x), static_cast<float>(y + 24)});
         gauge.SetSize({240, 12});
-        gauge.SetValue(health, 100);
+        gauge.SetValue(health, maxHealth);
         gauge.Draw();
         DrawLabel(std::format("PROGRESS: {}%", ProgressPercent(progress)), static_cast<float>(x), static_cast<float>(y + 48));
     }
 
     void StageStatus::Draw()
     {
-        if (IsVisible()) DrawStageStatus(m_health, m_progress, static_cast<int>(m_pos.x), static_cast<int>(m_pos.y));
+        if (IsVisible()) DrawStageStatus(m_health, m_maxHealth, m_progress, static_cast<int>(m_pos.x), static_cast<int>(m_pos.y));
     }
 
     void PlayHud::Draw()
@@ -92,7 +92,7 @@ namespace ui
         const int panelBottom = static_cast<int>(panel.Bottom());
         DrawBox(static_cast<int>(panel.Left()), static_cast<int>(panel.Top()),
             static_cast<int>(panel.Right()), panelBottom, GetColor(15, 20, 25), true);
-        DrawStageStatus(values.health, values.progress, 24, 24);
+        DrawStageStatus(values.health, values.maxHealth, values.progress, 24, 24);
         // 距離の表示丸めでも到達を早めない。残距離は到達まで最低1uと表示する。
         DrawLabel(std::format("TRAVEL: {}u / {}u | REMAIN: {}u",
             static_cast<int>(std::floor(values.distance)), static_cast<int>(std::round(values.distance + values.remaining)),
