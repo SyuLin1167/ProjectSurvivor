@@ -13,17 +13,8 @@ using namespace math;
 
 namespace object
 {
-    Enemy::Enemy()
-        :id()
-        , m_health(MAX_HEALTH)
-        , m_damage(1.0f)
+    Enemy::Enemy(Vector2f center, const combat::EnemyConfig& config) : id{}
     {
-        m_pos = { 16 * 30,16 * 50 };
-    }
-
-    Enemy::Enemy(Vector2f center, const combat::EnemyConfig& config) : Enemy()
-    {
-        m_prototype = true;
         m_pos = center;
         m_health = config.Health;
         m_radius = config.Radius;
@@ -34,7 +25,6 @@ namespace object
 
     void Enemy::GetReferenceObject(std::function<std::vector<std::shared_ptr<GameObject>>(uint32_t)> referenceObj)
     {
-        if (!m_prototype) return;
         const auto bases = referenceObj(ObjectTag::BASE);
         m_base = bases.empty() ? std::shared_ptr<MovingBase>{} :
             std::dynamic_pointer_cast<MovingBase>(bases.front());
@@ -52,35 +42,25 @@ namespace object
     {
         // コライダー作成
         col2d::ColliderDef def{};
-        def.type = m_prototype ? col2d::Type::DYNAMIC : col2d::Type::STATIC;
+        def.type = col2d::Type::DYNAMIC;
         def.localPos = m_pos;
         def.isActive = true;
         def.isTrigger = false;
-        def.contactAfterMove = m_prototype;
+        def.contactAfterMove = true;
         id = ColMgr().CreateCircleCollider(&def, m_radius, MyObjectTag());
         m_colliderCreated = true;
 
-        if (m_prototype)
-        {
-            // 敵から拠点への片方向マスク。P/敵同士は通過し、拠点側は押し戻さない。
-            ColMgr().AddMask(id, col2d::RECT, ObjectTag::BASE);
-            col2d::ContactListener contact;
-            contact.event = [this]() { m_touching = true; };
-            ColMgr().AddEvent(id, col2d::MakeKey(col2d::RECT, ObjectTag::BASE), contact);
-            return;
-        }
-
-        // 衝突イベント登録
-        col2d::ContactListener listener;
-        listener.when = [&](const col2d::ContactInfo&) { return true; };
-        listener.event = [&]() {m_health -= m_damage * m_deltaTime; };
-        ColMgr().AddEvent(id, col2d::MakeKey(col2d::RECT, ObjectTag::PLAYER), listener);
+        // 敵から拠点への片方向マスク。P/敵同士は通過し、拠点側は押し戻さない。
+        ColMgr().AddMask(id, col2d::RECT, ObjectTag::BASE);
+        col2d::ContactListener contact;
+        contact.event = [this]() { m_touching = true; };
+        ColMgr().AddEvent(id, col2d::MakeKey(col2d::RECT, ObjectTag::BASE), contact);
     }
 
     bool Enemy::CanBeAttacked() const
     {
         const auto* collider = m_colliderCreated && ColMgrPtr() ? ColMgr().GetCollider(id) : nullptr;
-        return m_prototype && m_health > 0 && !(m_state & MainState::DEAD) &&
+        return m_health > 0 && !(m_state & MainState::DEAD) &&
             collider && collider->GetColliderDef()->isActive;
     }
 
@@ -104,7 +84,6 @@ namespace object
         if(m_health <= 0.0f)
             m_state = MainState::DEAD;
 
-        if (!m_prototype) return;
         m_touching = false;
         m_attackedThisFrame = false;
         m_velocity = {};
@@ -128,15 +107,12 @@ namespace object
 
     void Enemy::LateUpdate()
     {
-        if (m_prototype)
-        {
-            m_pos = ColMgr().GetCollider(id)->GetColliderDef()->localPos;
-            // 全Colliderの帰還通知後に各敵の有効打を一度だけ精算する。
-            // 非接触中も時計を進め、期限到達と接触が揃った更新でだけ攻撃する。
-            if (gameSystem::FrameRate::Countdown(m_contactRemaining, m_deltaTime, true) && m_touching) OnBaseContact();
-            if (!m_touching) m_contactRemaining = (std::max)(0.0, m_contactRemaining);
-            m_wasTouching = m_touching;
-        }
+        m_pos = ColMgr().GetCollider(id)->GetColliderDef()->localPos;
+        // 全Colliderの帰還通知後に各敵の有効打を一度だけ精算する。
+        // 非接触中も時計を進め、期限到達と接触が揃った更新でだけ攻撃する。
+        if (gameSystem::FrameRate::Countdown(m_contactRemaining, m_deltaTime, true) && m_touching) OnBaseContact();
+        if (!m_touching) m_contactRemaining = (std::max)(0.0, m_contactRemaining);
+        m_wasTouching = m_touching;
     }
 
     void Enemy::OnBaseContact()
@@ -167,13 +143,7 @@ namespace object
             alphaSprites::Draw(sprite, int(sp.x) - 16, int(sp.y) - 16, 32);
             return;
         }
-        if (m_prototype)
-        {
-            DrawCircle(static_cast<int>(sp.x), static_cast<int>(sp.y), static_cast<int>(m_radius), GetColor(220, 60, 100), TRUE);
-            DrawString(static_cast<int>(sp.x - m_radius), static_cast<int>(sp.y - m_radius * 2), "ENEMY", GetColor(255, 255, 255));
-            return;
-        }
-        DrawCircle(static_cast<int>(sp.x), static_cast<int>(sp.y), 16, GetColor(255, 150, 0), TRUE);
-        DrawBox(static_cast<int>(sp.x) - 16, static_cast<int>(sp.y) - 32, static_cast<int>(sp.x) + (16 * m_health), static_cast<int>(sp.y) - 28, GetColor(255, 0, 0), true);
+        DrawCircle(static_cast<int>(sp.x), static_cast<int>(sp.y), static_cast<int>(m_radius), GetColor(220, 60, 100), TRUE);
+        DrawString(static_cast<int>(sp.x - m_radius), static_cast<int>(sp.y - m_radius * 2), "ENEMY", GetColor(255, 255, 255));
     }
 }

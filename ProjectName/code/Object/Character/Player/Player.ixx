@@ -22,10 +22,6 @@ export namespace object
     export class Player final :public GameObject
     {
     public:
-        /// <summary>
-        /// コンストラクタ
-        /// </summary>
-        Player();
         /// @brief 検証済み設定を保持し、プレイヤーの初期矩形と移動速度を設定する。
         /// @param config この試行のステージ設定。
         /// @param attack 通常攻撃の設定。
@@ -72,15 +68,6 @@ export namespace object
             return ObjectTag::PLAYER;
         }
 
-        /// <summary>
-        /// プレイヤーのアセット名
-        /// </summary>
-        const struct AssetName
-        {
-            static constexpr const char* IDLE = "PlayerIdle"; // アイドル
-            static constexpr const char* WALK = "PlayerWALK"; // 歩行
-        };
-
         /// <summary>この更新で撃破した位置を一度だけ渡す。</summary>
         /// <returns>撃破がなければ空。</returns>
         auto TakeKillPosition() { return std::exchange(m_killPosition, std::nullopt); }
@@ -103,7 +90,6 @@ export namespace object
         std::weak_ptr<GameObject> m_lastHit; // 表示用。撃破した敵の寿命を延ばさない。
         math::Vector2f m_lastHitCenter{};
         component::CombatEffect m_hitEffect;
-        bool m_prototype; // Phase 1試作経路の選択
         stage::StageConfig m_stageConfig{}; // JSONから読み込んだ試作設定
         math::Vector2f m_cameraCenter{};
     };
