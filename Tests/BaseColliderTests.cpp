@@ -675,21 +675,53 @@ void VerifyStageEnd()
     files.jsonIO.Write(stagePath, initialStage);
     const auto spawnSource = files.jsonIO.Load("ProjectName/resources/data/EnemySpawnConfig.json");
     // Start/Retry共通のLoadingを基準・候補双方で通し、乱数や時計も新規Playへ持ち越さない。
+    std::filesystem::create_directories(files.GetDataDir() / "Quests");
+    std::filesystem::copy("ProjectName/resources/data/Quests", files.GetDataDir() / "Quests",
+        std::filesystem::copy_options::overwrite_existing | std::filesystem::copy_options::recursive);
     // 依頼ごとの開始HP・修理上限・表示値を同じ設定から確認する。
-    for (const auto& entry : quest::AvailableQuests)
+    for (const auto& [id, entry] : quest::AvailableQuests)
     {
         object::ObjectManager objects;
-        auto base = std::make_shared<object::MovingBase>(ReadStageConfig(), quest::FindQuest(entry.id).healthBonus);
+        auto base = std::make_shared<object::MovingBase>(ReadStageConfig(), quest::FindQuest(id).initialHealth, quest::FindQuest(id).maxHealth);
         objects.AddInitializedObject(base);
-        const float expected = entry.id == quest::Id::Pilgrim ? 120.0f : 80.0f;
+        const float expected = id == "pilgrim" ? 120.0f : 80.0f;
         require(base->Health() == expected && base->Repair() == 0, "Quest starts at its repair cap");
         require(base->TakeDamage(10) && base->Repair() == 10 && base->Health() == expected,
             "Repair returns exactly the missing quest HP");
         const auto hud = ui::MakeHudValues(base->Health(), 0, 0, 4800, {}, base->MaxHealth());
         require(hud.health == expected && hud.maxHealth == expected, "HUD uses actual quest HP");
     }
+    const auto pilgrimPath = files.GetDataDir() / "Quests/Pilgrim.json";
+    const auto originalQuest = files.jsonIO.Load(pilgrimPath);
+    for (int invalid = 0; invalid < 5; ++invalid)
+    {
+        auto data = originalQuest;
+        if (invalid == 0) data.erase("maxHealth");
+        if (invalid == 1) data["initialHealth"] = 121;
+        if (invalid == 2) data["destinationId"] = "unknown";
+        if (invalid == 3) data["enemySpawn"]["interval"] = "fast";
+        if (invalid == 4) data["enemySpawn"]["unexpected"] = 1;
+        bool rejected = false;
+        try { quest::QuestConfig::FromJson(data); }
+        catch (const std::exception&) { rejected = true; }
+        require(rejected, "Quest rejects missing, invalid and unsupported settings");
+    }
+    auto overrideData = originalQuest;
+    overrideData["enemySpawn"]["interval"] = 3.5;
+    const auto overrideQuest = quest::QuestConfig::FromJson(overrideData);
+    auto baseSpawn = spawnSource;
+    baseSpawn["balanceSet"] = "baseline";
+    const auto merged = overrideQuest.BuildSpawnConfig(baseSpawn);
+    require(merged.IntervalAt(0) == 3.5 && merged.firstDelay == 3, "Only allowed interval overrides base settings");
+    baseSpawn["balanceSet"] = "candidate";
+    baseSpawn["candidate"]["stagedIntervals"] = false;
+    baseSpawn["candidate"]["stagedCount"] = true;
+    bool incompatible = false;
+    try { overrideQuest.BuildSpawnConfig(baseSpawn); }
+    catch (const std::exception&) { incompatible = true; }
+    require(incompatible, "Incompatible C1 override rejected");
     bool invalidQuestRejected = false;
-    try { quest::FindQuest(static_cast<quest::Id>(-1)); }
+    try { quest::FindQuest("missing"); }
     catch (const std::invalid_argument&) { invalidQuestRejected = true; }
     require(invalidQuestRejected, "Unknown quest rejected before departure");
     for (const auto selection : {"baseline", "candidate", "countControl", "countCandidate"})
@@ -705,7 +737,7 @@ void VerifyStageEnd()
         files.jsonIO.Write(files.GetDataDir() / "EnemySpawnConfig.json", selected);
         int firstFrames = 0;
         float firstProgress = 0;
-        const auto id = mode == "baseline" ? quest::Id::Pilgrim : quest::Id::Cargo;
+        const auto id = mode == "baseline" ? std::string("pilgrim") : std::string("cargo");
         std::shared_ptr<scene::Play> play = std::make_shared<scene::Play>(id);
         for (int trial = 0; trial < 2; ++trial)
         {
@@ -730,8 +762,8 @@ void VerifyStageEnd()
             const auto snapshot = result->ResultValue();
             if (trial == 0) { firstFrames = frames; firstProgress = snapshot.progress; }
             else if (mode == "baseline")
-                require(frames == firstFrames && std::abs(snapshot.progress * 1.5f - firstProgress) < 0.00001f,
-                    "Retry reads new stage distance with identical combat");
+                require(frames < firstFrames && snapshot.progress * 1.5f < firstProgress,
+                    "Retry rereads quest HP and stage distance");
             else require(frames == firstFrames && snapshot.progress == firstProgress,
                 "Restart restores HP, positions, attack timers and progress to the same result");
             play.reset();
@@ -744,7 +776,10 @@ void VerifyStageEnd()
             {
                 if (mode == "baseline")
                 {
-                    // Retryの直前だけ終端を延長し、新規Playが設定を再取得することを確認する。
+                    // Retry直前に依頼HPと終端を変え、次の試行だけで再読込されることを確認する。
+                    auto changedQuest = originalQuest;
+                    changedQuest["initialHealth"] = 100;
+                    files.jsonIO.Write(pilgrimPath, changedQuest);
                     auto longer = initialStage;
                     longer["trialEndX"] = longer.at("baseCenterX").get<float>() + 7200.0f;
                     files.jsonIO.Write(stagePath, longer);
@@ -768,13 +803,14 @@ void VerifyStageEnd()
             }
         }
         files.jsonIO.Write(stagePath, initialStage);
+        files.jsonIO.Write(pilgrimPath, originalQuest);
     }
     files.jsonIO.Write(files.GetDataDir() / "EnemySpawnConfig.json", spawnSource);
     auto invalid = initialStage;
     invalid.erase("playerSize");
     files.jsonIO.Write(stagePath, invalid);
     {
-        auto start = scene::Play::Start({}, quest::Id::Pilgrim);
+        auto start = scene::Play::Start({}, std::string("pilgrim"));
         auto loading = std::get<scene::CmdReplace>(start).build();
         scene::SceneCmd failed;
         for (int frame = 0; frame < 8 && std::holds_alternative<std::monostate>(failed); ++frame)

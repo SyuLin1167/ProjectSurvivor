@@ -5,6 +5,7 @@
 module Scene.Result;
 
 import Scene.Title;
+import Quest.QuestText;
 import Scene.Play;
 import AppContext;
 import UI.Button;
@@ -15,12 +16,12 @@ import UI.DisplayElements;
 
 namespace scene
 {
-    Result::Result(StageResult result, quest::QuestDefinition selected, float maxHealth)
+    Result::Result(StageResult result, quest::QuestConfig selected, float maxHealth)
         : m_quest(selected), m_result(result)
     {
         const float centerX = gameSystem::Window::GetWindowData()->SIZE.x / 2.0f;
         const float x = centerX - 160;
-        const auto name = m_hudManager.Create<ui::TextLabel>(m_quest.name);
+        const auto name = m_hudManager.Create<ui::TextLabel>(quest::DisplayText(m_quest.name));
         m_hudManager.GetElement(name)->SetPosition({x, 350});
         const auto heading = m_hudManager.Create<ui::TextLabel>(m_result.outcome == StageEnd::Success ? "SUCCESS" : "DEFEAT");
         m_hudManager.GetElement(heading)->SetPosition({x, 400});
@@ -30,24 +31,19 @@ namespace scene
         m_hudManager.GetElement(controls)->SetPosition({x, 550});
         ui::ButtonDef retry("Retry", shape::Rect{{centerX - 160, 600}, {140, 50}}, GetColor(150, 180, 220));
         retry.onReleased = [this]() { m_toRetry = true; };
-        m_retryButtonID = gameSystem::AppCtx::UIMgr().Create<ui::Button>(&retry);
+        m_hudManager.Create<ui::Button>(&retry);
         ui::ButtonDef title("Title", shape::Rect{{centerX + 20, 600}, {140, 50}}, GetColor(150, 180, 220));
         title.onReleased = [this]() { m_toTitle = true; };
-        m_titleButtonID = gameSystem::AppCtx::UIMgr().Create<ui::Button>(&title);
+        m_hudManager.Create<ui::Button>(&title);
         // 新しいButtonは押下履歴を持たず、前画面からの解放だけでは作動しない。
         // Rのショートカットを設けず、結果確定フレームの入力連鎖も避ける。
     }
 
-    Result::~Result()
-    {
-        gameSystem::AppCtx::UIMgr().Destroy(m_retryButtonID);
-        gameSystem::AppCtx::UIMgr().Destroy(m_titleButtonID);
-    }
 
     SceneCmd Result::Update()
     {
         if (m_leaving) return std::monostate{};
-        gameSystem::AppCtx::UIMgr().Update();
+        m_hudManager.Update();
         if (m_toRetry)
         {
             m_leaving = true;
@@ -69,6 +65,5 @@ namespace scene
     void Result::Draw()
     {
         m_hudManager.Draw();
-        gameSystem::AppCtx::UIMgr().Draw();
     }
 }

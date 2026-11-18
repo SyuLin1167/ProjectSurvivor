@@ -15,8 +15,8 @@ import <cmath>;
 
 namespace object
 {
-    MovingBase::MovingBase(const stage::StageConfig& config, int healthBonus)
-        : m_maxHealth(100.0f + healthBonus), m_health(m_maxHealth), m_config(config)
+    MovingBase::MovingBase(const stage::StageConfig& config, float initialHealth, float maxHealth)
+        : m_maxHealth(maxHealth), m_health(initialHealth), m_config(config)
     {
         // 旧設定も基準Aで開始する。表示と回収判定がずれないよう同じ矩形を使う。
         const float centerY = config.useExplorationDistance520 ? 2568.0f : 2448.0f;

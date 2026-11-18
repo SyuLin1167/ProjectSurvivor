@@ -1,0 +1,9 @@
+{
+  "id": "cargo",
+  "destinationId": "road",
+  "name": "魔導物資の緊急輸送",
+  "description": "防衛を優先したい危険な輸送",
+  "initialHealth": 80,
+  "maxHealth": 80,
+  "enemySpawn": {}
+}
