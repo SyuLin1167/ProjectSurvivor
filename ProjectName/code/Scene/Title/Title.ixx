@@ -1,5 +1,7 @@
 ﻿export module Scene.Title;
 import Scene.SceneBase;
+import Quest.QuestCatalog;
+import <vector>;
 import MyLib.Math.Vector2;
 
 using namespace math;
@@ -51,6 +53,8 @@ export namespace scene
         static constexpr Vector2f BTN_SIZE      = { 120.0f, 50.0f };      // ボタンサイズ
         static constexpr Vector2f PROGRESS_TEXT_POS = { 1600.0f, 1050.0f }; // プログレステキスト位置
 
+        quest::QuestDefinition m_selectedQuest = quest::AvailableQuests.front();
+        std::vector<ui::UIElementID> m_questButtons;
         bool m_toNextScene = false;         // 次シーンへ移動フラグ
         bool m_toExit = false;              // 終了フラグ
         ui::UIElementID m_startButtonID;    // スタートボタンID

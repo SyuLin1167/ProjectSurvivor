@@ -51,16 +51,16 @@ namespace scene
         }
     }
 
-    Play::Play() : Play(LoadConfig<stage::StageConfig>("Phase1Config")) {}
+    Play::Play(quest::Id id) : Play(LoadConfig<stage::StageConfig>("Phase1Config"), quest::FindQuest(id)) {}
 
-    Play::Play(const stage::StageConfig& world)
-        : m_stage(world.BaseCenter.x, world.TrialEndX), m_spawner(CreateSpawner(world)),
+    Play::Play(const stage::StageConfig& world, quest::QuestDefinition selected)
+        : m_quest(selected), m_stage(world.BaseCenter.x, world.TrialEndX), m_spawner(CreateSpawner(world)),
           m_showNearestEnemy(world.showNearestEnemy)
     {
         m_player = new object::Player(world, LoadConfig<combat::PlayerAttackConfig>("PlayerAttackConfig"));
         m_objManager->AddObject(m_player);
         m_objManager->AddObject(new object::Map(world));
-        m_base = new object::MovingBase(world);
+        m_base = new object::MovingBase(world, m_quest.healthBonus);
         m_objManager->AddObject(m_base);
         if (world.alphaCombat)
         {
@@ -77,11 +77,11 @@ namespace scene
         FrameRate::ResetSimulationTime();
     }
 
-    SceneCmd Play::Start(std::shared_ptr<SceneBase> hold)
+    SceneCmd Play::Start(std::shared_ptr<SceneBase> hold, quest::Id id)
     {
-        return CmdReplace{ [hold = std::move(hold)]() mutable {
+        return CmdReplace{ [hold = std::move(hold), id]() mutable {
             return std::make_shared<LoadingScene>(LoadPolicy::PROGRESS,
-                []() { return std::make_shared<Play>(); }, std::move(hold));
+                [id]() { return std::make_shared<Play>(id); }, std::move(hold));
         } };
     }
 
@@ -96,8 +96,8 @@ namespace scene
         const auto end = m_stage.Advance(m_base->Center().x, m_base->Health(),
             input::KeyStatus::CheckKey(keyType.R, ON_PRESS));
         if (end == StageEnd::Success || end == StageEnd::Defeat)
-            return CmdReplace{ [result = m_stage.ResultValue()]() {
-                return std::make_shared<Result>(result);
+            return CmdReplace{ [result = m_stage.ResultValue(), selected = m_quest, maxHealth = m_base->MaxHealth()]() {
+                return std::make_shared<Result>(result, selected, maxHealth);
             } };
         if (end == StageEnd::Aborted)
             return CmdReplace{ []() { return std::make_shared<Title>(); } };
@@ -120,7 +120,7 @@ namespace scene
         // 初回描画も含め、そのPlayの実値を読む。共有・静的なHUD状態を残さない。
         const auto result = m_stage.ResultValue();
         auto hud = ui::MakeHudValues(m_base->Health(), result.progress,
-            m_stage.Distance(), m_stage.RemainingDistance(), m_base->Center() - m_player->Center());
+            m_stage.Distance(), m_stage.RemainingDistance(), m_base->Center() - m_player->Center(), m_base->MaxHealth());
         // 描画時の中心座標だけを保持し、撃破・再試行をまたいで敵参照を残さない。
         hud.showNearestEnemy = m_showNearestEnemy;
         if (m_showNearestEnemy) hud.toEnemy = ui::NearestEnemyOffset(*m_objManager, m_base->Center());

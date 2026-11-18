@@ -14,5 +14,5 @@
   "trialEndX": 5568,
   "useExplorationDistance520": false,
   "showNearestEnemy": false,
-  "alphaCombat": false
+  "alphaCombat": true
 }

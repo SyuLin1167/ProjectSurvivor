@@ -18,6 +18,7 @@ import MyLib.Shape.Rect;
 import Object.Enemy;
 import Object.Player;
 import Scene.StageConfig;
+import Quest.QuestCatalog;
 import Object.CombatDrops;
 import Object.PlayerAttackConfig;
 import <algorithm>;
@@ -666,9 +667,31 @@ void VerifyStageEnd()
     // 継続出現の実Playを無操作で敗北まで進め、Resultへ値だけが渡ることを確認する。
     // そのResultを保持してStart/Retry共通の実LoadingSceneを通し、2回目も同条件に戻す。
     const auto stagePath = files.GetDataDir() / "Phase1Config.json";
-    const auto initialStage = files.jsonIO.Load(stagePath);
+    auto initialStage = files.jsonIO.Load(stagePath);
+    require(stage::StageConfig::FromJson(initialStage).alphaCombat, "Shipped stage enables Alpha combat");
+    // この遷移テストは描画デバイスを作らないため、試験用コピーだけを画像不要の比較設定にする。
+    // Alphaの敵構成・撃破・ドロップは専用の既存ケースで実オブジェクトを検証する。
+    initialStage["alphaCombat"] = false;
+    files.jsonIO.Write(stagePath, initialStage);
     const auto spawnSource = files.jsonIO.Load("ProjectName/resources/data/EnemySpawnConfig.json");
     // Start/Retry共通のLoadingを基準・候補双方で通し、乱数や時計も新規Playへ持ち越さない。
+    // 依頼ごとの開始HP・修理上限・表示値を同じ設定から確認する。
+    for (const auto& entry : quest::AvailableQuests)
+    {
+        object::ObjectManager objects;
+        auto base = std::make_shared<object::MovingBase>(ReadStageConfig(), quest::FindQuest(entry.id).healthBonus);
+        objects.AddInitializedObject(base);
+        const float expected = entry.id == quest::Id::Pilgrim ? 120.0f : 80.0f;
+        require(base->Health() == expected && base->Repair() == 0, "Quest starts at its repair cap");
+        require(base->TakeDamage(10) && base->Repair() == 10 && base->Health() == expected,
+            "Repair returns exactly the missing quest HP");
+        const auto hud = ui::MakeHudValues(base->Health(), 0, 0, 4800, {}, base->MaxHealth());
+        require(hud.health == expected && hud.maxHealth == expected, "HUD uses actual quest HP");
+    }
+    bool invalidQuestRejected = false;
+    try { quest::FindQuest(static_cast<quest::Id>(-1)); }
+    catch (const std::invalid_argument&) { invalidQuestRejected = true; }
+    require(invalidQuestRejected, "Unknown quest rejected before departure");
     for (const auto selection : {"baseline", "candidate", "countControl", "countCandidate"})
     {
         auto selected = spawnSource;
@@ -682,7 +705,8 @@ void VerifyStageEnd()
         files.jsonIO.Write(files.GetDataDir() / "EnemySpawnConfig.json", selected);
         int firstFrames = 0;
         float firstProgress = 0;
-        std::shared_ptr<scene::Play> play = std::make_shared<scene::Play>();
+        const auto id = mode == "baseline" ? quest::Id::Pilgrim : quest::Id::Cargo;
+        std::shared_ptr<scene::Play> play = std::make_shared<scene::Play>(id);
         for (int trial = 0; trial < 2; ++trial)
         {
             play->Init();
@@ -725,7 +749,7 @@ void VerifyStageEnd()
                     longer["trialEndX"] = longer.at("baseCenterX").get<float>() + 7200.0f;
                     files.jsonIO.Write(stagePath, longer);
                 }
-                auto retry = scene::Play::Start(result);
+                auto retry = result->Retry();
                 auto loading = std::get<scene::CmdReplace>(retry).build();
                 retry = std::monostate{};
                 result.reset();
@@ -750,7 +774,7 @@ void VerifyStageEnd()
     invalid.erase("playerSize");
     files.jsonIO.Write(stagePath, invalid);
     {
-        auto start = scene::Play::Start({});
+        auto start = scene::Play::Start({}, quest::Id::Pilgrim);
         auto loading = std::get<scene::CmdReplace>(start).build();
         scene::SceneCmd failed;
         for (int frame = 0; frame < 8 && std::holds_alternative<std::monostate>(failed); ++frame)

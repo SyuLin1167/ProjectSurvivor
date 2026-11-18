@@ -2,6 +2,7 @@
 import Scene.SceneBase;
 import UI.UIManager;
 import Scene.StageState;
+import Quest.QuestCatalog;
 
 export namespace scene
 {
@@ -11,7 +12,9 @@ export namespace scene
     public:
         /// <summary>終了値をコピーし、最小限の結果操作を登録する。</summary>
         /// <param name="result">成功または敗北の確定値。</param>
-        explicit Result(StageResult result);
+        /// @param selected 終了した試行の依頼。
+        /// @param maxHealth 終了時の拠点HP上限。
+        Result(StageResult result, quest::QuestDefinition selected, float maxHealth);
         /// <summary>このシーンが登録したボタンを破棄する。</summary>
         ~Result();
         /// <summary>結果は構築時に確定済みのため追加初期化は不要。</summary>
@@ -19,6 +22,9 @@ export namespace scene
         /// <summary>ゲーム更新をせず、結果画面の操作だけを受け付ける。</summary>
         /// <returns>RetryのLoadingScene、Title、または継続コマンド。</returns>
         SceneCmd Update() override;
+        /// @brief 同じ依頼で新しい試行への読み込みを要求する。
+        /// @return Retryボタンが使用する遷移コマンド。
+        SceneCmd Retry();
         /// <summary>成功・敗北、終了時HP、進行率、操作を画面座標で描画する。</summary>
         void Draw() override;
         /// <summary>引き渡された終了値を返す。</summary>
@@ -28,6 +34,7 @@ export namespace scene
     private:
         // シーン単位のUI所有。LoadingSceneが旧シーンを保持しても新画面へ混在させない。
         ui::UIManager m_hudManager;
+        const quest::QuestDefinition m_quest;
         const StageResult m_result;
         bool m_toRetry = false;
         bool m_toTitle = false;

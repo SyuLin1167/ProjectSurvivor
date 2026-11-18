@@ -22,6 +22,7 @@ export namespace ui
     struct HudValues
     {
         float health;
+        float maxHealth;
         float progress;
         float distance;
         float remaining;
@@ -45,11 +46,12 @@ export namespace ui
     /// <param name="remaining">StageStateの残距離（u）。</param>
     /// <param name="toBase">プレイヤー中心から拠点中心への差分（u）。</param>
     /// <returns>描画用の値。NEARは勝敗や接触判定には使わない。</returns>
+    /// @param maxHealth この試行の修理上限。
     inline HudValues MakeHudValues(float health, float progress, float distance, float remaining,
-        math::Vector2f toBase)
+        math::Vector2f toBase, float maxHealth = 100)
     {
         const float baseDistance = toBase.Length();
-        return {std::clamp(health, 0.0f, 100.0f), std::clamp(progress, 0.0f, 1.0f),
+        return {std::clamp(health, 0.0f, maxHealth), maxHealth, std::clamp(progress, 0.0f, 1.0f),
             (std::max)(0.0f, distance), (std::max)(0.0f, remaining), toBase, baseDistance, baseDistance <= 128};
     }
 
@@ -74,11 +76,12 @@ export namespace ui
     }
 
     /// <summary>HP数値・バーと進行率をPlayとResultで同じ形式で描く。</summary>
-    /// <param name="health">拠点HP（0〜100）。</param>
+    /// <param name="health">拠点の現在HP。</param>
     /// <param name="progress">進行率（0〜1）。</param>
     /// <param name="x">画面上の左端（px）。</param>
     /// <param name="y">画面上の上端（px）。</param>
-    void DrawStageStatus(float health, float progress, int x, int y);
+    /// @param maxHealth この試行の最大HP。
+    void DrawStageStatus(float health, float maxHealth, float progress, int x, int y);
 
     /// <summary>Playが所有するプレイHUD。ゲーム参照を持たず、そのフレームの値だけを保持する。</summary>
     class PlayHud final : public UIBase
@@ -103,10 +106,11 @@ export namespace ui
         /// <summary>確定値をコピーして保持する。</summary>
         /// <param name="health">終了時HP。</param>
         /// <param name="progress">終了時進行率（0〜1）。</param>
-        StageStatus(float health, float progress) : m_health(health), m_progress(progress) {}
+        /// @param maxHealth 終了した試行の最大HP。
+        StageStatus(float health, float progress, float maxHealth) : m_health(health), m_progress(progress), m_maxHealth(maxHealth) {}
         /// <summary>プレイ中と共通の形式で確定値を描く。</summary>
         void Draw() override;
     private:
-        float m_health, m_progress;
+        float m_health, m_progress, m_maxHealth;
     };
 }

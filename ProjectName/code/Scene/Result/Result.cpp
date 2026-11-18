@@ -15,14 +15,16 @@ import UI.DisplayElements;
 
 namespace scene
 {
-    Result::Result(StageResult result)
-        : m_result(result)
+    Result::Result(StageResult result, quest::QuestDefinition selected, float maxHealth)
+        : m_quest(selected), m_result(result)
     {
         const float centerX = gameSystem::Window::GetWindowData()->SIZE.x / 2.0f;
         const float x = centerX - 160;
+        const auto name = m_hudManager.Create<ui::TextLabel>(m_quest.name);
+        m_hudManager.GetElement(name)->SetPosition({x, 350});
         const auto heading = m_hudManager.Create<ui::TextLabel>(m_result.outcome == StageEnd::Success ? "SUCCESS" : "DEFEAT");
         m_hudManager.GetElement(heading)->SetPosition({x, 400});
-        const auto status = m_hudManager.Create<ui::StageStatus>(m_result.health, m_result.progress);
+        const auto status = m_hudManager.Create<ui::StageStatus>(m_result.health, m_result.progress, maxHealth);
         m_hudManager.GetElement(status)->SetPosition({x, 450});
         const auto controls = m_hudManager.Create<ui::TextLabel>("Click Retry or Title");
         m_hudManager.GetElement(controls)->SetPosition({x, 550});
@@ -49,7 +51,7 @@ namespace scene
         if (m_toRetry)
         {
             m_leaving = true;
-            return Play::Start(shared_from_this());
+            return Retry();
         }
         if (m_toTitle)
         {
@@ -57,6 +59,11 @@ namespace scene
             return CmdReplace{ []() { return std::make_shared<Title>(); } };
         }
         return std::monostate{};
+    }
+
+    SceneCmd Result::Retry()
+    {
+        return Play::Start(shared_from_this(), m_quest.id);
     }
 
     void Result::Draw()

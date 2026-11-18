@@ -21,6 +21,16 @@ namespace scene
         // 背景画像読み込み
         AppCtx::AssetMgr().LoadAsync<asset::Graph>("Title", "Title.png");
 
+        // 出発前だけ依頼を選べる。各ボタンのコールバックは依頼の定義を値で保持する。
+        float y = 680;
+        for (const auto& entry : quest::AvailableQuests)
+        {
+            ui::ButtonDef choice(entry.name, shape::Rect{{680, y}, {560, 48}}, GetColor(160, 178, 190));
+            choice.onReleased = [this, entry]() { m_selectedQuest = entry; };
+            m_questButtons.push_back(AppCtx::UIMgr().Create<ui::Button>(&choice));
+            y += 54;
+        }
+
         // スタートボタン作成
         shape::Rect buttonRect(START_BTN_POS, BTN_SIZE);
         ui::ButtonDef startButtonDef("Start", buttonRect, GetColor(150, 100,80));
@@ -39,6 +49,7 @@ namespace scene
         // 背景画像ハンドル削除
         gameSystem::AppCtx::AssetMgr().DeleteHandle<asset::Graph>("Title");
 
+        for (auto id : m_questButtons) AppCtx::UIMgr().Destroy(id);
         // ボタン破棄
         AppCtx::UIMgr().Destroy(m_startButtonID);
         AppCtx::UIMgr().Destroy(m_exitButtonID);
@@ -61,7 +72,7 @@ namespace scene
         if (m_toNextScene)
         {
             // Retryと同じ経路で毎回新規Playを生成する。
-            return Play::Start(shared_from_this());
+            return Play::Start(shared_from_this(), m_selectedQuest.id);
         }
 
         // Exitボタンが押されていたら終了要求
@@ -79,6 +90,11 @@ namespace scene
         // タイトル画面描画
         DrawGraph(0, 0, AppCtx::AssetMgr().Fetch<asset::Graph>()->GetHandle("Title"), true);
 
+        // 選択中の依頼と効果を同じ背景板に表示し、Start前に確認できるようにする。
+        const auto& entry = m_selectedQuest;
+        DrawBox(660, 790, 1260, 875, GetColor(28, 35, 45), TRUE);
+        DrawFormatString(680, 802, GetColor(255, 238, 188), "選択中：%s　初期・最大HP %+d", entry.name, entry.healthBonus);
+        DrawString(680, 838, entry.description, GetColor(255, 255, 255));
         // UI描画
         AppCtx::UIMgr().Draw();
     }
