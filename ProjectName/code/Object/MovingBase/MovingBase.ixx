@@ -12,8 +12,9 @@ export namespace object
     public:
         /// <summary>試行の初期HPで拠点と探索地点を生成する。</summary>
         /// <param name="config">検証済みのステージ設定。</param>
-        /// @param healthBonus 基準HPに加える依頼補正。修理上限にも適用する。
-        explicit MovingBase(const stage::StageConfig& config, int healthBonus = 0);
+        /// @param initialHealth 検証済みの開始HP。
+        /// <param name="maxHealth">検証済みの修理上限。</param>
+        explicit MovingBase(const stage::StageConfig& config, float initialHealth = 100, float maxHealth = 100);
         /// <summary>所有するコライダーを解放する。</summary>
         ~MovingBase();
         /// <summary>承認された中心座標から拠点矩形とコライダーを初期化する。</summary>

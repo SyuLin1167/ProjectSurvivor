@@ -182,6 +182,10 @@
     <ClCompile Include="..\code\UI\DisplayElements\DisplayElements.ixx" />
     <ClCompile Include="..\code\UI\DisplayElements\DisplayElements.cpp" />
     <ClCompile Include="..\code\Quest\QuestCatalog.ixx" />
+    <ClCompile Include="..\code\Quest\QuestConfig.ixx" />
+    <ClCompile Include="..\code\Quest\QuestText.ixx" />
+    <ClCompile Include="..\code\Scene\QuestSelect\QuestSelect.ixx" />
+    <ClCompile Include="..\code\Scene\QuestSelect\QuestSelect.cpp" />
     <ClCompile Include="..\code\Scene\Play\StageState.ixx" />
     <ClCompile Include="..\code\Scene\Play\StageConfig.ixx" />
     <ClCompile Include="..\code\Object\Character\Player\PlayerAttackConfig.ixx" />

@@ -486,4 +486,11 @@
   <ItemGroup>
     <ResourceCompile Include="project.rc" />
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\code\Quest\QuestCatalog.ixx" />
+    <ClCompile Include="..\code\Quest\QuestConfig.ixx" />
+    <ClCompile Include="..\code\Quest\QuestText.ixx" />
+    <ClCompile Include="..\code\Scene\QuestSelect\QuestSelect.ixx" />
+    <ClCompile Include="..\code\Scene\QuestSelect\QuestSelect.cpp" />
+  </ItemGroup>
 </Project>

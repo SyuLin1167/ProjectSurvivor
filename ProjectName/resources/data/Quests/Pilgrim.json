@@ -1,0 +1,9 @@
+{
+  "id": "pilgrim",
+  "destinationId": "road",
+  "name": "巡礼者の護送",
+  "description": "探索にも余裕のある安全な護送",
+  "initialHealth": 120,
+  "maxHealth": 120,
+  "enemySpawn": {}
+}

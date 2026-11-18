@@ -27,7 +27,7 @@ export namespace scene
         /// コンストラクタ
         /// </summary>
         /// @param id 出発前に選んだ依頼。
-        explicit Play(quest::Id id);
+        explicit Play(std::string id);
 
         /// <summary>
         /// 初期化処理
@@ -49,14 +49,14 @@ export namespace scene
         /// <param name="hold">読み込み中の表示を保持する元シーン。</param>
         /// <returns>LoadingSceneへ置き換えるコマンド。</returns>
         /// @param id 新規試行に引き継ぐ依頼。
-        static SceneCmd Start(std::shared_ptr<SceneBase> hold, quest::Id id);
+        static SceneCmd Start(std::shared_ptr<SceneBase> hold, std::string id);
 
     private:
         /// @brief 同じ試行の設定で必須オブジェクトを登録する。
         /// @param world 検証済みのステージ設定。
         /// @param selected 今回の依頼定義。
-        Play(const stage::StageConfig& world, quest::QuestDefinition selected);
-        const quest::QuestDefinition m_quest;
+        Play(const stage::StageConfig& world, quest::QuestConfig selected);
+        const quest::QuestConfig m_quest;
         ui::PlayHud m_hud;
         StageState m_stage;
         object::EnemySpawner m_spawner;

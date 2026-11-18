@@ -40,27 +40,30 @@ namespace scene
 
         /// @brief ステージで使用する敵設定から試行専用の生成器を作る。
         /// @param world マップ寸法と戦闘モードを含む設定。
+        /// @param selected 生成間隔の任意上書きを持つ検証済み依頼。
         /// @return 初期状態の生成器。
-        object::EnemySpawner CreateSpawner(const stage::StageConfig& world)
+        object::EnemySpawner CreateSpawner(const stage::StageConfig& world, const quest::QuestConfig& selected)
         {
             auto& files = AppCtx::FileSystem();
             const auto data = files.jsonIO.Load(files.GetDataDir() / "EnemyConfig");
-            return object::EnemySpawner(LoadConfig<object::EnemySpawnConfig>("EnemySpawnConfig"),
+            auto spawnData = files.jsonIO.Load(files.GetDataDir() / "EnemySpawnConfig");
+            // 上書き後に既存比較モードとの組合せも検証する。
+            return object::EnemySpawner(selected.BuildSpawnConfig(spawnData),
                 combat::EnemyConfig::FromJson(data), {world.WorldWidth, world.WorldHeight},
                 world.alphaCombat ? &data.at("alphaTypes") : nullptr);
         }
     }
 
-    Play::Play(quest::Id id) : Play(LoadConfig<stage::StageConfig>("Phase1Config"), quest::FindQuest(id)) {}
+    Play::Play(std::string id) : Play(LoadConfig<stage::StageConfig>("Phase1Config"), quest::FindQuest(id)) {}
 
-    Play::Play(const stage::StageConfig& world, quest::QuestDefinition selected)
-        : m_quest(selected), m_stage(world.BaseCenter.x, world.TrialEndX), m_spawner(CreateSpawner(world)),
+    Play::Play(const stage::StageConfig& world, quest::QuestConfig selected)
+        : m_quest(selected), m_stage(world.BaseCenter.x, world.TrialEndX), m_spawner(CreateSpawner(world, selected)),
           m_showNearestEnemy(world.showNearestEnemy)
     {
         m_player = new object::Player(world, LoadConfig<combat::PlayerAttackConfig>("PlayerAttackConfig"));
         m_objManager->AddObject(m_player);
         m_objManager->AddObject(new object::Map(world));
-        m_base = new object::MovingBase(world, m_quest.healthBonus);
+        m_base = new object::MovingBase(world, m_quest.initialHealth, m_quest.maxHealth);
         m_objManager->AddObject(m_base);
         if (world.alphaCombat)
         {
@@ -77,7 +80,7 @@ namespace scene
         FrameRate::ResetSimulationTime();
     }
 
-    SceneCmd Play::Start(std::shared_ptr<SceneBase> hold, quest::Id id)
+    SceneCmd Play::Start(std::shared_ptr<SceneBase> hold, std::string id)
     {
         return CmdReplace{ [hold = std::move(hold), id]() mutable {
             return std::make_shared<LoadingScene>(LoadPolicy::PROGRESS,

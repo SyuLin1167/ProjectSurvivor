@@ -14,9 +14,7 @@ export namespace scene
         /// <param name="result">成功または敗北の確定値。</param>
         /// @param selected 終了した試行の依頼。
         /// @param maxHealth 終了時の拠点HP上限。
-        Result(StageResult result, quest::QuestDefinition selected, float maxHealth);
-        /// <summary>このシーンが登録したボタンを破棄する。</summary>
-        ~Result();
+        Result(StageResult result, quest::QuestConfig selected, float maxHealth);
         /// <summary>結果は構築時に確定済みのため追加初期化は不要。</summary>
         void Init() override {}
         /// <summary>ゲーム更新をせず、結果画面の操作だけを受け付ける。</summary>
@@ -34,12 +32,10 @@ export namespace scene
     private:
         // シーン単位のUI所有。LoadingSceneが旧シーンを保持しても新画面へ混在させない。
         ui::UIManager m_hudManager;
-        const quest::QuestDefinition m_quest;
+        const quest::QuestConfig m_quest;
         const StageResult m_result;
         bool m_toRetry = false;
         bool m_toTitle = false;
         bool m_leaving = false;
-        ui::UIElementID m_retryButtonID{};
-        ui::UIElementID m_titleButtonID{};
     };
 }
