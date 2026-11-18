@@ -679,12 +679,12 @@ void VerifyStageEnd()
     std::filesystem::copy("ProjectName/resources/data/Quests", files.GetDataDir() / "Quests",
         std::filesystem::copy_options::overwrite_existing | std::filesystem::copy_options::recursive);
     // 依頼ごとの開始HP・修理上限・表示値を同じ設定から確認する。
-    for (const auto& entry : quest::AvailableQuests)
+    for (const auto& [id, entry] : quest::AvailableQuests)
     {
         object::ObjectManager objects;
-        auto base = std::make_shared<object::MovingBase>(ReadStageConfig(), quest::FindQuest(entry.id).initialHealth, quest::FindQuest(entry.id).maxHealth);
+        auto base = std::make_shared<object::MovingBase>(ReadStageConfig(), quest::FindQuest(id).initialHealth, quest::FindQuest(id).maxHealth);
         objects.AddInitializedObject(base);
-        const float expected = entry.id == std::string("pilgrim") ? 120.0f : 80.0f;
+        const float expected = id == "pilgrim" ? 120.0f : 80.0f;
         require(base->Health() == expected && base->Repair() == 0, "Quest starts at its repair cap");
         require(base->TakeDamage(10) && base->Repair() == 10 && base->Health() == expected,
             "Repair returns exactly the missing quest HP");

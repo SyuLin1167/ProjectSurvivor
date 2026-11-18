@@ -7,6 +7,7 @@ import Quest.QuestText;
 import UI.Button;
 import MyLib.Shape.Rect;
 import <exception>;
+import <algorithm>;
 
 namespace scene
 {
@@ -15,9 +16,15 @@ namespace scene
         // 全必須データを先に読み、途中失敗した一覧からの出発を防ぐ。
         try
         {
-            for (const auto& entry : quest::AvailableQuests)
-                m_quests.push_back(quest::FindQuest(entry.id));
-            // 登録順に依頼ボタンを配置する。配列は構築後に変えず、選択位置を添字で保持する。
+            for (const auto& [id, entry] : quest::AvailableQuests)
+                m_quests.push_back(quest::FindQuest(id));
+            // ハッシュ表の走査順に依存せず、表示順と先頭の初期選択を毎回そろえる。
+            std::sort(m_quests.begin(), m_quests.end(), [](const auto& left, const auto& right) {
+                const int leftOrder = quest::AvailableQuests.at(left.id).displayOrder;
+                const int rightOrder = quest::AvailableQuests.at(right.id).displayOrder;
+                return leftOrder != rightOrder ? leftOrder < rightOrder : left.id < right.id;
+            });
+            // 表示順に依頼ボタンを配置する。配列は構築後に変えず、選択位置を添字で保持する。
             float y = 400;
             for (size_t i = 0; i < m_quests.size(); ++i)
             {
