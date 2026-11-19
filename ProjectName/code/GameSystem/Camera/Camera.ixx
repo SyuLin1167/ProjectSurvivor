@@ -3,6 +3,7 @@
 import MyLib.Math.Vector2;
 import GameSystem.Window;
 import Object.GameObject;
+import MyLib.Shape.Rect;
 
 using namespace math;
 
@@ -90,6 +91,14 @@ export namespace gameSystem
         Vector2f WorldToScreen(float x, float y) const
         {
             return Vector2f(x, y) - m_pos;
+        }
+
+        /// <summary>描画カリングと生成位置選定が共有する現在の可視範囲。</summary>
+        /// <returns>ワールド座標の矩形（u）。固定ズームの画面寸法を使用する。</returns>
+        shape::Rect VisibleRect() const
+        {
+            const auto size = Window::GetWindowData()->SIZE;
+            return {m_pos, {float(size.x), float(size.y)}};
         }
 
     private:

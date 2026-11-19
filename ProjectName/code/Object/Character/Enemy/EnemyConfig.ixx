@@ -3,6 +3,8 @@
 import MyLib.File.JsonIO;
 import MyLib.Math.Vector2;
 import <array>;
+import MyLib.Shape.Rect;
+import <algorithm>;
 import <vector>;
 import <cmath>;
 import <stdexcept>;
@@ -17,6 +19,17 @@ export namespace combat
         float Speed{};  // u/s
         enum class Look { Classic, Normal, Runner, Heavy };
         Look look{Look::Classic};
+
+        /// <summary>敵本体と旧モードの名前表示を囲む描画範囲を求める。</summary>
+        /// <param name="center">敵中心（u）。</param>
+        /// <returns>画面外判定に使用するワールド矩形。</returns>
+        shape::Rect VisualBounds(math::Vector2f center) const
+        {
+            if (look != Look::Classic) return {center - math::Vector2f{16, 16}, {32, 32}};
+            // 旧ENEMYラベルは右と上へ張り出すため、本体円より広く確保する。
+            return {center - math::Vector2f{Radius, Radius * 2},
+                {(std::max)(Radius * 2, 128.0f), (std::max)(Radius * 3, 64.0f)}};
+        }
 
         /// <summary>DEC-02と#19比較試遊の許可値・速度範囲を確認する。不正時は例外を送出する。</summary>
         /// <param name="data">EnemyConfig.jsonのオブジェクト。欠損・型不正も拒否する。</param>

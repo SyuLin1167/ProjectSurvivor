@@ -55,6 +55,9 @@ export namespace object
         /// <summary>開始時に読み込んだ拠点中心Xを返す。</summary>
         /// <returns>開始X（u）。</returns>
         float StartX() const { return m_config.BaseCenter.x; }
+        /// <summary>候補の接近時間を見積もるために前進速度を返す。</summary>
+        /// <returns>基準設定の速度（u/s）。</returns>
+        float Speed() const { return m_config.BaseSpeed; }
         /// <summary>開始時に読み込んだ終端Xを返す。</summary>
         /// <returns>終端X（u）。</returns>
         float EndX() const { return m_config.TrialEndX; }

@@ -4,6 +4,8 @@ import <array>;
 import <vector>;
 import <algorithm>;
 import GameSystem.FrameRate;
+import GameSystem.Camera;
+import Object.SpawnPosition;
 
 namespace object
 {
@@ -12,6 +14,7 @@ namespace object
     {
         // JSON以外から構築された場合も、承認範囲外の値を開始前に拒否する。
         m_config.Validate();
+        m_pool = std::make_shared<Pool>(m_config.PoolCapacity());
     }
 
     std::array<int, 3> EnemySpawner::NextDirections()
@@ -60,40 +63,57 @@ namespace object
         // 予約済み期限の区間を使うため、20/40秒を跨いでも期限を繰り上げない。
         const double due = m_elapsed + m_remaining;
         const double interval = m_config.IntervalAt(due);
-        const auto directionsOrder = NextDirections();
+        const auto directionsOrder = m_config.offscreen ? std::array{0, 1, 2} : NextDirections();
+        const int candidateCount = m_config.offscreen ? int(spawnPosition::CandidateCount) : 3;
+        const int candidateStart = m_config.offscreen ? m_direction : 0;
+        if (m_config.offscreen) m_direction = (m_direction + 7) % candidateCount;
+        const int limit = m_config.LimitAt(due);
+        const auto view = gameSystem::Camera::Instance().VisibleRect();
         const int requested = m_config.CountAt(due);
         int generated = 0;
         // 通常の端数は保持。複数期限を跨ぐ遅延は回収せず現在区間から予約し直す。
         m_remaining = m_remaining > -interval ? interval + m_remaining : m_config.IntervalAt(m_elapsed);
         // 生存かつ有効な敵だけを収集し、同時上限と候補位置の安全距離に使用する。
         std::vector<math::Vector2f> centers;
+        centers.reserve(m_config.limit);
         for (const auto& object : manager.GetObjForTag(ObjectTag::ENEMY))
             if (const auto enemy = std::dynamic_pointer_cast<Enemy>(object); enemy && enemy->CanBeAttacked())
                 centers.push_back(enemy->Center());
         // 同時上限未満の場合だけ候補を調べる。上限に達していれば末尾の見送り処理へ進む。
-        if (centers.size() < static_cast<size_t>(m_config.limit))
+        if (centers.size() < static_cast<size_t>(limit))
         {
-            // 正面・右上・右下を巡回する。斜めも同じ生成距離にするため方向を正規化する。
+            // 旧比較は正面・右上・右下を巡回する。斜めも同じ生成距離にするため方向を正規化する。
             const std::array<math::Vector2f, 3> directions{
                 math::Vector2f{1, 0}, math::Vector2f{1, -1}.Norm(), math::Vector2f{1, 1}.Norm()};
             const auto baseCenter = base.Center();
             const auto half = base.Size().Half();
             // 各方向は1回だけ調べる。必要数・空き枠に達したら終了し、追加抽選はしない。
-            for (int candidate = 0; candidate < 3 && generated < requested &&
-                centers.size() < static_cast<size_t>(m_config.limit); ++candidate)
+            for (int candidate = 0; candidate < candidateCount && generated < requested &&
+                centers.size() < static_cast<size_t>(limit); ++candidate)
             {
-                const auto position = baseCenter + directions[directionsOrder[candidate]] * m_config.distance;
-                const float radius = m_catalog.Next().Radius;
+                const auto& next = m_catalog.Next();
+                const auto position = m_config.offscreen
+                    ? spawnPosition::Candidates(view, baseCenter, next, m_config.distance)[(candidateStart + candidate) % candidateCount]
+                    : baseCenter + directions[directionsOrder[candidate]] * m_config.distance;
+                const float radius = next.Radius;
+                if (m_config.offscreen)
+                {
+                    // 探索で拠点が画面外でも可視範囲はカメラ基準、接近見積もりは拠点基準とする。
+                    const auto bounds = next.VisualBounds(position);
+                    if (!spawnPosition::Outside(position, next, view) || bounds.Left() < 0 || bounds.Top() < 0 ||
+                        bounds.Right() > m_worldSize.x || bounds.Bottom() > m_worldSize.y ||
+                        !spawnPosition::CanApproach(position, next, {baseCenter - half, base.Size()}, base.Speed(), base.EndX())) continue;
+                }
                 // 円がマップからはみ出す、またはプレイヤーに近すぎる場合は次の候補へ進む。
                 if (position.x < radius || position.y < radius || position.x > m_worldSize.x - radius ||
-                    position.y > m_worldSize.y - radius || position.Distance(playerCenter) < 256) continue;
+                    position.y > m_worldSize.y - radius || position.Distance(playerCenter) < spawnPosition::PlayerClearance) continue;
                 // 生成時の安全判定のみ。移動・押し戻し・接触通知は既存Colliderへ任せる。
                 // 拠点の矩形内で候補中心に最も近い点を求め、敵円との重なりを調べる。
                 const math::Vector2f nearest{std::clamp(position.x, baseCenter.x - half.x, baseCenter.x + half.x),
                     std::clamp(position.y, baseCenter.y - half.y, baseCenter.y + half.y)};
                 // 拠点に接触する位置、または生存敵との中心間距離が64u未満の位置は採用しない。
-                if (position.Distance(nearest) <= radius || std::any_of(centers.begin(), centers.end(),
-                    [position](const auto& center) { return position.Distance(center) < 64; })) continue;
+                if (position.Distance(nearest) <= radius + (m_config.offscreen ? spawnPosition::BaseClearance : 0) || std::any_of(centers.begin(), centers.end(),
+                    [position](const auto& center) { return position.Distance(center) < spawnPosition::EnemyClearance; })) continue;
                 // 安全な位置が確定してからプールを取得する。空きがなければ今回の生成を見送る。
                 auto enemy = Acquire(position);
                 if (!enemy) break; // 撃破個体への所有参照が残る場合も、使用中領域を上書きしない。
