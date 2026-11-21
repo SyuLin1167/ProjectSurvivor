@@ -124,7 +124,11 @@ namespace object
 
     void Enemy::Draw()
     {
-        const auto sp = gameSystem::Camera::Instance().WorldToScreen(m_pos);
+        auto& camera = gameSystem::Camera::Instance();
+        // 移動・衝突・攻撃は画面外でも更新し、完全に見えない個体の描画呼び出しだけを省く。
+        const combat::EnemyConfig appearance{m_health, m_radius, m_speed, m_look};
+        if (!appearance.VisualBounds(m_pos).AABB(camera.VisibleRect())) return;
+        const auto sp = camera.WorldToScreen(m_pos);
         if (m_look != combat::EnemyConfig::Look::Classic)
         {
             auto sprite = alphaSprites::Sprite::Normal;

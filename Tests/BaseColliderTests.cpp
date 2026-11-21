@@ -24,6 +24,7 @@ import Object.PlayerAttackConfig;
 import <algorithm>;
 import Object.EnemyConfig;
 import Object.EnemySpawner;
+import Object.SpawnPosition;
 import MyLib.File.FileSystem;
 import Object.MovingBase;
 import Object.ObjectManager;
@@ -678,6 +679,17 @@ void VerifyStageEnd()
     std::filesystem::create_directories(files.GetDataDir() / "Quests");
     std::filesystem::copy("ProjectName/resources/data/Quests", files.GetDataDir() / "Quests",
         std::filesystem::copy_options::overwrite_existing | std::filesystem::copy_options::recursive);
+    // 旧C0/C1の遷移回帰はテスト用JSONだけを従来モードへ切り替える。
+    // 配布依頼の画面外モードはVerifyOffscreenSpawningで検証する。
+    for (const auto& [id, entry] : quest::AvailableQuests)
+    {
+        const auto path = files.GetDataDir() / entry.file;
+        auto data = files.jsonIO.Load(path);
+        require(quest::QuestConfig::FromJson(data).BuildSpawnConfig(spawnSource).offscreen,
+            "Both shipped quests select offscreen spawning");
+        data["enemySpawn"] = nlohmann::json::object();
+        files.jsonIO.Write(path, data);
+    }
     // 依頼ごとの開始HP・修理上限・表示値を同じ設定から確認する。
     for (const auto& [id, entry] : quest::AvailableQuests)
     {
@@ -1312,7 +1324,7 @@ void VerifyEnemySpawning()
     }
     // 性能用の限定fixture: HP0でもManager単体を更新し、上限数を60秒相当維持する。
     // 実Playの勝敗後継続を意味しない。30フレームごとに1体を撃破して登録し直す。
-    for (int count : {8,12})
+    for (int count : {10,20})
     {
         dt = 1.0f / 60;
         object::ObjectManager objects;
@@ -1393,6 +1405,137 @@ void VerifyHudAndPlayerContact()
     std::cout << "PASS: HUD values, threshold, direction; player/base contact at 30/60/120fps\n";
 }
 
+/// <summary>描画なしで画面外条件・上限到達・探索時の供給・占有寿命を実生成経路で検証する。</summary>
+void VerifyOffscreenSpawning()
+{
+    gameSystem::AppCtx::Activate();
+    auto& files = gameSystem::AppCtx::FileSystem();
+    const auto source = files.jsonIO.Load("ProjectName/resources/data/EnemySpawnConfig.json");
+    const auto questData = files.jsonIO.Load("ProjectName/resources/data/Quests/Pilgrim.json");
+    // 新しい入力境界だけを確認し、旧比較の検証は既存テストへ任せる。
+    for (const auto& invalid : {json{{"mode", "offscreen"}, {"limit", 21}},
+        json{{"mode", "offscreen"}, {"limit", 10.5}}, json{{"mode", "unknown"}},
+        json{{"mode", "classic"}, {"limit", 20}}})
+    {
+        auto data = questData;
+        data["enemySpawn"] = invalid;
+        bool rejected = false;
+        try { quest::QuestConfig::FromJson(data).BuildSpawnConfig(source); }
+        catch (const std::exception&) { rejected = true; }
+        require(rejected, "Invalid density override rejected at loading boundary");
+    }
+    const auto enemies = files.jsonIO.Load("ProjectName/resources/data/EnemyConfig.json");
+    const auto enemy = combat::EnemyConfig::FromJson(enemies);
+    const auto world = ReadStageConfig();
+    auto& dt = const_cast<float&>(gameSystem::FrameRate::GetDeltaTime());
+    const float previousDt = dt;
+    auto& camera = gameSystem::Camera::Instance();
+    for (int limit : {10,20}) for (int fps : {30,60,120})
+    {
+        auto config = quest::QuestConfig::FromJson(questData).BuildSpawnConfig(source);
+        config.limit = limit;
+        config.Validate();
+        dt = 1.0f / fps;
+        object::ObjectManager objects;
+        // 負荷fixtureだけHPを回復し続け、敗北で測定が途切れないようにする。
+        auto base = std::make_shared<object::MovingBase>(world, 1000, 1000);
+        objects.AddInitializedObject(base);
+        object::EnemySpawner spawner(config, enemy, {world.WorldWidth, world.WorldHeight}, &enemies.at("alphaTypes"));
+        math::Vector2f tracking = base->Center();
+        camera.SetWorldSize({world.WorldWidth, world.WorldHeight});
+        camera.SetTarget(&tracking, true);
+        camera.Update();
+        std::vector<uint64_t> observed;
+        size_t maximum = 0, generated = 0;
+        double totalUpdate = 0, maxUpdate = 0, totalSpawn = 0;
+        for (int frame = 0; frame < fps * 60; ++frame)
+        {
+            const auto start = std::chrono::steady_clock::now();
+            objects.Update();
+            base->Repair();
+            tracking = base->Center();
+            camera.Update();
+            const auto updated = std::chrono::steady_clock::now();
+            const auto view = camera.VisibleRect();
+            spawner.Update(dt, objects, *base, tracking);
+            const auto spawned = std::chrono::steady_clock::now();
+            const double ms = std::chrono::duration<double,std::milli>(updated-start).count();
+            totalUpdate += ms;
+            maxUpdate = std::max(maxUpdate, ms);
+            totalSpawn += std::chrono::duration<double,std::milli>(spawned-updated).count();
+            const auto active = objects.GetObjForTag(object::ENEMY);
+            maximum = std::max(maximum, active.size());
+            require(active.size() <= size_t(config.LimitAt((frame+1.0)/fps)) && spawner.OccupiedSlots() <= size_t(limit),
+                "Offscreen live and occupied counts stay within limits");
+            for (const auto& object : active)
+            {
+                auto instance = std::dynamic_pointer_cast<object::Enemy>(object);
+                if (std::find(observed.begin(), observed.end(), instance->TargetId()) != observed.end()) continue;
+                observed.push_back(instance->TargetId());
+                ++generated;
+                auto visual = enemy;
+                visual.look = combat::EnemyConfig::Look::Normal;
+                require(spawnPosition::Outside(instance->Center(), visual, view), "Every generated sprite is fully offscreen");
+                require(instance->Center().Distance(tracking) >= spawnPosition::PlayerClearance,
+                    "Every generated enemy respects player clearance");
+            }
+        }
+        require(maximum == size_t(limit), "Dedicated 60 second fixture reaches target live count");
+        // 所有参照の残る撃破個体は生存数から消えても占有する。解放後だけ枠を返す。
+        auto held = std::dynamic_pointer_cast<object::Enemy>(objects.GetObjForTag(object::ENEMY).front());
+        std::weak_ptr<object::Enemy> weak = held;
+        const auto occupied = spawner.OccupiedSlots();
+        held->TakeDamage(1000);
+        objects.RefreshObjects();
+        require(spawner.OccupiedSlots() == occupied && !held->CanBeAttacked(), "Retained dead object still occupies its slot");
+        held.reset();
+        require(weak.expired() && spawner.OccupiedSlots() == occupied-1, "Last owner releases pool slot");
+        std::cout << "Offscreen " << fps << "fps cap=" << limit << " maxLive=" << maximum << " generated=" << generated
+            << " updateMean=" << totalUpdate/(fps*60) << "ms updateMax=" << maxUpdate
+            << "ms spawnMean=" << totalSpawn/(fps*60) << "ms (no drawing, repaired base)\n";
+        camera.ClearTarget(&tracking);
+    }
+    // 探索時はカメラを拠点から離す。世界四隅でも成立する候補だけを生成する。
+    for (const auto target : {math::Vector2f{16,16}, {16368,16}, {16,4080}, {16368,4080}, {2368,2568}})
+    {
+        object::ObjectManager objects;
+        auto base = std::make_shared<object::MovingBase>(world);
+        objects.AddInitializedObject(base);
+        auto tracking = target;
+        camera.SetTarget(&tracking, true);
+        camera.Update();
+        const auto config = quest::QuestConfig::FromJson(questData).BuildSpawnConfig(source);
+        object::EnemySpawner spawner(config, enemy, {world.WorldWidth, world.WorldHeight}, &enemies.at("alphaTypes"));
+        bool generated = false;
+        for (int frame = 0; frame < 360; ++frame)
+            generated = spawner.Update(1.0f/60, objects, *base, tracking) || generated;
+        require(generated, "Exploration and world corners retain offscreen route candidates");
+        for (const auto& entry : objects.GetObjForTag(object::ENEMY))
+        {
+            const auto instance = std::dynamic_pointer_cast<object::Enemy>(entry);
+            auto visual = enemy; visual.look = combat::EnemyConfig::Look::Normal;
+            require(spawnPosition::Outside(instance->Center(), visual, camera.VisibleRect()), "Corner spawning stays outside view");
+        }
+        camera.ClearTarget(&tracking);
+    }
+    // 画面がマップ全体を覆う条件では、画面内へ救済生成しない。
+    {
+        object::ObjectManager objects;
+        auto small = world; small.WorldWidth = 640; small.WorldHeight = 480; small.BaseCenter = {320,240};
+        auto base = std::make_shared<object::MovingBase>(small);
+        objects.AddInitializedObject(base);
+        math::Vector2f tracking{320,240};
+        camera.SetWorldSize({640,480}); camera.SetTarget(&tracking,true); camera.Update();
+        auto config = quest::QuestConfig::FromJson(questData).BuildSpawnConfig(source);
+        object::EnemySpawner spawner(config, enemy, {640,480}, &enemies.at("alphaTypes"));
+        require(!spawner.Update(3, objects, *base, tracking) && spawner.OccupiedSlots() == 0,
+            "No valid offscreen location skips the opportunity");
+        camera.ClearTarget(&tracking);
+    }
+    dt = previousDt;
+    gameSystem::AppCtx::Deactivate();
+}
+
 /// <summary>既存処理を用いて、このテストが担当する回帰条件を検証する。</summary>
 /// <returns>全条件が成功すると0。不成立時はrequireから終了コード1で終了する。</returns>
 int main() try
@@ -1408,6 +1551,7 @@ int main() try
     VerifyStagedCount();
     VerifyBalanceSet();
     VerifyEnemySpawning();
+    VerifyOffscreenSpawning();
     // UIManager経由の再利用要素とClear後の値リセットを検証する。描画は手動確認する。
     ui::UIManager hudManager;
     const auto labelID = hudManager.Create<ui::TextLabel>("HP 50%");
