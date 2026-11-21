@@ -34,18 +34,30 @@ export namespace object
         /// <summary>段階ごとの生存上限を返す。</summary>
         /// <param name="time">予約期限のゲーム秒。</param>
         /// <returns>画面外モードは6→10→設定上限、旧比較は固定上限。</returns>
-        int LimitAt(double time) const { return offscreen ? (std::min)(limit, time < 10 ? 6 : time < 30 ? 10 : limit) : limit; }
+        int LimitAt(double time) const
+        {
+            if (!offscreen) return limit;
+            if (time < 10) return (std::min)(limit, 6);
+            if (time < 30) return (std::min)(limit, 10);
+            return limit;
+        }
         /// <summary>寿命のある個体の保持枠数を返す。</summary>
         /// <returns>旧比較は12、画面外モードは10または20。</returns>
-        size_t PoolCapacity() const { return offscreen ? size_t(limit) : 12; }
+        size_t PoolCapacity() const
+        {
+            if (offscreen) return size_t(limit);
+            return 12;
+        }
         /// <summary>有限値・整数上限と承認範囲を確認する。</summary>
         void Validate() const
         {
-            // 非有限値や委任範囲外の値は、暗黙に補正せず設定エラーとして通知する。
-            if (!std::isfinite(interval) || interval < 3 || interval > 6 ||
-                !std::isfinite(firstDelay) || firstDelay < 2 || firstDelay > 5 ||
-                !std::isfinite(distance) || distance < 384 || distance > 640 || limit < 6 || limit > (offscreen ? 20 : 12))
-                throw std::runtime_error("EnemySpawnConfig: outside DEC-03 approval");
+            // 読込時だけ検証する。補正して比較条件を変えず、原因の項目を通知する。
+            if (!std::isfinite(interval) || interval < 3 || interval > 6)
+                throw std::runtime_error("EnemySpawnConfig: interval must be 3..6 seconds");
+            if (!std::isfinite(firstDelay) || firstDelay < 2 || firstDelay > 5)
+                throw std::runtime_error("EnemySpawnConfig: firstDelay must be 2..5 seconds");
+            if (!std::isfinite(distance) || distance < 384 || distance > 640)
+                throw std::runtime_error("EnemySpawnConfig: distance must be 384..640 units");
             if (offscreen)
             {
                 if (limit != 10 && limit != 20) throw std::runtime_error("Offscreen mode requires limit 10 or 20");
@@ -53,6 +65,8 @@ export namespace object
                     throw std::runtime_error("Offscreen mode cannot mix comparison presets");
                 return;
             }
+            if (limit < 6 || limit > 12)
+                throw std::runtime_error("EnemySpawnConfig: classic limit must be 6..12");
             // #19の個別復帰はHP30/20のみ。候補の共通値を他の調整と混在させない。
             if (healthOverride && ((*healthOverride != 20 && *healthOverride != 30) ||
                 interval != 4 || firstDelay != 3 || distance != 480 || limit != 8))
@@ -65,15 +79,32 @@ export namespace object
         /// <summary>処理フレームではなく予約期限から、この機会の生成数上限を決める。</summary>
         /// <param name="due">新規Play開始からの予約期限（ゲーム秒）。</param>
         /// <returns>基準・C0は1、C1の20秒以降は2。画面外は10/30秒で1→2→3。</returns>
-        int CountAt(double due) const { return offscreen ? (due < 10 ? 1 : due < 30 ? 2 : 3) : (stagedCount && due >= 20 ? 2 : 1); }
+        int CountAt(double due) const
+        {
+            if (offscreen)
+            {
+                if (due < 10) return 1;
+                if (due < 30) return 2;
+                return 3;
+            }
+            if (stagedCount && due >= 20) return 2;
+            return 1;
+        }
         /// <summary>予約期限が属する区間の間隔を返す。境界通過だけでは予約を変更しない。</summary>
         /// <param name="time">新規Play開始からのゲーム秒数。</param>
         /// <returns>次回予約の秒数。画面外は10/30秒で基本間隔の1/2→1/4→1/8。旧候補は20/40秒で3/2.5秒。</returns>
         double IntervalAt(double time) const
         {
-            if (offscreen) return interval / (time < 10 ? 2.0 : time < 30 ? 4.0 : 8.0);
+            if (offscreen)
+            {
+                if (time < 10) return interval / 2.0;
+                if (time < 30) return interval / 4.0;
+                return interval / 8.0;
+            }
             if (!stagedIntervals) return interval;
-            return time >= 40 ? 2.5 : time >= 20 ? 3.0 : 4.0;
+            if (time >= 40) return 2.5;
+            if (time >= 20) return 3.0;
+            return 4.0;
         }
         /// <summary>新規Play開始時にJSONを検証して読み込む。</summary>
         /// <param name="data">出現設定オブジェクト。</param>
