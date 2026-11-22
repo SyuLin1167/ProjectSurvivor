@@ -109,7 +109,13 @@ namespace scene
         if (m_drops)
         {
             m_drops->Collect(FrameRate::GetDeltaTime(), *m_player, *m_base);
-            if (const auto position = m_player->TakeKillPosition()) m_drops->Roll(*position);
+        }
+        m_experience.Update(FrameRate::GetDeltaTime(), m_player->Center());
+        // 撃破通知を一度だけ消費し、経験値と従来の特殊アイテムへ振り分ける。
+        if (const auto position = m_player->TakeKillPosition())
+        {
+            m_experience.Add(*position);
+            if (m_drops) m_drops->Roll(*position);
         }
         m_base->CheckPickup(m_player->Center(), m_player->pData.size);
         m_spawner.Update(FrameRate::GetDeltaTime(), *m_objManager, *m_base, m_player->Center());
@@ -129,7 +135,9 @@ namespace scene
         if (m_showNearestEnemy) hud.toEnemy = ui::NearestEnemyOffset(*m_objManager, m_base->Center());
         m_hud.SetValues(hud, {Camera::Instance().WorldToScreen(m_base->Center() - m_base->Size().Half()), m_base->Size()});
         if (m_drops) m_drops->DrawField();
+        m_experience.DrawField();
         m_hud.Draw();
+        m_experience.DrawStatus();
         if (m_drops) m_drops->DrawStatus(m_player->BoostSeconds());
         m_base->DrawExploration(ui::PlayHudPanel(m_showNearestEnemy));
     }

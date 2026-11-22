@@ -20,6 +20,7 @@ import Object.Player;
 import Scene.StageConfig;
 import Quest.QuestCatalog;
 import Object.CombatDrops;
+import Object.ExperienceDrops;
 import Object.PlayerAttackConfig;
 import <algorithm>;
 import Object.EnemyConfig;
@@ -333,6 +334,12 @@ void VerifyAutoAttack()
         require(killed.expired() && objects.GetObjForTag(object::ENEMY).size() == 1,
             "Lethal damage releases enemy through RefreshObjects");
         require(second->Health() == 30, "One attack hits one target only");
+        const auto experiencePosition = player->TakeKillPosition();
+        require(experiencePosition.has_value() && !player->TakeKillPosition(), "Kill feeds experience once in classic mode");
+        object::ExperienceDrops experience;
+        experience.Add(*experiencePosition);
+        experience.Update(1, player->Center());
+        require(experience.Total() == 1, "Actual kill to magnetic experience pickup");
         dt = 3;
         objects.Update();
         require(second->Health() == 20, "Long stall fires only once");
@@ -1538,6 +1545,41 @@ void VerifyOffscreenSpawning()
 
 /// <summary>既存処理を用いて、このテストが担当する回帰条件を検証する。</summary>
 /// <returns>全条件が成功すると0。不成立時はrequireから終了コード1で終了する。</returns>
+/// <summary>磁石の境界・停止・行き過ぎ・合算と新規試行の初期値を確認する。</summary>
+void VerifyExperienceDrops()
+{
+    for (int fps : {30, 60, 120})
+    {
+        object::ExperienceDrops drops;
+        drops.Add({160, 0});
+        drops.Add({161, 0});
+        drops.Update(0, {});
+        require(drops.Count() == 2 && drops.Total() == 0, "XP pause preserves state");
+        for (int frame = 0; frame < fps; ++frame) drops.Update(1.0f / fps, {});
+        require(drops.Total() == 1 && drops.Count() == 1, "XP inclusive magnet boundary and outside");
+        drops.Update(1.0f / fps, {161, 0});
+        require(drops.Total() == 2 && drops.Count() == 0, "XP coincident pickup without normalization");
+        drops.Add({100, 0});
+        drops.Update(1, {});
+        drops.Update(1, {});
+        require(drops.Total() == 3 && drops.Count() == 0, "XP overshoot and duplicate prevention");
+    }
+    object::ExperienceDrops moving;
+    moving.Add({160, 0});
+    moving.Update(1.0f / 60, {});
+    // 吸引開始後にプレイヤーが離れても追従し、二度目の範囲進入を要求しない。
+    moving.Update(2, {-500, 0});
+    require(moving.Total() == 1 && moving.Count() == 0, "XP attraction persists outside magnet");
+    object::ExperienceDrops full;
+    for (int i = 0; i < 300; ++i) full.Add({0, 0});
+    require(full.Count() == 256, "XP bounded storage");
+    full.Update(1.0f / 60, {});
+    require(full.Total() == 300 && full.Count() == 0, "XP cap merge preserves reward");
+    object::ExperienceDrops fresh;
+    require(fresh.Total() == 0 && fresh.Count() == 0, "XP fresh trial resets all state");
+    std::cout << "PASS: experience magnet, pickup, pause, cap and fresh trial\n";
+}
+
 int main() try
 {
     VerifyCategoryLifetime();
@@ -1552,6 +1594,7 @@ int main() try
     VerifyBalanceSet();
     VerifyEnemySpawning();
     VerifyOffscreenSpawning();
+    VerifyExperienceDrops();
     // UIManager経由の再利用要素とClear後の値リセットを検証する。描画は手動確認する。
     ui::UIManager hudManager;
     const auto labelID = hudManager.Create<ui::TextLabel>("HP 50%");
