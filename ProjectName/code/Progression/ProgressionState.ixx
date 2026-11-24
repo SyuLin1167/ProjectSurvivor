@@ -29,11 +29,12 @@ export namespace progression
             return config;
         }
     };
-    /// <summary>経験値残高・レベル・未選択回数・強化回数をPlayの寿命で所有する。</summary>
+    /// <summary>経験値残高・累計・レベル・未選択回数・強化回数を遠征の寿命で所有する。</summary>
     class ProgressionState
     {
         Config m_config;
         uint64_t m_xp = 0; // 次のレベルへ消費する残高。Lv5では余剰XP。
+        uint64_t m_totalXp = 0; // 区間を跨ぐ取得累計。レベルアップで消費しない。
         int m_level = 1, m_pending = 0, m_selected = 0;
         std::array<int, 4> m_ranks{}; // 各4回まで。全試行の選択自体も最大4回。
     public:
@@ -45,6 +46,7 @@ export namespace progression
         void AddExperience(uint64_t amount)
         {
             m_xp += amount;
+            m_totalXp += amount;
             while (m_level < 5 && m_xp >= NextRequired())
             {
                 m_xp -= NextRequired();
@@ -83,6 +85,9 @@ export namespace progression
         /// <summary>次レベル用の残高を返す。</summary>
         /// <returns>消費後XP。</returns>
         uint64_t Xp() const { return m_xp; }
+        /// <summary>遠征全体での取得累計を返す。</summary>
+        /// <returns>消費前の累計XP。</returns>
+        uint64_t TotalXp() const { return m_totalXp; }
         /// <summary>次の必要XPを返す。</summary>
         /// <returns>Lv5では0。</returns>
         uint64_t NextRequired() const

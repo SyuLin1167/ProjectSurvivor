@@ -3,6 +3,7 @@
 module Scene.QuestSelect;
 import Scene.Title;
 import Scene.Play;
+import Expedition.ExpeditionState;
 import Quest.QuestText;
 import UI.Button;
 import MyLib.Shape.Rect;
@@ -77,10 +78,12 @@ namespace scene
             selected.initialHealth, selected.maxHealth);
         // 間隔の指定がある場合は秒数を示し、省略時は基本設定を継承することを表示する。
         if (selected.spawnMode == "offscreen")
-            DrawFormatString(640, 690, GetColor(255, 255, 255), "画面外から段階生成 / 同時上限 %d体", selected.spawnLimit.value_or(20));
+            DrawFormatString(640, 690, GetColor(255, 255, 255), "画面外から段階生成 / 同時上限 %d体", selected.spawnLimit.value_or(12));
         else if (selected.spawnInterval)
             DrawFormatString(640, 690, GetColor(255, 255, 255), "敵生成間隔：%.1f秒", *selected.spawnInterval);
         else DrawString(640, 690, "敵生成条件：基本設定を継承", GetColor(255, 255, 255));
+        DrawFormatString(640, 730, GetColor(255, 238, 188), "遠征：全%d区間 / 中継でHP・成長を引き継ぎ",
+            expedition::ExpeditionState::SectionCount);
         // このシーンが所有するボタンを最後に描画し、詳細表示の上から操作できるようにする。
         m_ui.Draw();
     }

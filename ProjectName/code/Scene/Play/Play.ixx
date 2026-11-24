@@ -11,6 +11,7 @@ import Object.Player;
 import Object.CombatDrops;
 import Object.ExperienceDrops;
 import Progression.ProgressionState;
+import Expedition.ExpeditionState;
 import Object.EnemySpawner;
 import <optional>;
 
@@ -30,6 +31,9 @@ export namespace scene
         /// </summary>
         /// @param id 出発前に選んだ依頼。
         explicit Play(std::string id);
+        /// <summary>中継から渡された遠征値で、新しい区間オブジェクトを構築する。</summary>
+        /// <param name="state">区間番号が更新済みの成長・HP。</param>
+        explicit Play(expedition::ExpeditionState state);
 
         /// <summary>
         /// 初期化処理
@@ -52,15 +56,24 @@ export namespace scene
         /// <returns>LoadingSceneへ置き換えるコマンド。</returns>
         /// @param id 新規試行に引き継ぐ依頼。
         static SceneCmd Start(std::shared_ptr<SceneBase> hold, std::string id);
+        /// <summary>成長やHPを再初期化せず、次区間を共通LoadingScene経由で生成する。</summary>
+        /// <param name="hold">読込中に表示する中継地点。</param>
+        /// <param name="state">開始する区間の遠征値。</param>
+        /// <returns>LoadingSceneへの置換。</returns>
+        static SceneCmd Continue(std::shared_ptr<SceneBase> hold, expedition::ExpeditionState state);
+        /// <summary>現在HPを反映した遠征スナップショットを作る。オブジェクト参照を渡さない。</summary>
+        /// <returns>区間遷移先が所有できる値。</returns>
+        expedition::ExpeditionState Snapshot() const;
 
     private:
         /// @brief 同じ試行の設定で必須オブジェクトを登録する。
         /// @param world 検証済みのステージ設定。
-        /// @param selected 今回の依頼定義。
-        Play(const stage::StageConfig& world, quest::QuestConfig selected);
-        progression::ProgressionState m_growth;
+        /// @param state 今回の遠征値。
+        Play(const stage::StageConfig& world, expedition::ExpeditionState state);
+        /// <summary>選択済みの成長倍率をPlayerと磁石へ反映する。初期化後と選択後に呼ぶ。</summary>
+        void ApplyGrowth();
+        expedition::ExpeditionState m_expedition;
         bool m_growthDirty = false; // 選択後の再開でだけ既存能力を更新する。
-        const quest::QuestConfig m_quest;
         ui::PlayHud m_hud;
         StageState m_stage;
         object::EnemySpawner m_spawner;

@@ -7,6 +7,7 @@ import MyLib.KeyStatus;
 import Scene.Title;
 import Scene.Result;
 import Scene.LevelUp;
+import Scene.Relay;
 import GameSystem.Window;
 import Scene.LoadingScene;
 import UI.PlayHud;
@@ -56,16 +57,18 @@ namespace scene
         }
     }
 
-    Play::Play(std::string id) : Play(LoadConfig<stage::StageConfig>("Phase1Config"), quest::FindQuest(id)) {}
+    Play::Play(std::string id) : Play(expedition::ExpeditionState(quest::FindQuest(id), LoadConfig<progression::Config>("ProgressionConfig"))) {}
 
-    Play::Play(const stage::StageConfig& world, quest::QuestConfig selected)
-        : m_growth(LoadConfig<progression::Config>("ProgressionConfig")), m_quest(selected), m_stage(world.BaseCenter.x, world.TrialEndX), m_spawner(CreateSpawner(world, selected)),
+    Play::Play(expedition::ExpeditionState state) : Play(LoadConfig<stage::StageConfig>("Phase1Config"), std::move(state)) {}
+
+    Play::Play(const stage::StageConfig& world, expedition::ExpeditionState state)
+        : m_expedition(std::move(state)), m_stage(world.BaseCenter.x, world.TrialEndX), m_spawner(CreateSpawner(world, m_expedition.quest)),
           m_showNearestEnemy(world.showNearestEnemy)
     {
         m_player = new object::Player(world, LoadConfig<combat::PlayerAttackConfig>("PlayerAttackConfig"));
         m_objManager->AddObject(m_player);
         m_objManager->AddObject(new object::Map(world));
-        m_base = new object::MovingBase(world, m_quest.initialHealth, m_quest.maxHealth);
+        m_base = new object::MovingBase(world, m_expedition.health, m_expedition.maxHealth);
         m_objManager->AddObject(m_base);
         if (world.alphaCombat)
         {
@@ -77,6 +80,7 @@ namespace scene
     void Play::Init()
     {
         m_objManager->InitBeforeUpdate();
+        ApplyGrowth();
         // 全Object初期化後にカメラを合わせ、ロード時間をプレイへ持ち越さない。
         Camera::Instance().Update();
         FrameRate::ResetSimulationTime();
@@ -90,22 +94,44 @@ namespace scene
         } };
     }
 
+    SceneCmd Play::Continue(std::shared_ptr<SceneBase> hold, expedition::ExpeditionState state)
+    {
+        return CmdReplace{ [hold = std::move(hold), state = std::move(state)]() mutable {
+            return std::make_shared<LoadingScene>(LoadPolicy::PROGRESS,
+                [state]() { return std::make_shared<Play>(state); }, std::move(hold));
+        } };
+    }
+
+    expedition::ExpeditionState Play::Snapshot() const
+    {
+        auto state = m_expedition;
+        state.health = m_base->Health();
+        state.maxHealth = m_base->MaxHealth();
+        return state;
+    }
+
+    void Play::ApplyGrowth()
+    {
+        // Playerのコンポーネント生成後に適用し、区間再開でも基礎値から一度だけ計算する。
+        m_player->ApplyProgression(m_expedition.growth);
+        m_experience.SetMagnetRadius(object::ExperienceDrops::MagnetRadius *
+            m_expedition.growth.Multiplier(progression::Upgrade::Magnet));
+        m_growthDirty = false;
+    }
+
     SceneCmd Play::Update()
     {
         // 結果確定後に再度Updateが呼ばれても、攻撃・移動・遷移を繰り返さない。
         if (m_stage.Finished()) return std::monostate{};
         // 複数レベルの未選択分はシミュレーションを挟まず順番に選ぶ。
-        if (m_growth.Pending() > 0)
+        if (m_expedition.growth.Pending() > 0)
         {
             m_growthDirty = true;
-            return CmdPush{ [this] { return std::make_shared<LevelUp>(m_growth); } };
+            return CmdPush{ [this] { return std::make_shared<LevelUp>(m_expedition.growth); } };
         }
         if (m_growthDirty)
         {
-            m_player->ApplyProgression(m_growth);
-            m_experience.SetMagnetRadius(object::ExperienceDrops::MagnetRadius *
-                m_growth.Multiplier(progression::Upgrade::Magnet));
-            m_growthDirty = false;
+            ApplyGrowth();
         }
         // オブジェクト更新
         m_objManager->Update();
@@ -113,9 +139,13 @@ namespace scene
         // Stepの接触被害とLateUpdateがすべて反映された後に判定する。
         const auto end = m_stage.Advance(m_base->Center().x, m_base->Health(),
             input::KeyStatus::CheckKey(keyType.R, ON_PRESS));
+        if (end == StageEnd::Success && !m_expedition.IsFinalSection())
+            return CmdReplace{ [state = Snapshot()] {
+                return std::make_shared<Relay>(state);
+            } };
         if (end == StageEnd::Success || end == StageEnd::Defeat)
-            return CmdReplace{ [result = m_stage.ResultValue(), selected = m_quest, maxHealth = m_base->MaxHealth()]() {
-                return std::make_shared<Result>(result, selected, maxHealth);
+            return CmdReplace{ [result = m_stage.ResultValue(), state = Snapshot()] {
+                return std::make_shared<Result>(result, state);
             } };
         if (end == StageEnd::Aborted)
             return CmdReplace{ []() { return std::make_shared<Title>(); } };
@@ -132,12 +162,12 @@ namespace scene
             m_experience.Add(*position);
             if (m_drops) m_drops->Roll(*position);
         }
-        m_growth.AddExperience(m_experience.TakeExperience());
+        m_expedition.growth.AddExperience(m_experience.TakeExperience());
         SceneCmd next;
-        if (m_growth.Pending() > 0)
+        if (m_expedition.growth.Pending() > 0)
         {
             m_growthDirty = true;
-            next = CmdPush{ [this] { return std::make_shared<LevelUp>(m_growth); } };
+            next = CmdPush{ [this] { return std::make_shared<LevelUp>(m_expedition.growth); } };
         }
         // Pushはフレーム終端に適用する。既に進めた移動と生成時計のdtを一致させる。
         m_base->CheckPickup(m_player->Center(), m_player->pData.size);
@@ -159,14 +189,17 @@ namespace scene
         if (m_drops) m_drops->DrawField();
         m_experience.DrawField();
         m_hud.Draw();
-        m_experience.DrawStatus();
         const int growthY = int(Window::GetWindowData()->SIZE.y) - 58;
-        if (m_growth.Level() == 5)
+        DrawFormatString(18, growthY, GetColor(90,220,255), "TOTAL XP: %llu",
+            static_cast<unsigned long long>(m_expedition.growth.TotalXp()));
+        DrawFormatString(480, growthY, GetColor(230,230,230), "SECTION %d / %d",
+            m_expedition.section, m_expedition.SectionCount);
+        if (m_expedition.growth.Level() == 5)
             DrawString(180, growthY, "Lv.5 MAX", GetColor(90,220,255));
         else
             DrawFormatString(180, growthY, GetColor(90,220,255), "Lv.%d  NEXT %llu / %llu",
-                m_growth.Level(), static_cast<unsigned long long>(m_growth.Xp()),
-                static_cast<unsigned long long>(m_growth.NextRequired()));
+                m_expedition.growth.Level(), static_cast<unsigned long long>(m_expedition.growth.Xp()),
+                static_cast<unsigned long long>(m_expedition.growth.NextRequired()));
         if (m_drops) m_drops->DrawStatus(m_player->BoostSeconds());
         m_base->DrawExploration(ui::PlayHudPanel(m_showNearestEnemy));
     }
