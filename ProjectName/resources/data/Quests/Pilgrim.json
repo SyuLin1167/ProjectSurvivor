@@ -7,6 +7,6 @@
   "maxHealth": 120,
   "enemySpawn": {
     "mode": "offscreen",
-    "limit": 20
+    "limit": 12
   }
 }

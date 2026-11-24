@@ -33,16 +33,16 @@ export namespace object
         bool offscreen = false; // 画面外の段階生成。旧比較はfalse。
         /// <summary>段階ごとの生存上限を返す。</summary>
         /// <param name="time">予約期限のゲーム秒。</param>
-        /// <returns>画面外モードは6→10→設定上限、旧比較は固定上限。</returns>
+        /// <returns>画面外モードは6→8→設定上限、旧比較は固定上限。</returns>
         int LimitAt(double time) const
         {
             if (!offscreen) return limit;
-            if (time < 10) return (std::min)(limit, 6);
-            if (time < 30) return (std::min)(limit, 10);
+            if (time < 20) return (std::min)(limit, 6);
+            if (time < 45) return (std::min)(limit, 8);
             return limit;
         }
         /// <summary>寿命のある個体の保持枠数を返す。</summary>
-        /// <returns>旧比較は12、画面外モードは10または20。</returns>
+        /// <returns>旧比較は12、画面外モードは設定上限（配布12、将来用20にも対応）。</returns>
         size_t PoolCapacity() const
         {
             if (offscreen) return size_t(limit);
@@ -60,7 +60,7 @@ export namespace object
                 throw std::runtime_error("EnemySpawnConfig: distance must be 384..640 units");
             if (offscreen)
             {
-                if (limit != 10 && limit != 20) throw std::runtime_error("Offscreen mode requires limit 10 or 20");
+                if (limit != 10 && limit != 12 && limit != 20) throw std::runtime_error("Offscreen mode requires limit 10, 12 or 20");
                 if (stagedIntervals || stagedCount || healthOverride)
                     throw std::runtime_error("Offscreen mode cannot mix comparison presets");
                 return;
@@ -78,28 +78,27 @@ export namespace object
         }
         /// <summary>処理フレームではなく予約期限から、この機会の生成数上限を決める。</summary>
         /// <param name="due">新規Play開始からの予約期限（ゲーム秒）。</param>
-        /// <returns>基準・C0は1、C1の20秒以降は2。画面外は10/30秒で1→2→3。</returns>
+        /// <returns>基準・C0は1、C1の20秒以降は2。画面外は45秒から1→2。</returns>
         int CountAt(double due) const
         {
             if (offscreen)
             {
-                if (due < 10) return 1;
-                if (due < 30) return 2;
-                return 3;
+                if (due < 45) return 1;
+                return 2;
             }
             if (stagedCount && due >= 20) return 2;
             return 1;
         }
         /// <summary>予約期限が属する区間の間隔を返す。境界通過だけでは予約を変更しない。</summary>
         /// <param name="time">新規Play開始からのゲーム秒数。</param>
-        /// <returns>次回予約の秒数。画面外は10/30秒で基本間隔の1/2→1/4→1/8。旧候補は20/40秒で3/2.5秒。</returns>
+        /// <returns>次回予約の秒数。画面外は20/45秒で2.5→2→1.5秒。旧候補は20/40秒で3/2.5秒。</returns>
         double IntervalAt(double time) const
         {
             if (offscreen)
             {
-                if (time < 10) return interval / 2.0;
-                if (time < 30) return interval / 4.0;
-                return interval / 8.0;
+                if (time < 20) return 2.5;
+                if (time < 45) return 2.0;
+                return 1.5;
             }
             if (!stagedIntervals) return interval;
             if (time >= 40) return 2.5;
@@ -153,7 +152,7 @@ export namespace object
         /// <param name="worldSize">マップの幅・高さ（u）。</param>
         /// <param name="variants">Alphaの敵種定義。構築中だけ使用する。</param>
         EnemySpawner(EnemySpawnConfig config, combat::EnemyConfig enemy, math::Vector2f worldSize, const json* variants = nullptr);
-        /// <summary>継続中のフレーム末尾で1機会を処理し、設定に応じ最大3体を生成する。見送り分は蓄積しない。</summary>
+        /// <summary>継続中のフレーム末尾で1機会を処理し、設定に応じ最大2体を生成する。見送り分は蓄積しない。</summary>
         /// <param name="dt">共通ゲーム経過秒数。停止中は0。</param>
         /// <param name="manager">更新・Stepが完了したシーンの管理。</param>
         /// <param name="base">存続中の拠点。終了判定は呼び出し側で先に行う。</param>

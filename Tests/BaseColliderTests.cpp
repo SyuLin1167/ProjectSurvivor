@@ -699,6 +699,8 @@ void VerifyStageEnd()
         auto data = files.jsonIO.Load(path);
         require(quest::QuestConfig::FromJson(data).BuildSpawnConfig(spawnSource).offscreen,
             "Both shipped quests select offscreen spawning");
+        require(quest::QuestConfig::FromJson(data).BuildSpawnConfig(spawnSource).limit == 12,
+            "Both shipped quests use twelve enemy cap");
         data["enemySpawn"] = nlohmann::json::object();
         files.jsonIO.Write(path, data);
     }
@@ -1424,6 +1426,17 @@ void VerifyOffscreenSpawning()
     auto& files = gameSystem::AppCtx::FileSystem();
     const auto source = files.jsonIO.Load("ProjectName/resources/data/EnemySpawnConfig.json");
     const auto questData = files.jsonIO.Load("ProjectName/resources/data/Quests/Pilgrim.json");
+    const auto shipped = quest::QuestConfig::FromJson(questData).BuildSpawnConfig(source);
+    // 区間境界の直前・一致時で値を検証する。予約済み時刻は生成時計が保持する。
+    for (double time : {0.0, 19.999, 20.0, 44.999, 45.0, 60.0})
+    {
+        double interval = 2.5;
+        int count = 1, limit = 6;
+        if (time >= 20) { interval = 2; limit = 8; }
+        if (time >= 45) { interval = 1.5; count = 2; limit = 12; }
+        require(shipped.IntervalAt(time) == interval && shipped.CountAt(time) == count && shipped.LimitAt(time) == limit,
+            "Offscreen approved stage boundaries");
+    }
     // 新しい入力境界だけを確認し、旧比較の検証は既存テストへ任せる。
     for (const auto& invalid : {json{{"mode", "offscreen"}, {"limit", 21}},
         json{{"mode", "offscreen"}, {"limit", 10.5}}, json{{"mode", "unknown"}},
@@ -1442,7 +1455,44 @@ void VerifyOffscreenSpawning()
     auto& dt = const_cast<float&>(gameSystem::FrameRate::GetDeltaTime());
     const float previousDt = dt;
     auto& camera = gameSystem::Camera::Instance();
-    for (int limit : {10,20}) for (int fps : {30,60,120})
+    // 毎機会に敵を除去して上限見送りを避け、実生成時計の予約列を独立した期待値と照合する。
+    for (int fps : {30,60,120})
+    {
+        const std::vector<double> expected{3,5.5,8,10.5,13,15.5,18,20.5,22.5,24.5,26.5,28.5,
+            30.5,32.5,34.5,36.5,38.5,40.5,42.5,44.5,46.5,48,49.5,51,52.5,54,55.5,57,58.5,60};
+        dt = 1.0f / fps;
+        object::ObjectManager objects;
+        // 時刻検証だけは終端を延長し、終端までに接近不能な候補の正常な見送りと分離する。
+        auto scheduleWorld = world;
+        scheduleWorld.TrialEndX = 15000;
+        auto base = std::make_shared<object::MovingBase>(scheduleWorld);
+        objects.AddInitializedObject(base);
+        object::EnemySpawner spawner(shipped, enemy, {world.WorldWidth, world.WorldHeight});
+        auto tracking = base->Center();
+        camera.SetWorldSize({world.WorldWidth, world.WorldHeight});
+        camera.SetTarget(&tracking, true);
+        camera.Update();
+        size_t opportunity = 0;
+        for (int frame = 1; frame <= fps * 60; ++frame)
+        {
+            objects.Update();
+            tracking = base->Center();
+            camera.Update();
+            if (!spawner.Update(dt, objects, *base, tracking)) continue;
+            require(opportunity < expected.size() && std::abs(double(frame)/fps - expected[opportunity]) < 0.001,
+                "Offscreen reservations persist across 20/45 second boundaries at every frame rate");
+            const auto active = objects.GetObjForTag(object::ENEMY);
+            size_t expectedCount = 1;
+            if (expected[opportunity] >= 45) expectedCount = 2;
+            require(active.size() == expectedCount, "Offscreen opportunity uses approved spawn count");
+            ++opportunity;
+            for (const auto& entry : active) std::dynamic_pointer_cast<object::Enemy>(entry)->TakeDamage(1000);
+            objects.RefreshObjects();
+        }
+        require(opportunity == expected.size(), "Offscreen schedule completes without extra boundary spawns");
+        camera.ClearTarget(&tracking);
+    }
+    for (int limit : {10,12,20}) for (int fps : {30,60,120})
     {
         auto config = quest::QuestConfig::FromJson(questData).BuildSpawnConfig(source);
         config.limit = limit;

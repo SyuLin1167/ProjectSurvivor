@@ -18,7 +18,7 @@ export namespace quest
         std::optional<double> spawnInterval; // 秒。省略時は基本生成設定を継承。
 
         std::optional<std::string> spawnMode; // classicなら基準比較、offscreenなら段階生成。
-        std::optional<int> spawnLimit; // offscreenの10/20体条件。
+        std::optional<int> spawnLimit; // offscreenの生存上限（配布12体）。
 
         /// <summary>許可したモード・上限・基本間隔を重ね、最終設定を検証する。</summary>
         /// <param name="base">基本のEnemySpawnConfig JSON。</param>
@@ -33,7 +33,7 @@ export namespace quest
                 {
                     // 旧C1の段階数・周期は新密度と混在させず、基本JSON自体は復帰用に残す。
                     merged["balanceSet"] = "baseline";
-                    merged["limit"] = spawnLimit.value_or(20);
+                    merged["limit"] = spawnLimit.value_or(12);
                 }
             }
             if (spawnInterval) merged["interval"] = *spawnInterval;
@@ -75,8 +75,8 @@ export namespace quest
                 if (!spawn.at("limit").is_number_integer() || c.spawnMode != "offscreen")
                     throw std::runtime_error("QuestConfig: limit requires offscreen mode");
                 c.spawnLimit = spawn.at("limit").get<int>();
-                if (*c.spawnLimit != 10 && *c.spawnLimit != 20)
-                    throw std::runtime_error("QuestConfig: offscreen limit must be 10 or 20");
+                if (*c.spawnLimit != 10 && *c.spawnLimit != 12 && *c.spawnLimit != 20)
+                    throw std::runtime_error("QuestConfig: offscreen limit must be 10, 12 or 20");
             }
             return c;
         }

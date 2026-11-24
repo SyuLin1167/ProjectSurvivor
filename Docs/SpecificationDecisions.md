@@ -185,3 +185,8 @@ Phase 4／#19比較限定。C0/C1はHP20・4秒固定・初回3秒・seed1901・
 ### 任意探索1地点の横距離比較（2026-11-10 JST）
 
 プロジェクトオーナーが比較案Bを限定承認。[比較条件・試遊記録 #44](https://github.com/SyuLin1167/ProjectSurvivor/issues/44)。対象main 39d49a7。新規Playの地点中心は `Phase1Config.json` の `useExplorationDistance520` が false（省略可）ならA (2368,2448)、trueならB (2368,2568)。両条件とも実行用 `EnemySpawnConfig.json` はC1（candidate、HP20、stagedIntervals=false、randomDirections=true、seed=1901、stagedCount=true）。60秒・既存速度・攻撃10・帰還後2回無効化を共通とし、C0は復帰用。520uの採否は比較試遊後の企画判断とする。
+
+### 画面外スポーンのペース緩和（2026-11-24 JST）
+
+プロジェクトオーナー承認、[Issue #68](https://github.com/SyuLin1167/ProjectSurvivor/issues/68)。画面外モードを0〜20秒: 2.5秒/1体/6体、20〜45秒: 2秒/1体/8体、45秒以降: 1.5秒/2体/12体へ調整する。両配布依頼と上限省略時は12体。旧密度への切替は追加せず、20体対応の内部構造・C1比較・安全距離・画面外候補・プール寿命管理は維持する。
+初回3秒と予約時刻処理は維持。区間境界で予約を繰り上げず、予約期限の区間で生成数・上限・次周期を決める。見送りなしなら18→20.5→22.5秒、44.5→46.5→48秒。上限・候補不成立時は従来どおり処理時刻から現在区間の1周期待ち、未生成分を蓄積しない。
