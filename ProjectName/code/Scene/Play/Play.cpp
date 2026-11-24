@@ -6,6 +6,8 @@ module Scene.Play;
 import MyLib.KeyStatus;
 import Scene.Title;
 import Scene.Result;
+import Scene.LevelUp;
+import GameSystem.Window;
 import Scene.LoadingScene;
 import UI.PlayHud;
 import Object.ObjectManager;
@@ -57,7 +59,7 @@ namespace scene
     Play::Play(std::string id) : Play(LoadConfig<stage::StageConfig>("Phase1Config"), quest::FindQuest(id)) {}
 
     Play::Play(const stage::StageConfig& world, quest::QuestConfig selected)
-        : m_quest(selected), m_stage(world.BaseCenter.x, world.TrialEndX), m_spawner(CreateSpawner(world, selected)),
+        : m_growth(LoadConfig<progression::Config>("ProgressionConfig")), m_quest(selected), m_stage(world.BaseCenter.x, world.TrialEndX), m_spawner(CreateSpawner(world, selected)),
           m_showNearestEnemy(world.showNearestEnemy)
     {
         m_player = new object::Player(world, LoadConfig<combat::PlayerAttackConfig>("PlayerAttackConfig"));
@@ -92,6 +94,19 @@ namespace scene
     {
         // 結果確定後に再度Updateが呼ばれても、攻撃・移動・遷移を繰り返さない。
         if (m_stage.Finished()) return std::monostate{};
+        // 複数レベルの未選択分はシミュレーションを挟まず順番に選ぶ。
+        if (m_growth.Pending() > 0)
+        {
+            m_growthDirty = true;
+            return CmdPush{ [this] { return std::make_shared<LevelUp>(m_growth); } };
+        }
+        if (m_growthDirty)
+        {
+            m_player->ApplyProgression(m_growth);
+            m_experience.SetMagnetRadius(object::ExperienceDrops::MagnetRadius *
+                m_growth.Multiplier(progression::Upgrade::Magnet));
+            m_growthDirty = false;
+        }
         // オブジェクト更新
         m_objManager->Update();
 
@@ -117,10 +132,17 @@ namespace scene
             m_experience.Add(*position);
             if (m_drops) m_drops->Roll(*position);
         }
+        m_growth.AddExperience(m_experience.TakeExperience());
+        SceneCmd next;
+        if (m_growth.Pending() > 0)
+        {
+            m_growthDirty = true;
+            next = CmdPush{ [this] { return std::make_shared<LevelUp>(m_growth); } };
+        }
+        // Pushはフレーム終端に適用する。既に進めた移動と生成時計のdtを一致させる。
         m_base->CheckPickup(m_player->Center(), m_player->pData.size);
         m_spawner.Update(FrameRate::GetDeltaTime(), *m_objManager, *m_base, m_player->Center());
-        // 継続
-        return std::monostate{};
+        return next;
     }
 
     void Play::Draw()
@@ -138,6 +160,13 @@ namespace scene
         m_experience.DrawField();
         m_hud.Draw();
         m_experience.DrawStatus();
+        const int growthY = int(Window::GetWindowData()->SIZE.y) - 58;
+        if (m_growth.Level() == 5)
+            DrawString(180, growthY, "Lv.5 MAX", GetColor(90,220,255));
+        else
+            DrawFormatString(180, growthY, GetColor(90,220,255), "Lv.%d  NEXT %llu / %llu",
+                m_growth.Level(), static_cast<unsigned long long>(m_growth.Xp()),
+                static_cast<unsigned long long>(m_growth.NextRequired()));
         if (m_drops) m_drops->DrawStatus(m_player->BoostSeconds());
         m_base->DrawExploration(ui::PlayHudPanel(m_showNearestEnemy));
     }

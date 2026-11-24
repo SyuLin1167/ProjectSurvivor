@@ -8,6 +8,7 @@ import GameSystem.Window;
 import <vector>;
 import <algorithm>;
 import <cstdint>;
+import <utility>;
 
 export namespace object
 {
@@ -22,6 +23,8 @@ export namespace object
             bool attracted = false; // 一度吸引された後は範囲外でも追従を続ける。
         };
         std::vector<Drop> m_drops;
+        uint64_t m_unclaimed = 0;
+        float m_magnetRadius = MagnetRadius;
         uint64_t m_total = 0; // この試行で取得済みのXP。新しいPlayで0に戻る。
     public:
         static constexpr size_t Capacity = 256;
@@ -52,13 +55,14 @@ export namespace object
         void Update(float dt, math::Vector2f playerCenter)
         {
             if (dt <= 0) return; // 非アクティブ停止中は取得も進めない。
-            const shape::Circle magnet{playerCenter, MagnetRadius};
+            const shape::Circle magnet{playerCenter, m_magnetRadius};
             const shape::Circle pickup{playerCenter, PickupRadius};
             std::erase_if(m_drops, [&](Drop& drop) {
                 // 取得円内なら同座標も含め即座に加算し、正規化へ進まない。
                 if (pickup.IsInside(drop.center))
                 {
                     m_total += drop.value;
+                    m_unclaimed += drop.value;
                     return true;
                 }
                 if (!drop.attracted) drop.attracted = magnet.IsInside(drop.center);
@@ -71,6 +75,7 @@ export namespace object
                 else drop.center += delta.Norm() * step;
                 if (!pickup.IsInside(drop.center)) return false;
                 m_total += drop.value;
+                m_unclaimed += drop.value;
                 return true;
             });
         }
@@ -92,10 +97,16 @@ export namespace object
         void DrawStatus() const
         {
             const int y = int(gameSystem::Window::GetWindowData()->SIZE.y) - 58;
-            DrawFormatString(18, y, GetColor(90, 220, 255), "XP: %llu", static_cast<unsigned long long>(m_total));
+            DrawFormatString(18, y, GetColor(90, 220, 255), "TOTAL XP: %llu", static_cast<unsigned long long>(m_total));
         }
-        /// <summary>取得済み経験値を返す。</summary>
-        /// <returns>現在の試行のXP。</returns>
+        /// <summary>今回の成長計算へ未受領XPを一度だけ渡す。</summary>
+        /// <returns>前回受領以降の回収XP。</returns>
+        uint64_t TakeExperience() { return std::exchange(m_unclaimed, 0); }
+        /// <summary>成長後の吸引半径を適用する。</summary>
+        /// <param name="radius">検証済み能力から計算した半径（u）。</param>
+        void SetMagnetRadius(float radius) { m_magnetRadius = radius; }
+        /// <summary>ドロップ取得の累計。成長側の残高とは異なり減らない。</summary>
+        /// <returns>この試行で拾った総XP。</returns>
         uint64_t Total() const { return m_total; }
         /// <summary>フィールドに残る粒の数を返す。</summary>
         /// <returns>合算後の表示個数。</returns>

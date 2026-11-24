@@ -33,6 +33,9 @@ import GameSystem.FrameRate;
 import AppContext;
 import Scene.LoadingScene;
 import Scene.SceneBase;
+import Scene.SceneManager;
+import Progression.ProgressionState;
+import <stack>;
 import Scene.Play;
 import Scene.Result;
 import Scene.StageState;
@@ -406,6 +409,7 @@ void VerifyContactDamage()
     auto& dt = const_cast<float&>(gameSystem::FrameRate::GetDeltaTime());
     const auto previousDt = dt;
     // 同じ更新の敵2体と帰還。角に接する場合と微小な隙間を分け、攻撃間隔も検証する。
+    std::filesystem::copy_file("ProjectName/resources/data/ProgressionConfig.json", files.GetDataDir() / "ProgressionConfig.json", std::filesystem::copy_options::overwrite_existing);
     const auto stagePath = files.GetDataDir() / "Phase1Config.json";
     const auto stage = files.jsonIO.Load(stagePath);
     struct PickupCase { bool use520; float pickupY; float gap; bool delivered; };
@@ -674,6 +678,7 @@ void VerifyStageEnd()
         files.GetDataDir() / "EnemySpawnConfig.json", std::filesystem::copy_options::overwrite_existing);
     // 継続出現の実Playを無操作で敗北まで進め、Resultへ値だけが渡ることを確認する。
     // そのResultを保持してStart/Retry共通の実LoadingSceneを通し、2回目も同条件に戻す。
+    std::filesystem::copy_file("ProjectName/resources/data/ProgressionConfig.json", files.GetDataDir() / "ProgressionConfig.json", std::filesystem::copy_options::overwrite_existing);
     const auto stagePath = files.GetDataDir() / "Phase1Config.json";
     auto initialStage = files.jsonIO.Load(stagePath);
     require(stage::StageConfig::FromJson(initialStage).alphaCombat, "Shipped stage enables Alpha combat");
@@ -1580,6 +1585,93 @@ void VerifyExperienceDrops()
     std::cout << "PASS: experience magnet, pickup, pause, cap and fresh trial\n";
 }
 
+/// <summary>成長の保留・候補・能力反映と、入れ子の描画／Pop寿命を確認する。</summary>
+void VerifyProgression()
+{
+    using progression::Upgrade;
+    progression::ProgressionState state(progression::Config{});
+    state.AddExperience(2);
+    require(state.Level() == 1 && state.Pending() == 0, "XP below threshold");
+    state.AddExperience(18);
+    require(state.Level() == 5 && state.Pending() == 4 && state.Xp() == 2, "Multiple levels retain pending choices");
+    for (int i = 0; i < 4; ++i)
+    {
+        const auto choices = state.Choices();
+        require(choices[0] != choices[1] && choices[1] != choices[2] && choices[0] != choices[2], "Unique reproducible choices");
+        require(state.Select(choices[0]), "Select available upgrade");
+    }
+    require(!state.Select(Upgrade::Damage) && state.Pending() == 0, "No duplicate selection without pending level");
+    state.AddExperience(100);
+    require(state.Level() == 5 && state.Pending() == 0, "Maximum level stops choices");
+    gameSystem::AppCtx::Activate();
+    object::ObjectManager objects;
+    auto world = ReadStageConfig();
+    object::Player* player = new object::Player(world, combat::PlayerAttackConfig{160, 10, 0.5f});
+    objects.AddObject(player);
+    objects.InitBeforeUpdate();
+    const float baseDamage = player->AttackDamage();
+    const float baseInterval = player->AttackInterval();
+    player->ApplyProgression(state);
+    require(std::abs(player->AttackDamage() - baseDamage * 1.2f) < 0.001f, "Growth damage");
+    require(std::abs(player->AttackInterval() - baseInterval / 1.15f) < 0.001f, "Growth attack speed");
+    require(std::abs(player->pData.moveSpeed.x - world.PlayerSpeed * 1.1f) < 0.001f, "Existing movement speed updated");
+    player->BoostAttack();
+    player->ApplyProgression(state);
+    require(std::abs(player->AttackDamage() - baseDamage * 1.2f * 1.5f) < 0.001f, "Growth then temporary boost without compounding");
+    object::ExperienceDrops drops;
+    drops.SetMagnetRadius(object::ExperienceDrops::MagnetRadius * state.Multiplier(Upgrade::Magnet));
+    drops.Add({190, 0});
+    drops.Update(1, {});
+    require(drops.TakeExperience() == 1 && drops.TakeExperience() == 0 && drops.Total() == 1, "Magnet growth and one-time XP transfer");
+    progression::ProgressionState fresh(progression::Config{});
+    require(fresh.Level() == 1 && fresh.Xp() == 0 && fresh.Multiplier(Upgrade::Damage) == 1, "New trial resets growth");
+
+    /// <summary>描画順だけを記録する、GPU不要の試験用シーン。</summary>
+    struct Layer : scene::SceneBase
+    {
+        int id;
+        bool overlay;
+        std::vector<int>& order;
+        /// <summary>描画記録先と重ね合わせポリシーを保持する。</summary>
+        /// <param name="value">記録するID。</param>
+        /// <param name="transparent">下位描画を必要とする場合true。</param>
+        /// <param name="draws">この試験中だけ存続する記録先。</param>
+        Layer(int value, bool transparent, std::vector<int>& draws) : id(value), overlay(transparent), order(draws) {}
+        /// <summary>試験用の追加初期化は不要。</summary>
+        void Init() override {}
+        /// <summary>試験用シーンは遷移しない。</summary>
+        /// <returns>継続コマンド。</returns>
+        scene::SceneCmd Update() override { return {}; }
+        /// <summary>構築時の描画方針を返す。</summary>
+        /// <returns>背景を描く場合true。</returns>
+        bool DrawsBelow() const override { return overlay; }
+        /// <summary>描画順を記録する。</summary>
+        void Draw() override { order.push_back(id); }
+    };
+    std::vector<int> order;
+    std::stack<std::shared_ptr<scene::SceneBase>> stack;
+    stack.push(std::make_shared<Layer>(0, false, order));
+    std::weak_ptr<scene::SceneBase> background = stack.top();
+    for (int repeat = 0; repeat < 3; ++repeat)
+    {
+        stack.push(std::make_shared<Layer>(1, true, order));
+        stack.push(std::make_shared<Layer>(2, true, order));
+        order.clear();
+        scene::DrawSceneLayers(stack);
+        require(order == std::vector<int>({0,1,2}), "Nested overlays draw back to front");
+        scene::PopOverlay(stack);
+        scene::PopOverlay(stack);
+        scene::PopOverlay(stack);
+        require(stack.size() == 1 && !background.expired(), "Pop preserves root ownership");
+        require(gameSystem::FrameRate::GetDeltaTime() == 0, "Pop resets simulation time");
+    }
+    stack.push(std::make_shared<Layer>(3, false, order));
+    order.clear();
+    scene::DrawSceneLayers(stack);
+    require(order == std::vector<int>({3}), "Opaque scene hides lower layers");
+    std::cout << "PASS: progression, ability updates, XP transfer and overlay layers/lifetime\n";
+}
+
 int main() try
 {
     VerifyCategoryLifetime();
@@ -1595,6 +1687,7 @@ int main() try
     VerifyEnemySpawning();
     VerifyOffscreenSpawning();
     VerifyExperienceDrops();
+    VerifyProgression();
     // UIManager経由の再利用要素とClear後の値リセットを検証する。描画は手動確認する。
     ui::UIManager hudManager;
     const auto labelID = hudManager.Create<ui::TextLabel>("HP 50%");

@@ -55,6 +55,10 @@ export namespace scene
         /// </summary>
         virtual void Draw() = 0;
 
+        /// <summary>直下の描画を必要とするか。Updateは常に最上位のみ。</summary>
+        /// <returns>通常シーンはfalse、重ねるUIはtrue。</returns>
+        virtual bool DrawsBelow() const { return false; }
+
         /// <summary>
         /// ローディング画面描画処理
         /// </summary>

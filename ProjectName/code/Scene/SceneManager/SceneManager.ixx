@@ -4,6 +4,8 @@ import <memory>;
 import <unordered_map>;
 import <stack>;
 import <variant>;
+import <vector>;
+import GameSystem.FrameRate;
 
 import Asset.Graph;
 export import Scene.SceneBase;
@@ -13,6 +15,30 @@ export import Scene.SceneBase;
 /// </summary>
 export namespace scene
 {
+    /// <summary>最上位から不透明シーンまで集め、背面から描く。元の所有スタックは変更しない。</summary>
+    /// <param name="scenes">空でない現在のスタックのコピー。</param>
+    inline void DrawSceneLayers(std::stack<std::shared_ptr<SceneBase>> scenes)
+    {
+        std::vector<std::shared_ptr<SceneBase>> layers;
+        while (!scenes.empty())
+        {
+            auto current = scenes.top();
+            scenes.pop();
+            layers.push_back(current);
+            if (!current->DrawsBelow()) break;
+        }
+        for (auto i = layers.rbegin(); i != layers.rend(); ++i) (*i)->Draw();
+    }
+
+    /// <summary>下位シーンを残してPopし、再開時刻をリセットする。</summary>
+    /// <param name="scenes">現在の所有スタック。</param>
+    inline void PopOverlay(std::stack<std::shared_ptr<SceneBase>>& scenes)
+    {
+        if (scenes.size() <= 1) return;
+        scenes.pop();
+        gameSystem::FrameRate::ResetSimulationTime();
+    }
+
     // 前方宣言
     export class SceneBase;
 

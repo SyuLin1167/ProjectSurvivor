@@ -49,6 +49,10 @@ export namespace component
             m_altUp = up; m_altDown = down;
         }
 
+        /// <summary>キー割当を維持して移動能力だけ更新する。</summary>
+        /// <param name="speed">各軸の速度（u/s）。</param>
+        void SetSpeed(Vector2f speed) { m_moveSpeed = speed; }
+
         /// <summary>斜め入力時の速度正規化を有効・無効にする。</summary>
         /// <param name="enabled">trueなら斜め入力による速度増加を防ぐ。</param>
         void SetNormalizeDiagonal(bool enabled) { m_normalizeDiagonal = enabled; }
