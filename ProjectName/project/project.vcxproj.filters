@@ -494,4 +494,7 @@
     <ClCompile Include="..\code\Scene\QuestSelect\QuestSelect.ixx" />
     <ClCompile Include="..\code\Scene\QuestSelect\QuestSelect.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\code\Object\Item\ExperienceDrops.ixx" />
+  </ItemGroup>
 </Project>

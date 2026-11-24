@@ -9,6 +9,7 @@ import Scene.StageState;
 import Object.MovingBase;
 import Object.Player;
 import Object.CombatDrops;
+import Object.ExperienceDrops;
 import Object.EnemySpawner;
 import <optional>;
 
@@ -64,6 +65,7 @@ export namespace scene
         object::Player* m_player;
         object::MovingBase* m_base;
         std::optional<object::CombatDrops> m_drops;
+        object::ExperienceDrops m_experience; // 試行専用。敵やColliderの寿命から独立。
         bool m_showNearestEnemy;
     };
 }

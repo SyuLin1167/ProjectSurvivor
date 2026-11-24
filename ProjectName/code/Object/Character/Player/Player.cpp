@@ -102,7 +102,8 @@ namespace object
             m_attackRemaining = 0;
             return;
         }
-        if (m_stageConfig.alphaCombat && target->Health() <= 0)
+        // 経験値は戦闘モード共通。特殊ドロップの有無はPlay側で決める。
+        if (target->Health() <= 0)
             m_killPosition = target->Center();
         m_lastHit = target;
         m_lastHitCenter = target->Center();
