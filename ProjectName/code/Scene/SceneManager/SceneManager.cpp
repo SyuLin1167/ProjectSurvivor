@@ -52,7 +52,7 @@ namespace scene
         //描画
         ClearDrawScreen();
         clsDx();
-        m_nowScene.top()->Draw();
+        DrawSceneLayers(m_nowScene);
 
 #ifdef _DEBUG
         FrameRate::DrawFrameRate();
@@ -79,6 +79,7 @@ namespace scene
                     {
                         m_nowScene.push(next);
                         m_nowScene.top()->Init();
+                        FrameRate::ResetSimulationTime();
                     }
                 }
                 else if constexpr (std::is_same_v<T, CmdReplace>)
@@ -93,15 +94,13 @@ namespace scene
                         }
                         m_nowScene.push(next);
                         m_nowScene.top()->Init();
+                        FrameRate::ResetSimulationTime();
                     }
                 }
                 else if constexpr (std::is_same_v<T, CmdPop>)
                 {
-                    // 現在のシーンを取り除く
-                    if (!m_nowScene.empty())
-                    {
-                        m_nowScene.pop();
-                    }
+                    // 最後のシーンを残し、待機時間を復帰先へ持ち越さない。
+                    PopOverlay(m_nowScene);
                 }
                 else if constexpr (std::is_same_v<T, CmdQuit>)
                 {

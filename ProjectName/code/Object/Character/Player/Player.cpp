@@ -23,7 +23,7 @@ using namespace col2d;
 namespace object
 {
     Player::Player(const stage::StageConfig& config, const combat::PlayerAttackConfig& attack)
-        : id(), m_attack(attack), m_stageConfig(config)
+        : id(), m_attack(attack), m_baseAttack(attack), m_stageConfig(config)
     {
         // 承認値は中心座標。既存RectColliderに合わせて左上へ変換する。
         pData.size = { m_stageConfig.PlayerSize, m_stageConfig.PlayerSize };
@@ -50,6 +50,7 @@ namespace object
 
         // 移動機能追加
         auto move = m_compMgr->AddComponent<component::MoveWithKey>(this);
+        m_move = move.get();
         move->SetHorizontal(keyType.LEFT, keyType.RIGHT, pData.moveSpeed.x);
 
         move->SetVertical(keyType.UP, keyType.DOWN, pData.moveSpeed.y);
@@ -66,6 +67,24 @@ namespace object
         id = ColMgr().CreateRectCollider(&def, pData.size, MyObjectTag());
         // 拠点側は解決しない。移動後にPだけを押し戻し、拠点の自動前進を維持する。
         ColMgr().AddMask(id, col2d::RECT, ObjectTag::BASE);
+    }
+
+    void Player::ApplyProgression(const progression::ProgressionState& growth)
+    {
+        using progression::Upgrade;
+        m_attack.Damage = m_baseAttack.Damage * growth.Multiplier(Upgrade::Damage);
+        m_attack.Interval = m_baseAttack.Interval / growth.Multiplier(Upgrade::AttackSpeed);
+        // 短縮後の間隔より長い待ち時間を残さず、即時追加攻撃も発生させない。
+        m_attackRemaining = (std::min)(m_attackRemaining, double(m_attack.Interval));
+        const float speed = m_stageConfig.PlayerSpeed * growth.Multiplier(Upgrade::Movement);
+        pData.moveSpeed = {speed, speed};
+        m_move->SetSpeed(pData.moveSpeed);
+    }
+
+    float Player::AttackDamage() const
+    {
+        if (m_boostSeconds > 0.000001) return m_attack.Damage * 1.5f;
+        return m_attack.Damage;
     }
 
     void Player::GetReferenceObject(std::function<std::vector<std::shared_ptr<GameObject>>(uint32_t)> referenceObj)
@@ -97,7 +116,7 @@ namespace object
         }
         // 命中直前にも有効性と射程を確認。対象なしで攻撃時間を借金として蓄積しない。
         if (!target || !target->CanBeAttacked() || Center().Distance(target->Center()) > m_attack.Range ||
-            !target->TakeDamage(m_attack.Damage * (m_boostSeconds > 0.000001 ? 1.5f : 1.0f)))
+            !target->TakeDamage(AttackDamage()))
         {
             m_attackRemaining = 0;
             return;

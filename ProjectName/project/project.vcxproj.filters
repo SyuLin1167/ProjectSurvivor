@@ -497,4 +497,9 @@
   <ItemGroup>
     <ClCompile Include="..\code\Object\Item\ExperienceDrops.ixx" />
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\code\Progression\ProgressionState.ixx" />
+    <ClCompile Include="..\code\Scene\LevelUp\LevelUp.ixx" />
+    <ClCompile Include="..\code\Scene\LevelUp\LevelUp.cpp" />
+  </ItemGroup>
 </Project>

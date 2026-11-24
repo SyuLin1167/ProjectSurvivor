@@ -1,6 +1,8 @@
 ﻿export module Object.Player;
 
 import Scene.StageConfig;
+import Component.MoveWithKey;
+import Progression.ProgressionState;
 import Object.PlayerAttackConfig;
 
 import <future>;
@@ -77,12 +79,24 @@ export namespace object
         /// <returns>ゲーム時間での残り秒。</returns>
         double BoostSeconds() const { return m_boostSeconds; }
 
+        /// <summary>試行内強化から能力を基礎値に対して再計算する。累乗適用しない。</summary>
+        /// <param name="growth">Playの強化回数。Init後のみ呼ぶ。</param>
+        void ApplyProgression(const progression::ProgressionState& growth);
+        /// <summary>成長とアイテム倍率を順番に反映した攻撃力。</summary>
+        /// <returns>現在のダメージ。</returns>
+        float AttackDamage() const;
+        /// <summary>成長後の攻撃間隔。</summary>
+        /// <returns>ゲーム秒。</returns>
+        float AttackInterval() const { return m_attack.Interval; }
+
         PlayerData pData; // プレイヤー情報
         col2d::ColliderID id;   // コライダーの識別子
     private:
         /// <summary>1更新につき最大1体へ、承認済みの自動攻撃を適用する。</summary>
         void UpdateAutoAttack();
         combat::PlayerAttackConfig m_attack{};
+        combat::PlayerAttackConfig m_baseAttack{};
+        component::MoveWithKey* m_move = nullptr; // Initで生成し、ComponentManagerがPlay中保持。
         std::optional<math::Vector2f> m_killPosition;
         double m_boostSeconds{};
         double m_attackRemaining{}; // 秒。初回と対象なしでは即時発動可能。

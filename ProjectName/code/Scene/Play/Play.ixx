@@ -10,6 +10,7 @@ import Object.MovingBase;
 import Object.Player;
 import Object.CombatDrops;
 import Object.ExperienceDrops;
+import Progression.ProgressionState;
 import Object.EnemySpawner;
 import <optional>;
 
@@ -57,6 +58,8 @@ export namespace scene
         /// @param world 検証済みのステージ設定。
         /// @param selected 今回の依頼定義。
         Play(const stage::StageConfig& world, quest::QuestConfig selected);
+        progression::ProgressionState m_growth;
+        bool m_growthDirty = false; // 選択後の再開でだけ既存能力を更新する。
         const quest::QuestConfig m_quest;
         ui::PlayHud m_hud;
         StageState m_stage;
