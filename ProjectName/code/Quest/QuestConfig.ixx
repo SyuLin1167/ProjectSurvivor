@@ -19,6 +19,7 @@ export namespace quest
 
         std::optional<std::string> spawnMode; // classicなら基準比較、offscreenなら段階生成。
         std::optional<int> spawnLimit; // offscreenの生存上限（配布12体）。
+        std::optional<std::string> requiredClear; // 解放に必要な全区間クリアID。省略時は初期解放。
 
         /// <summary>許可したモード・上限・基本間隔を重ね、最終設定を検証する。</summary>
         /// <param name="base">基本のEnemySpawnConfig JSON。</param>
@@ -77,6 +78,12 @@ export namespace quest
                 c.spawnLimit = spawn.at("limit").get<int>();
                 if (*c.spawnLimit != 10 && *c.spawnLimit != 12 && *c.spawnLimit != 20)
                     throw std::runtime_error("QuestConfig: offscreen limit must be 10, 12 or 20");
+            }
+            if (data.contains("requiredClear"))
+            {
+                c.requiredClear = data.at("requiredClear").get<std::string>();
+                if (c.requiredClear->empty() || *c.requiredClear == c.id)
+                    throw std::runtime_error("QuestConfig: invalid unlock requirement");
             }
             return c;
         }

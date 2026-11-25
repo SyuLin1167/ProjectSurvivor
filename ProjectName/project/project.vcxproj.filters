@@ -505,4 +505,9 @@
     <ClCompile Include="..\code\Scene\LevelUp\LevelUp.ixx" />
     <ClCompile Include="..\code\Scene\LevelUp\LevelUp.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\code\Campaign\CampaignProgress.ixx" />
+    <ClCompile Include="..\code\Campaign\CampaignSession.ixx" />
+    <ClCompile Include="..\code\Campaign\CampaignSession.cpp" />
+  </ItemGroup>
 </Project>

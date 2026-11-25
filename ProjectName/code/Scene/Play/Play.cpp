@@ -31,6 +31,18 @@ namespace scene
 {
     namespace
     {
+        /// <summary>新規遠征の依頼を一度読み、読込境界で受注可能かを保証する。</summary>
+        /// <param name="id">依頼選択またはRetryからのID。</param>
+        /// <returns>検証済みの解放済み依頼。不正時はLoadingSceneの失敗処理へ伝播する。</returns>
+        quest::QuestConfig LoadDepartureQuest(const std::string& id)
+        {
+            auto selected = quest::FindQuest(id);
+            const auto& record = AppCtx::Campaign();
+            if (!record.Ready() || !quest::IsUnlocked(selected, record.Progress()))
+                throw std::logic_error("Cannot depart on a locked quest");
+            return selected;
+        }
+
         /// @brief 試行開始時にJSONを読み、設定型の検証を適用する。
         /// @param name 設定ファイルの名前。
         /// @return 検証済みの設定。失敗は読み込み元へ伝播する。
@@ -57,7 +69,7 @@ namespace scene
         }
     }
 
-    Play::Play(std::string id) : Play(expedition::ExpeditionState(quest::FindQuest(id), LoadConfig<progression::Config>("ProgressionConfig"))) {}
+    Play::Play(std::string id) : Play(expedition::ExpeditionState(LoadDepartureQuest(id), LoadConfig<progression::Config>("ProgressionConfig"))) {}
 
     Play::Play(expedition::ExpeditionState state) : Play(LoadConfig<stage::StageConfig>("Phase1Config"), std::move(state)) {}
 
@@ -144,9 +156,13 @@ namespace scene
                 return std::make_shared<Relay>(state);
             } };
         if (end == StageEnd::Success || end == StageEnd::Defeat)
+        {
+            // 中継への分岐を通過した最終成功だけ記録する。失敗時も結果画面は表示し再保存を案内する。
+            if (end == StageEnd::Success) AppCtx::Campaign().RecordClear(m_expedition.quest.id);
             return CmdReplace{ [result = m_stage.ResultValue(), state = Snapshot()] {
                 return std::make_shared<Result>(result, state);
             } };
+        }
         if (end == StageEnd::Aborted)
             return CmdReplace{ []() { return std::make_shared<Title>(); } };
         // 終了と期限が同フレームなら上の遷移が優先。Stepの走査中には追加しない。

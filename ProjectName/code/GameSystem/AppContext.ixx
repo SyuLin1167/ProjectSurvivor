@@ -5,6 +5,7 @@ import <optional>;
 export import MyLib.File.FileSystem;
 export import Asset.AssetManager;
 export import UI.UIManager;
+export import Campaign.CampaignSession;
 
 /// <summary>
 /// オブジェクト関連
@@ -24,6 +25,7 @@ export namespace gameSystem
             fileSystem.emplace();
             assetMgr.emplace();
             uiMgr.emplace();
+            m_campaign.emplace();
         }
 
         /// <summary>
@@ -31,6 +33,7 @@ export namespace gameSystem
         /// </summary>
         static void Deactivate()
         {
+            m_campaign.reset();
             fileSystem.reset();
             assetMgr.reset();
             uiMgr.reset();
@@ -63,7 +66,12 @@ export namespace gameSystem
             return *uiMgr;
         }
 
+        /// <summary>遠征を跨いで保持する攻略記録と保存境界を返す。</summary>
+        /// <returns>アプリが所有するセッション。シーンは所有せず、Retryでも作り直さない。</returns>
+        static campaign::CampaignSession& Campaign() { return *m_campaign; }
+
     private:
+        inline static std::optional<campaign::CampaignSession> m_campaign; // アプリ終了まで保持する攻略記録。
         inline static std::optional<file::FileSystem> fileSystem{};     // ファイルシステムのインスタンス
         inline static std::optional<asset::AssetManager> assetMgr{};    // アセット管理のインスタンス
         inline static std::optional<ui::UIManager> uiMgr{};             // UI管理のインスタンス
