@@ -1,6 +1,7 @@
 ﻿export module Scene.QuestSelect;
 import Scene.SceneBase;
 import UI.UIManager;
+import UI.Button;
 import Quest.QuestCatalog;
 import <vector>;
 import <string>;
@@ -22,6 +23,7 @@ export namespace scene
         void Draw() override;
     private:
         ui::UIManager m_ui; // ボタンはシーンと同時に破棄する。
+        ui::Button* m_departButton = nullptr; // 読込成功時にm_uiへ登録。失敗時は更新へ入らない。
         std::vector<quest::QuestConfig> m_quests;
         size_t m_selected = 0;
         bool m_depart = false, m_back = false, m_failed = false;

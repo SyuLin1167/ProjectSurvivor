@@ -72,6 +72,14 @@ export namespace ui
         /// </summary>
         void Draw() override;
 
+        /// <summary>操作可能状態を設定する。無効化時は押下履歴を捨てる。</summary>
+        /// <param name="enabled">trueなら入力可能、falseなら灰色表示で入力しない。</param>
+        void SetEnabled(bool enabled)
+        {
+            m_enabled = enabled;
+            if (!enabled) m_onClicked = false;
+        }
+
         /// <summary>
         /// ホバー時イベント追加
         /// </summary>
@@ -111,6 +119,7 @@ export namespace ui
         void OnReleased();
 
         bool m_onClicked{ false }; 
+        bool m_enabled = true; // ロック・確認画面中の操作を表示と一致させる。
         std::unique_ptr<ButtonDef> m_def;   // ボタン定義
     };
 }

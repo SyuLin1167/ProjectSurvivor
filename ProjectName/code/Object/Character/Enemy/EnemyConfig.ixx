@@ -1,4 +1,5 @@
 ﻿export module Object.EnemyConfig;
+import MyLib.File.JsonValue;
 
 import MyLib.File.JsonIO;
 import MyLib.Math.Vector2;
@@ -37,9 +38,9 @@ export namespace combat
         static EnemyConfig FromJson(const json& data)
         {
             EnemyConfig c;
-            c.Health = data.at("health").get<float>();
-            c.Radius = data.at("radius").get<float>();
-            c.Speed = data.at("speed").get<float>();
+            c.Health = file::jsonValue::Read<float>(data, "health");
+            c.Radius = file::jsonValue::Read<float>(data, "radius");
+            c.Speed = file::jsonValue::Read<float>(data, "speed");
             // #19の比較限定でHP20を許可する。基準HP30を維持し、中間値や段階変化は許可しない。
             if ((c.Health != 30 && c.Health != 20) || c.Radius != 16 || !std::isfinite(c.Speed) ||
                 c.Speed < 100 || c.Speed > 140)
@@ -72,8 +73,8 @@ export namespace object
             {
                 Config type = base;
                 type.look = look;
-                type.Health = variants->at(key).at("health").get<float>();
-                type.Speed = variants->at(key).at("speed").get<float>();
+                type.Health = file::jsonValue::Read<float>(file::jsonValue::Member(*variants, key), "health");
+                type.Speed = file::jsonValue::Read<float>(file::jsonValue::Member(*variants, key), "speed");
                 if (!std::isfinite(type.Health) || type.Health <= 0 ||
                     !std::isfinite(type.Speed) || type.Speed <= 0)
                     throw std::runtime_error("Invalid alpha enemy parameters");

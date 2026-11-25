@@ -5,6 +5,7 @@ import MyLib.File.FileSystem;
 import <unordered_map>;
 import <string_view>;
 import <stdexcept>;
+import <vector>;
 
 export namespace quest
 {
@@ -33,6 +34,27 @@ export namespace quest
         auto& files = gameSystem::AppCtx::FileSystem();
         auto config = QuestConfig::FromJson(files.jsonIO.Load(files.GetDataDir() / entry->second.file));
         if (config.id != id) throw std::runtime_error("QuestCatalog: ID differs from registered file");
+        if (config.requiredClear && !AvailableQuests.contains(*config.requiredClear))
+            throw std::runtime_error("QuestCatalog: unknown unlock requirement");
         return config;
+    }
+
+    /// <summary>保存データのID検証に使う一覧を得る。表示順の管理とは独立。</summary>
+    /// <returns>登録済みIDの配列。</returns>
+    inline std::vector<std::string> KnownIds()
+    {
+        std::vector<std::string> ids;
+        for (const auto& [id, entry] : AvailableQuests) ids.emplace_back(id);
+        return ids;
+    }
+
+    /// <summary>定義の解放条件を攻略記録へ照合する。</summary>
+    /// <param name="config">検証済み依頼定義。</param>
+    /// <param name="progress">読み込んだ攻略記録。</param>
+    /// <returns>初期解放か、前提依頼をクリアしていればtrue。</returns>
+    inline bool IsUnlocked(const QuestConfig& config, const campaign::CampaignProgress& progress)
+    {
+        if (!config.requiredClear) return true;
+        return progress.Cleared(*config.requiredClear);
     }
 }

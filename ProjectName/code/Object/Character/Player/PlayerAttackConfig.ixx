@@ -1,4 +1,5 @@
 ﻿export module Object.PlayerAttackConfig;
+import MyLib.File.JsonValue;
 import MyLib.File.JsonIO;
 import <cmath>;
 import <stdexcept>;
@@ -16,7 +17,7 @@ export namespace combat
         /// <returns>検証済みの攻撃設定。</returns>
         static PlayerAttackConfig FromJson(const json& data)
         {
-            PlayerAttackConfig c{data.at("range").get<float>(), data.at("damage").get<float>(), data.at("interval").get<float>()};
+            PlayerAttackConfig c{file::jsonValue::Read<float>(data, "range"), file::jsonValue::Read<float>(data, "damage"), file::jsonValue::Read<float>(data, "interval")};
             if (!std::isfinite(c.Range) || !std::isfinite(c.Interval) ||
                 c.Range < 128 || c.Range > 192 || c.Damage != 10 || c.Interval < 0.4f || c.Interval > 0.8f)
                 throw std::runtime_error("PlayerAttackConfig: values outside DEC-02 approval");

@@ -22,8 +22,8 @@ namespace ui
 
     void Button::Update()
     {
-        // 不可視なら更新不要
-        if (!IsVisible())
+        // 不可視・無効な操作には入力を渡さない。
+        if (!IsVisible() || !m_enabled)
         {
             return;
         }
@@ -55,10 +55,13 @@ namespace ui
             return;
         }
 
+        // 無効な操作は同じ配置で灰色表示し、利用可能な操作と区別する。
+        auto color = m_def->color;
+        if (!m_enabled) color = GetColor(85, 85, 85);
         // ボタン描画
         DrawBoxAA(m_def->buttonRect.pos.x, m_def->buttonRect.pos.y,
             m_def->buttonRect.pos.x + m_def->buttonRect.size.x, m_def->buttonRect.pos.y + m_def->buttonRect.size.y,
-            m_def->color, true);
+            color, true);
 
         // テキスト描画
         DrawString(static_cast<int>(m_def->buttonRect.pos.x + 8),

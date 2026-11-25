@@ -40,5 +40,6 @@ export namespace scene
         bool m_toRetry = false;
         bool m_toTitle = false;
         bool m_leaving = false;
+        bool m_saveRequested = false; // 保存失敗時の再試行だけをUI走査後に行う。
     };
 }

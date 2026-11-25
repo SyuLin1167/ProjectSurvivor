@@ -2,6 +2,7 @@
 #include <json.hpp>
 
 export module Object.MapInfo;
+import MyLib.File.JsonValue;
 
 import MyLib.Math.Vector2;
 
@@ -29,10 +30,10 @@ export namespace object
         /// <returns>マップ情報</returns>
         MapInfo FromJson(const json& j)
         {
-            mapSize.x = j.at("width").get<size_t>();
-            mapSize.y = j.at("height").get<size_t>();
-            tileSize.x = j.at("tilewidth").get<float>();
-            tileSize.y = j.at("tileheight").get<float>();
+            mapSize.x = file::jsonValue::Read<size_t>(j, "width");
+            mapSize.y = file::jsonValue::Read<size_t>(j, "height");
+            tileSize.x = file::jsonValue::Read<float>(j, "tilewidth");
+            tileSize.y = file::jsonValue::Read<float>(j, "tileheight");
             return *this;
         }
     };

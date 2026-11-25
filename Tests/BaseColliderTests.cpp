@@ -1,4 +1,5 @@
-﻿#include <functional>
+﻿#include <json.hpp>
+#include <functional>
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
@@ -30,6 +31,7 @@ import Object.EnemyConfig;
 import Object.EnemySpawner;
 import Object.SpawnPosition;
 import MyLib.File.FileSystem;
+import MyLib.File.JsonValue;
 import Object.MovingBase;
 import Object.ObjectManager;
 import GameSystem.FrameRate;
@@ -41,6 +43,8 @@ import Progression.ProgressionState;
 import <stack>;
 import Scene.Play;
 import Scene.Result;
+import Scene.Title;
+import Scene.QuestSelect;
 import Scene.StageState;
 import UI.PlayHud;
 import UI.DisplayElements;
@@ -70,6 +74,15 @@ object::Player* CreateStagePlayer()
 void require(bool condition, const char* message)
 {
     if (!condition) { std::cerr << message << '\n'; std::exit(1); }
+}
+
+/// <summary>シーン回帰では専用保存先を使い、利用者の攻略記録へ一切触れない。</summary>
+void PrepareCampaignFixture()
+{
+    auto& record = gameSystem::AppCtx::Campaign();
+    record = campaign::CampaignSession(std::filesystem::absolute(".verification/campaign-regression.json"));
+    require(record.StartNew(), "Create isolated campaign fixture");
+    record.RecordClear("pilgrim"); // 既存の両依頼回帰用。解放条件自体は別ケースで検証する。
 }
 
 /// <summary>拠点矩形への円の食い込みが誤差範囲内か検証する。</summary>
@@ -673,6 +686,7 @@ void VerifyStageEnd()
 
     gameSystem::AppCtx::Activate();
     auto& files = gameSystem::AppCtx::FileSystem();
+    PrepareCampaignFixture();
     std::filesystem::copy_file("ProjectName/resources/data/EnemyConfig.json",
         files.GetDataDir() / "EnemyConfig.json", std::filesystem::copy_options::overwrite_existing);
     auto& dt = const_cast<float&>(gameSystem::FrameRate::GetDeltaTime());
@@ -722,7 +736,7 @@ void VerifyStageEnd()
     }
     const auto pilgrimPath = files.GetDataDir() / "Quests/Pilgrim.json";
     const auto originalQuest = files.jsonIO.Load(pilgrimPath);
-    for (int invalid = 0; invalid < 5; ++invalid)
+    for (int invalid = 0; invalid < 8; ++invalid)
     {
         auto data = originalQuest;
         if (invalid == 0) data.erase("maxHealth");
@@ -730,6 +744,9 @@ void VerifyStageEnd()
         if (invalid == 2) data["destinationId"] = "unknown";
         if (invalid == 3) data["enemySpawn"]["interval"] = "fast";
         if (invalid == 4) data["enemySpawn"]["unexpected"] = 1;
+        if (invalid == 5) data["id"] = "";
+        if (invalid == 6) data["name"] = "";
+        if (invalid == 7) data["description"] = "";
         bool rejected = false;
         try { quest::QuestConfig::FromJson(data); }
         catch (const std::exception&) { rejected = true; }
@@ -1751,6 +1768,7 @@ std::shared_ptr<scene::Play> LoadExpeditionPlay(scene::SceneCmd command)
 void VerifyExpedition()
 {
     gameSystem::AppCtx::Activate();
+    PrepareCampaignFixture();
     auto& files = gameSystem::AppCtx::FileSystem();
     auto& dt = const_cast<float&>(gameSystem::FrameRate::GetDeltaTime());
     const auto stagePath = files.GetDataDir() / "Phase1Config.json";
@@ -1760,6 +1778,9 @@ void VerifyExpedition()
     files.jsonIO.Write(stagePath, headless);
     for (const auto id : {"pilgrim", "cargo"})
     {
+        auto& campaign = gameSystem::AppCtx::Campaign();
+        require(campaign.StartNew(), "Fresh campaign for expedition unlock test");
+        if (std::string(id) == "cargo") campaign.RecordClear("pilgrim");
         expedition::ExpeditionState initial(quest::FindQuest(id), progression::Config{});
         initial.health -= 30;
         initial.growth.AddExperience(8);
@@ -1777,6 +1798,7 @@ void VerifyExpedition()
         auto relay = std::dynamic_pointer_cast<scene::Relay>(std::get<scene::CmdReplace>(command).build());
         require(relay && relay->State().section == 1 && relay->State().health == initial.health,
             "First success retains health in relay");
+        require(!campaign.Progress().Cleared(id), "First section does not record a campaign clear");
         std::weak_ptr<scene::Play> oldPlay = play;
         play.reset();
         command = std::monostate{};
@@ -1803,12 +1825,14 @@ void VerifyExpedition()
         auto result = std::dynamic_pointer_cast<scene::Result>(std::get<scene::CmdReplace>(command).build());
         require(result && result->ResultValue().outcome == scene::StageEnd::Success && result->State().section == 2,
             "Second success completes expedition");
+        require(campaign.Progress().Cleared(id) && !campaign.Dirty(), "Final success records and saves clear");
         play.reset();
         command = std::monostate{};
         play = LoadExpeditionPlay(result->Retry());
         result.reset();
         play->Init();
         const auto fresh = play->Snapshot();
+        require(campaign.Progress().Cleared(id), "Retry preserves campaign clear");
         require(fresh.section == 1 && fresh.growth.Level() == 1 && fresh.growth.Xp() == 0 && fresh.growth.TotalXp() == 0 &&
             fresh.growth.Pending() == 0 && fresh.health == fresh.quest.initialHealth && fresh.maxHealth == fresh.quest.maxHealth,
             "Retry starts new expedition with quest HP and no growth");
@@ -1817,6 +1841,7 @@ void VerifyExpedition()
         // 両区間とも実際の敵生成・接触で敗北させ、中継へ誤遷移しないことを確認する。
         for (int section : {1,2})
         {
+            require(campaign.StartNew(), "Clear campaign before defeat case");
             auto vulnerable = initial;
             vulnerable.section = section;
             vulnerable.health = 1;
@@ -1829,6 +1854,7 @@ void VerifyExpedition()
             auto defeat = std::dynamic_pointer_cast<scene::Result>(std::get<scene::CmdReplace>(ended).build());
             require(defeat && defeat->ResultValue().outcome == scene::StageEnd::Defeat && defeat->State().section == section &&
                 defeat->State().health == 0, "Defeat retains correct section and zero HP");
+            require(campaign.Progress().cleared.empty(), "Neither section defeat unlocks a quest");
             play.reset();
         }
         // 遠征値に未処理選択があっても捨てず、開始直後は戦闘より先にオーバーレイへ送る。
@@ -1851,8 +1877,149 @@ void VerifyExpedition()
     std::cout << "PASS: two-section expedition, relay, growth/HP carry, section defeats and fresh retry\n";
 }
 
+/// <summary>実保存・再読込とTitleの確認経路を検証し、利用者のLocalAppDataは使わない。</summary>
+void VerifyCampaign()
+{
+    gameSystem::AppCtx::Activate();
+    auto& record = gameSystem::AppCtx::Campaign();
+    const auto path = std::filesystem::absolute(L".verification/攻略記録/campaign.json");
+    std::filesystem::create_directories(path.parent_path());
+    std::filesystem::remove(path); // テスト専用の単一ファイルだけ初期化する。
+    record = campaign::CampaignSession(path);
+    const auto ids = quest::KnownIds();
+    record.Load(ids);
+    require(record.Status() == campaign::SaveStatus::Missing && !record.Ready(), "Missing save disables Continue");
+    {
+        auto title = std::make_shared<scene::Title>();
+        require(std::holds_alternative<std::monostate>(title->ContinueGame()), "Missing save cannot continue");
+        auto next = title->RequestNewGame();
+        require(std::holds_alternative<scene::CmdReplace>(next) && !title->Confirming(), "First new game needs no overwrite");
+        require(std::dynamic_pointer_cast<scene::QuestSelect>(std::get<scene::CmdReplace>(next).build()) != nullptr,
+            "New game reaches QuestSelect");
+    }
+    const auto pilgrim = quest::FindQuest("pilgrim"), cargo = quest::FindQuest("cargo");
+    require(quest::IsUnlocked(pilgrim, record.Progress()) && !quest::IsUnlocked(cargo, record.Progress()),
+        "Only pilgrim unlocked initially");
+    bool rejected = false;
+    try { auto locked = std::make_shared<scene::Play>("cargo"); } catch (const std::logic_error&) { rejected = true; }
+    require(rejected, "Departure boundary rejects locked cargo");
+    record.RecordClear("pilgrim");
+    require(!record.Dirty() && quest::IsUnlocked(cargo, record.Progress()), "Clear saves and unlocks cargo");
+    campaign::CampaignSession restarted(path);
+    restarted.Load(ids);
+    require(restarted.Ready() && restarted.Progress().Cleared("pilgrim"), "New session restores unlock from disk");
+
+    // 確認を開く/取り消す経路は、ファイルの更新時刻も攻略記録も変えない。
+    {
+        auto title = std::make_shared<scene::Title>();
+        const auto timestamp = std::filesystem::last_write_time(path);
+        require(std::holds_alternative<std::monostate>(title->RequestNewGame()) && title->Confirming(), "Existing save asks confirmation");
+        title->ConfirmNewGame(false);
+        require(record.Progress().Cleared("pilgrim") && std::filesystem::last_write_time(path) == timestamp,
+            "Cancel keeps memory and save unchanged");
+        require(std::holds_alternative<scene::CmdReplace>(title->ContinueGame()), "Continue accepts valid record");
+        title->RequestNewGame();
+        require(std::holds_alternative<scene::CmdReplace>(title->ConfirmNewGame(true)), "Confirmed new game proceeds");
+        restarted.Load(ids);
+        require(record.Progress().cleared.empty() && restarted.Progress().cleared.empty(), "Confirmed reset replaces saved progress");
+    }
+
+    // ファイルは存在するが無効な場合、読込や取消で黙って修復・上書きしない。
+    for (const auto contents : {"{broken", "{\"version\":99,\"clearedQuests\":[]}",
+        "{\"version\":1,\"clearedQuests\":[\"unknown\"]}", "{\"version\":1,\"clearedQuests\":42}"})
+    {
+        { std::ofstream output(path, std::ios::binary); output << contents; }
+        record.Load(ids);
+        require(!record.Ready() && record.Status() != campaign::SaveStatus::Missing, "Invalid record differs from absence");
+        if (std::string(contents).find("99") != std::string::npos)
+            require(record.Status() == campaign::SaveStatus::Unsupported, "Unknown version is distinguished");
+        auto title = std::make_shared<scene::Title>();
+        const auto timestamp = std::filesystem::last_write_time(path);
+        require(std::holds_alternative<std::monostate>(title->ContinueGame()), "Corrupt save cannot continue");
+        title->RequestNewGame();
+        require(title->Confirming(), "Invalid existing record still requires overwrite consent");
+        title->ConfirmNewGame(false);
+        std::ifstream input(path, std::ios::binary);
+        const std::string retained((std::istreambuf_iterator<char>(input)), {});
+        require(retained == contents && std::filesystem::last_write_time(path) == timestamp, "Invalid data preserved on cancel");
+    }
+
+    // 書込不能は一時パスを空ディレクトリで塞いで再現する。旧本体は読める状態を保つ。
+    require(record.StartNew(), "Explicit reset can replace corrupt data");
+    const auto temporary = std::filesystem::path(path.wstring() + L".tmp");
+    std::filesystem::create_directory(temporary);
+    record.RecordClear("pilgrim");
+    require(record.Dirty() && record.Progress().Cleared("pilgrim"), "Write failure retains unsaved achievement");
+    restarted.Load(ids);
+    require(restarted.Ready() && restarted.Progress().cleared.empty(), "Failed save retains old complete file");
+    require(!record.StartNew() && record.Progress().Cleared("pilgrim"), "Failed reset preserves live record");
+    record.Load(ids);
+    require(record.Progress().Cleared("pilgrim"), "Reload does not roll back unsaved achievement");
+    std::filesystem::remove(temporary);
+    require(record.Save() && !record.Dirty(), "Save retry commits retained achievement");
+    restarted.Load(ids);
+    require(restarted.Progress().Cleared("pilgrim"), "Successful retry persists achievement");
+    // 中断された一時書込があっても、本体からだけ復元する。
+    { std::ofstream output(temporary, std::ios::binary); output << "partial"; }
+    restarted.Load(ids);
+    require(restarted.Progress().Cleared("pilgrim"), "Interrupted temporary file is not loaded");
+    std::filesystem::remove(temporary);
+    std::filesystem::remove(path);
+    gameSystem::AppCtx::Deactivate();
+    std::cout << "PASS: campaign unlock, Unicode save, reload, confirmation/cancel, corruption and write failure\n";
+}
+
+/// <summary>取得ヘルパーの欠落・型不正・既定値を確認する。仕様固有の範囲は既存設定回帰で検証する。</summary>
+void VerifyJsonValue()
+{
+    const json data{{"hp", 120}, {"speed", 80.0}, {"name", "pilgrim"}, {"enabled", true}, {"nullValue", nullptr}};
+    require(file::jsonValue::Read<int>(data, "hp") == 120 &&
+        file::jsonValue::Read<float>(data, "speed") == 80 &&
+        file::jsonValue::Read<std::string>(data, "name") == "pilgrim" &&
+        file::jsonValue::Read<bool>(data, "enabled"), "JSON helper reads multiple types");
+    require(!file::jsonValue::ReadOptional<int>(data, "missing") &&
+        file::jsonValue::ReadOr(data, "missing", 42) == 42 &&
+        file::jsonValue::ReadOr(data, "hp", 42) == 120, "Defaults only apply to absent keys");
+    for (const auto key : {"missing", "name", "nullValue"})
+    {
+        bool rejected = false;
+        try { file::jsonValue::Read<int>(data, key); }
+        catch (const std::runtime_error& error) { rejected = std::string(error.what()).find(key) != std::string::npos; }
+        require(rejected, "Required missing/invalid values report the field name");
+    }
+    bool rejected = false;
+    try { file::jsonValue::ReadOr(data, "nullValue", 42); }
+    catch (const std::runtime_error&) { rejected = true; }
+    require(rejected, "Present null must not silently use a default");
+    rejected = false;
+    try { file::jsonValue::ReadOptional<int>(json::array(), "hp"); }
+    catch (const std::runtime_error&) { rejected = true; }
+    require(rejected, "Optional reads reject a non-object parent");
+    // 値の正常性も取得境界で拒否し、省略時だけ検証を実施しない。
+    const json checked = {{"name", ""}, {"interval", 2}, {"valid", "road"}};
+    require(file::jsonValue::Read<std::string>(checked, "valid", file::jsonValue::NonEmpty, "not empty") == "road",
+        "Validated JSON read");
+    require(!file::jsonValue::ReadOptional<std::string>(checked, "absent", file::jsonValue::NonEmpty, "not empty"),
+        "Absent optional skips value validation");
+    for (const auto key : {"name", "interval"})
+    {
+        bool rejected = false;
+        try
+        {
+            if (std::string(key) == "name")
+                (void)file::jsonValue::Read<std::string>(checked, key, file::jsonValue::NonEmpty, "not empty");
+            else
+                (void)file::jsonValue::ReadOptional<int>(checked, key, [](int value) { return value >= 3; }, "at least 3");
+        }
+        catch (const std::runtime_error& error) { rejected = std::string(error.what()).find(key) != std::string::npos; }
+        require(rejected, "Value validation identifies rejected field");
+    }
+    std::cout << "PASS: JSON typed reads, optional/default semantics and field diagnostics\n";
+}
+
 int main() try
 {
+    VerifyJsonValue();
     VerifyCategoryLifetime();
     VerifyContactResolution();
     VerifyEnemyPursuit();
@@ -1862,6 +2029,7 @@ int main() try
     VerifyFreshPlayObjects();
     VerifyStageEnd();
     VerifyExpedition();
+    VerifyCampaign();
     VerifyStagedCount();
     VerifyBalanceSet();
     VerifyEnemySpawning();

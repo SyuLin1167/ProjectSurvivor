@@ -35,6 +35,13 @@ namespace scene
         ui::ButtonDef title("Title", shape::Rect{{centerX + 20, 600}, {140, 50}}, GetColor(150, 180, 220));
         title.onReleased = [this]() { m_toTitle = true; };
         m_hudManager.Create<ui::Button>(&title);
+        // 保存に失敗しても成功結果を失わせず、この画面から再試行できるようにする。
+        if (gameSystem::AppCtx::Campaign().Dirty())
+        {
+            ui::ButtonDef save("保存を再試行", shape::Rect{{centerX - 160, 720}, {220, 50}}, GetColor(220, 180, 140));
+            save.onReleased = [this] { m_saveRequested = true; };
+            m_hudManager.Create<ui::Button>(&save);
+        }
         // 新しいButtonは押下履歴を持たず、前画面からの解放だけでは作動しない。
         // Rのショートカットを設けず、結果確定フレームの入力連鎖も避ける。
     }
@@ -44,6 +51,11 @@ namespace scene
     {
         if (m_leaving) return std::monostate{};
         m_hudManager.Update();
+        if (m_saveRequested)
+        {
+            m_saveRequested = false;
+            gameSystem::AppCtx::Campaign().Save();
+        }
         if (m_toRetry)
         {
             m_leaving = true;
@@ -68,5 +80,9 @@ namespace scene
         const int x = int(gameSystem::Window::GetWindowData()->SIZE.x / 2) - 160;
         DrawFormatString(x, 525, GetColor(230,230,230), "Section %d / %d    Lv.%d",
             m_expedition.section, m_expedition.SectionCount, m_expedition.growth.Level());
+        if (gameSystem::AppCtx::Campaign().Dirty())
+            DrawString(500, 680, "未保存：終了すると今回の攻略記録が失われます。保存を再試行してください。", GetColor(255, 170, 140));
+        else
+            DrawString(700, 680, "攻略記録は保存済みです。", GetColor(200, 230, 200));
     }
 }

@@ -1,4 +1,5 @@
 ﻿export module Progression.ProgressionState;
+import MyLib.File.JsonValue;
 import MyLib.File.JsonIO;
 import <array>;
 import <cstdint>;
@@ -17,14 +18,15 @@ export namespace progression
         /// <returns>検証済み必要XP。</returns>
         static Config FromJson(const json& data)
         {
-            const auto& values = data.at("requiredXp");
+            const auto& values = file::jsonValue::Member(data, "requiredXp");
             if (!values.is_array() || values.size() != 4) throw std::runtime_error("Progression requires four XP thresholds");
             Config config;
             for (size_t i = 0; i < 4; ++i)
             {
-                if (!values[i].is_number_integer() || values[i].get<double>() <= 0 || values[i].get<double>() > 1000000)
+                const auto amount = file::jsonValue::Convert<double>(values[i], "requiredXp[]");
+                if (!values[i].is_number_integer() || amount <= 0 || amount > 1000000)
                     throw std::runtime_error("Progression XP must be positive integers <= 1000000");
-                config.required[i] = values[i].get<uint64_t>();
+                config.required[i] = file::jsonValue::Convert<uint64_t>(values[i], "requiredXp[]");
             }
             return config;
         }
