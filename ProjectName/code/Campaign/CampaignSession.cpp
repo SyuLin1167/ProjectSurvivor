@@ -7,6 +7,7 @@
 #pragma comment(lib, "Ole32.lib")
 module Campaign.CampaignSession;
 import <algorithm>;
+import MyLib.File.JsonValue;
 
 namespace campaign
 {
@@ -39,8 +40,8 @@ namespace campaign
             if (!input) throw std::runtime_error("Cannot open save");
             m_status = SaveStatus::Corrupt;
             const auto data = nlohmann::json::parse(input);
-            if (!data.at("version").is_number_integer()) return;
-            if (data.at("version") != CampaignProgress::Version)
+            if (!file::jsonValue::Member(data, "version").is_number_integer()) return;
+            if (file::jsonValue::Member(data, "version") != CampaignProgress::Version)
             {
                 m_status = SaveStatus::Unsupported;
                 return;

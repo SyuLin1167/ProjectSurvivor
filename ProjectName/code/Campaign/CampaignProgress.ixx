@@ -1,6 +1,7 @@
 ﻿module;
 #include <json.hpp>
 export module Campaign.CampaignProgress;
+import MyLib.File.JsonValue;
 import <set>;
 import <string>;
 import <stdexcept>;
@@ -27,12 +28,12 @@ export namespace campaign
         /// <returns>検証済みの攻略記録。不正な型や重複IDは例外。</returns>
         static CampaignProgress FromJson(const nlohmann::json& data)
         {
-            const auto& ids = data.at("clearedQuests");
+            const auto& ids = file::jsonValue::Member(data, "clearedQuests");
             if (!ids.is_array()) throw std::runtime_error("clearedQuests must be an array");
             CampaignProgress result;
             for (const auto& value : ids)
             {
-                const auto id = value.get<std::string>();
+                const auto id = file::jsonValue::Convert<std::string>(value, "clearedQuests[]");
                 if (id.empty() || !result.cleared.insert(id).second)
                     throw std::runtime_error("Invalid or duplicate cleared quest ID");
             }

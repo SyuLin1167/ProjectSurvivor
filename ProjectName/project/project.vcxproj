@@ -643,4 +643,5 @@
     <ClCompile Include="..\code\Campaign\CampaignSession.ixx" />
     <ClCompile Include="..\code\Campaign\CampaignSession.cpp" />
   </ItemGroup>
+  <ItemGroup><ClCompile Include="..\include\MyLib\FileSystem\FileIO\JsonValue.ixx" /></ItemGroup>
 </Project>

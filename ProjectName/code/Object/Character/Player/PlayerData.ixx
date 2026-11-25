@@ -1,7 +1,8 @@
-module;
+﻿module;
 #include <json.hpp>
 
 export module Object.PlayerData;
+import MyLib.File.JsonValue;
 
 import MyLib.Math.Vector2;
 import AppContext;
@@ -16,12 +17,12 @@ export namespace object
     {
         void Input(const json& data)
         {
-            size.x = data["sizeX"].get<float>();
-            size.y = data["sizeY"].get<float>();
-            pos.x = data["posX"].get<float>();
-            pos.y = data["posY"].get<float>();
-            moveSpeed.x = data["moveSpeedX"].get<float>();
-            moveSpeed.y = data["moveSpeedY"].get<float>();
+            size.x = file::jsonValue::Read<float>(data, "sizeX");
+            size.y = file::jsonValue::Read<float>(data, "sizeY");
+            pos.x = file::jsonValue::Read<float>(data, "posX");
+            pos.y = file::jsonValue::Read<float>(data, "posY");
+            moveSpeed.x = file::jsonValue::Read<float>(data, "moveSpeedX");
+            moveSpeed.y = file::jsonValue::Read<float>(data, "moveSpeedY");
         }
 
         Vector2f size;

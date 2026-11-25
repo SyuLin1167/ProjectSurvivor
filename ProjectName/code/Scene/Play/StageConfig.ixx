@@ -4,6 +4,7 @@
 #include <stdexcept>
 
 export module Scene.StageConfig;
+import MyLib.File.JsonValue;
 import MyLib.Math.Vector2;
 
 export namespace stage
@@ -31,26 +32,26 @@ export namespace stage
         static StageConfig FromJson(const nlohmann::json& data)
         {
             StageConfig c;
-            c.showNearestEnemy = data.value("showNearestEnemy", false);
-            c.useExplorationDistance520 = data.value("useExplorationDistance520", false);
-            c.alphaCombat = data.value("alphaCombat", false);
-            c.WorldWidth = data.at("worldWidth").get<float>();
-            c.WorldHeight = data.at("worldHeight").get<float>();
-            c.PlayerSize = data.at("playerSize").get<float>();
-            c.PlayerSpeed = data.at("playerSpeed").get<float>();
-            c.PlayerCenter.x = data.at("playerCenterX").get<float>();
-            c.PlayerCenter.y = data.at("playerCenterY").get<float>();
-            if (!data.at("gridSize").is_number_integer())
+            c.showNearestEnemy = file::jsonValue::ReadOr(data, "showNearestEnemy", false);
+            c.useExplorationDistance520 = file::jsonValue::ReadOr(data, "useExplorationDistance520", false);
+            c.alphaCombat = file::jsonValue::ReadOr(data, "alphaCombat", false);
+            c.WorldWidth = file::jsonValue::Read<float>(data, "worldWidth");
+            c.WorldHeight = file::jsonValue::Read<float>(data, "worldHeight");
+            c.PlayerSize = file::jsonValue::Read<float>(data, "playerSize");
+            c.PlayerSpeed = file::jsonValue::Read<float>(data, "playerSpeed");
+            c.PlayerCenter.x = file::jsonValue::Read<float>(data, "playerCenterX");
+            c.PlayerCenter.y = file::jsonValue::Read<float>(data, "playerCenterY");
+            if (!file::jsonValue::Member(data, "gridSize").is_number_integer())
                 throw std::runtime_error("Phase1Config: gridSize must be an integer");
-            c.GridSize = data.at("gridSize").get<int>();
-            c.BaseSize.x = data.at("baseWidth").get<float>();
-            c.BaseSize.y = data.at("baseHeight").get<float>();
-            c.BaseSpeed = data.at("baseSpeed").get<float>();
-            c.BaseCenter.x = data.at("baseCenterX").get<float>();
-            c.BaseCenter.y = data.at("baseCenterY").get<float>();
-            c.TrialEndX = data.at("trialEndX").get<float>();
+            c.GridSize = file::jsonValue::Read<int>(data, "gridSize");
+            c.BaseSize.x = file::jsonValue::Read<float>(data, "baseWidth");
+            c.BaseSize.y = file::jsonValue::Read<float>(data, "baseHeight");
+            c.BaseSpeed = file::jsonValue::Read<float>(data, "baseSpeed");
+            c.BaseCenter.x = file::jsonValue::Read<float>(data, "baseCenterX");
+            c.BaseCenter.y = file::jsonValue::Read<float>(data, "baseCenterY");
+            c.TrialEndX = file::jsonValue::Read<float>(data, "trialEndX");
 
-            // 欠損・型不正はat/getで検出。非有限値、ゼロ間隔、境界外の初期配置も拒否する。
+            // 欠損・型不正は共通取得ヘルパーで検出。非有限値、ゼロ間隔、境界外の初期配置も拒否する。
             for (float value : { c.WorldWidth, c.WorldHeight, c.PlayerSize,
                                 c.PlayerSpeed, c.PlayerCenter.x, c.PlayerCenter.y,
                                 c.BaseSize.x, c.BaseSize.y, c.BaseSpeed, c.BaseCenter.x,

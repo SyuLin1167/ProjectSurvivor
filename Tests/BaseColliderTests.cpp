@@ -1,4 +1,5 @@
-﻿#include <functional>
+﻿#include <json.hpp>
+#include <functional>
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
@@ -30,6 +31,7 @@ import Object.EnemyConfig;
 import Object.EnemySpawner;
 import Object.SpawnPosition;
 import MyLib.File.FileSystem;
+import MyLib.File.JsonValue;
 import Object.MovingBase;
 import Object.ObjectManager;
 import GameSystem.FrameRate;
@@ -1964,8 +1966,38 @@ void VerifyCampaign()
     std::cout << "PASS: campaign unlock, Unicode save, reload, confirmation/cancel, corruption and write failure\n";
 }
 
+/// <summary>取得ヘルパーの欠落・型不正・既定値を確認する。仕様固有の範囲は既存設定回帰で検証する。</summary>
+void VerifyJsonValue()
+{
+    const json data{{"hp", 120}, {"speed", 80.0}, {"name", "pilgrim"}, {"enabled", true}, {"nullValue", nullptr}};
+    require(file::jsonValue::Read<int>(data, "hp") == 120 &&
+        file::jsonValue::Read<float>(data, "speed") == 80 &&
+        file::jsonValue::Read<std::string>(data, "name") == "pilgrim" &&
+        file::jsonValue::Read<bool>(data, "enabled"), "JSON helper reads multiple types");
+    require(!file::jsonValue::ReadOptional<int>(data, "missing") &&
+        file::jsonValue::ReadOr(data, "missing", 42) == 42 &&
+        file::jsonValue::ReadOr(data, "hp", 42) == 120, "Defaults only apply to absent keys");
+    for (const auto key : {"missing", "name", "nullValue"})
+    {
+        bool rejected = false;
+        try { file::jsonValue::Read<int>(data, key); }
+        catch (const std::runtime_error& error) { rejected = std::string(error.what()).find(key) != std::string::npos; }
+        require(rejected, "Required missing/invalid values report the field name");
+    }
+    bool rejected = false;
+    try { file::jsonValue::ReadOr(data, "nullValue", 42); }
+    catch (const std::runtime_error&) { rejected = true; }
+    require(rejected, "Present null must not silently use a default");
+    rejected = false;
+    try { file::jsonValue::ReadOptional<int>(json::array(), "hp"); }
+    catch (const std::runtime_error&) { rejected = true; }
+    require(rejected, "Optional reads reject a non-object parent");
+    std::cout << "PASS: JSON typed reads, optional/default semantics and field diagnostics\n";
+}
+
 int main() try
 {
+    VerifyJsonValue();
     VerifyCategoryLifetime();
     VerifyContactResolution();
     VerifyEnemyPursuit();

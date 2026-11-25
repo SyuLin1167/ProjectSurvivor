@@ -3,6 +3,7 @@
 #include <cmath>
 #include <stdexcept>
 export module Quest.QuestConfig;
+import MyLib.File.JsonValue;
 import MyLib.File.JsonIO;
 import <string>;
 import <optional>;
@@ -46,45 +47,42 @@ export namespace quest
         /// <returns>適用可能な依頼値。不正設定は例外で通知する。</returns>
         static QuestConfig FromJson(const nlohmann::json& data)
         {
-            QuestConfig c{data.at("id").get<std::string>(), data.at("destinationId").get<std::string>(),
-                data.at("name").get<std::string>(), data.at("description").get<std::string>(),
-                data.at("initialHealth").get<float>(), data.at("maxHealth").get<float>(), {}};
+            QuestConfig c{file::jsonValue::Read<std::string>(data, "id"), file::jsonValue::Read<std::string>(data, "destinationId"),
+                file::jsonValue::Read<std::string>(data, "name"), file::jsonValue::Read<std::string>(data, "description"),
+                file::jsonValue::Read<float>(data, "initialHealth"), file::jsonValue::Read<float>(data, "maxHealth"), {}};
             if (c.id.empty() || c.name.empty() || c.description.empty() || c.destinationId != "road")
                 throw std::runtime_error("QuestConfig: invalid identity or destination");
             if (!std::isfinite(c.initialHealth) || !std::isfinite(c.maxHealth) ||
                 c.initialHealth <= 0 || c.initialHealth > c.maxHealth || c.maxHealth > 1000)
                 throw std::runtime_error("QuestConfig: invalid health");
-            const auto& spawn = data.at("enemySpawn");
+            const auto& spawn = file::jsonValue::Member(data, "enemySpawn");
             if (!spawn.is_object()) throw std::runtime_error("QuestConfig: enemySpawn must be an object");
             // 未対応の上書きを黙って無視せず、入力境界で誤記を通知する。
             for (const auto& entry : spawn.items())
                 if (entry.key() != "interval" && entry.key() != "mode" && entry.key() != "limit") throw std::runtime_error("QuestConfig: unsupported spawn override");
-            if (spawn.contains("interval"))
+            c.spawnInterval = file::jsonValue::ReadOptional<double>(spawn, "interval");
+            if (c.spawnInterval)
             {
-                c.spawnInterval = spawn.at("interval").get<double>();
                 if (!std::isfinite(*c.spawnInterval) || *c.spawnInterval < 3 || *c.spawnInterval > 6)
                     throw std::runtime_error("QuestConfig: interval must be 3..6 seconds");
             }
-            if (spawn.contains("mode"))
+            c.spawnMode = file::jsonValue::ReadOptional<std::string>(spawn, "mode");
+            if (c.spawnMode)
             {
-                c.spawnMode = spawn.at("mode").get<std::string>();
                 if (*c.spawnMode != "classic" && *c.spawnMode != "offscreen")
                     throw std::runtime_error("QuestConfig: unknown spawn mode");
             }
             if (spawn.contains("limit"))
             {
-                if (!spawn.at("limit").is_number_integer() || c.spawnMode != "offscreen")
+                if (!file::jsonValue::Member(spawn, "limit").is_number_integer() || c.spawnMode != "offscreen")
                     throw std::runtime_error("QuestConfig: limit requires offscreen mode");
-                c.spawnLimit = spawn.at("limit").get<int>();
+                c.spawnLimit = file::jsonValue::Read<int>(spawn, "limit");
                 if (*c.spawnLimit != 10 && *c.spawnLimit != 12 && *c.spawnLimit != 20)
                     throw std::runtime_error("QuestConfig: offscreen limit must be 10, 12 or 20");
             }
-            if (data.contains("requiredClear"))
-            {
-                c.requiredClear = data.at("requiredClear").get<std::string>();
-                if (c.requiredClear->empty() || *c.requiredClear == c.id)
-                    throw std::runtime_error("QuestConfig: invalid unlock requirement");
-            }
+            c.requiredClear = file::jsonValue::ReadOptional<std::string>(data, "requiredClear");
+            if (c.requiredClear && (c.requiredClear->empty() || *c.requiredClear == c.id))
+                throw std::runtime_error("QuestConfig: invalid unlock requirement");
             return c;
         }
     };

@@ -1,4 +1,5 @@
 ﻿export module Object.EnemySpawner;
+import MyLib.File.JsonValue;
 import MyLib.File.JsonIO;
 import MyLib.Math.Vector2;
 import Object.EnemyConfig;
@@ -111,30 +112,30 @@ export namespace object
         static EnemySpawnConfig FromJson(const json& data)
         {
             // 小数の上限が整数変換で切り捨てられないよう、変換前に型を確認する。
-            if (!data.at("limit").is_number_integer()) throw std::runtime_error("EnemySpawnConfig: limit must be integer");
-            // 必須項目を型付きで読み込む。欠落や型不一致はJSONの例外で通知する。
-            EnemySpawnConfig c{data.at("interval").get<double>(), data.at("firstDelay").get<double>(),
-                data.at("distance").get<float>(), data.at("limit").get<int>()};
-            const auto mode = data.value("mode", std::string("classic"));
+            if (!file::jsonValue::Member(data, "limit").is_number_integer()) throw std::runtime_error("EnemySpawnConfig: limit must be integer");
+            // 必須項目を型付きで読み込む。欠落や型不一致は共通ヘルパーが項目名付きで通知する。
+            EnemySpawnConfig c{file::jsonValue::Read<double>(data, "interval"), file::jsonValue::Read<double>(data, "firstDelay"),
+                file::jsonValue::Read<float>(data, "distance"), file::jsonValue::Read<int>(data, "limit")};
+            const auto mode = file::jsonValue::ReadOr(data, "mode", std::string("classic"));
             if (mode != "classic" && mode != "offscreen") throw std::runtime_error("EnemySpawnConfig: unknown mode");
             c.offscreen = mode == "offscreen";
             // 旧JSONは基準として読める。候補の選択は起動前の明示指定に限定する。
-            const auto selected = data.value("balanceSet", std::string("baseline"));
+            const auto selected = file::jsonValue::ReadOr(data, "balanceSet", std::string("baseline"));
             if (selected != "baseline" && selected != "candidate")
                 throw std::runtime_error("EnemySpawnConfig: unknown balanceSet");
             if (selected == "candidate")
             {
-                const auto& candidate = data.at("candidate");
-                c.healthOverride = candidate.at("health").get<float>();
-                c.stagedIntervals = candidate.at("stagedIntervals").get<bool>();
-                c.randomDirections = candidate.at("randomDirections").get<bool>();
-                c.stagedCount = candidate.value("stagedCount", false);
+                const auto& candidate = file::jsonValue::Member(data, "candidate");
+                c.healthOverride = file::jsonValue::Read<float>(candidate, "health");
+                c.stagedIntervals = file::jsonValue::Read<bool>(candidate, "stagedIntervals");
+                c.randomDirections = file::jsonValue::Read<bool>(candidate, "randomDirections");
+                c.stagedCount = file::jsonValue::ReadOr(candidate, "stagedCount", false);
                 // 負数・小数・32bitを超える種は、切り捨てず開始前に拒否する。
-                const auto& seedValue = candidate.at("seed");
-                if (!seedValue.is_number_integer() || seedValue.get<double>() < 0 ||
-                    seedValue.get<double>() > 4294967295.0)
+                const auto& seedValue = file::jsonValue::Member(candidate, "seed");
+                const auto seedNumber = file::jsonValue::Convert<double>(seedValue, "candidate.seed");
+                if (!seedValue.is_number_integer() || seedNumber < 0 || seedNumber > 4294967295.0)
                     throw std::runtime_error("EnemySpawnConfig: seed must be uint32");
-                c.seed = seedValue.get<uint32_t>();
+                c.seed = file::jsonValue::Convert<uint32_t>(seedValue, "candidate.seed");
             }
             // 全項目が承認範囲内であることを確認してから、利用側へ返す。
             c.Validate();
