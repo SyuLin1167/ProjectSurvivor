@@ -736,7 +736,7 @@ void VerifyStageEnd()
     }
     const auto pilgrimPath = files.GetDataDir() / "Quests/Pilgrim.json";
     const auto originalQuest = files.jsonIO.Load(pilgrimPath);
-    for (int invalid = 0; invalid < 5; ++invalid)
+    for (int invalid = 0; invalid < 8; ++invalid)
     {
         auto data = originalQuest;
         if (invalid == 0) data.erase("maxHealth");
@@ -744,6 +744,9 @@ void VerifyStageEnd()
         if (invalid == 2) data["destinationId"] = "unknown";
         if (invalid == 3) data["enemySpawn"]["interval"] = "fast";
         if (invalid == 4) data["enemySpawn"]["unexpected"] = 1;
+        if (invalid == 5) data["id"] = "";
+        if (invalid == 6) data["name"] = "";
+        if (invalid == 7) data["description"] = "";
         bool rejected = false;
         try { quest::QuestConfig::FromJson(data); }
         catch (const std::exception&) { rejected = true; }
@@ -1992,6 +1995,25 @@ void VerifyJsonValue()
     try { file::jsonValue::ReadOptional<int>(json::array(), "hp"); }
     catch (const std::runtime_error&) { rejected = true; }
     require(rejected, "Optional reads reject a non-object parent");
+    // 値の正常性も取得境界で拒否し、省略時だけ検証を実施しない。
+    const json checked = {{"name", ""}, {"interval", 2}, {"valid", "road"}};
+    require(file::jsonValue::Read<std::string>(checked, "valid", file::jsonValue::NonEmpty, "not empty") == "road",
+        "Validated JSON read");
+    require(!file::jsonValue::ReadOptional<std::string>(checked, "absent", file::jsonValue::NonEmpty, "not empty"),
+        "Absent optional skips value validation");
+    for (const auto key : {"name", "interval"})
+    {
+        bool rejected = false;
+        try
+        {
+            if (std::string(key) == "name")
+                (void)file::jsonValue::Read<std::string>(checked, key, file::jsonValue::NonEmpty, "not empty");
+            else
+                (void)file::jsonValue::ReadOptional<int>(checked, key, [](int value) { return value >= 3; }, "at least 3");
+        }
+        catch (const std::runtime_error& error) { rejected = std::string(error.what()).find(key) != std::string::npos; }
+        require(rejected, "Value validation identifies rejected field");
+    }
     std::cout << "PASS: JSON typed reads, optional/default semantics and field diagnostics\n";
 }
 

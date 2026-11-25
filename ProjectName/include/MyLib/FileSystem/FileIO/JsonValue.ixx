@@ -68,4 +68,48 @@ export namespace file::jsonValue
     {
         return ReadOptional<T>(data, key).value_or(fallback);
     }
+
+    /// <summary>取得値を指定条件で検証し、違反時は項目名と条件を通知する。</summary>
+    /// <param name="value">検証対象値。</param>
+    /// <param name="key">項目名。</param>
+    /// <param name="predicate">正常値ならtrueを返す副作用のない判定。</param>
+    /// <param name="rule">満たすべき条件の説明。</param>
+    template<class T, class Predicate>
+    void Validate(const T& value, const std::string& key, Predicate predicate, const std::string& rule)
+    {
+        if (!predicate(value)) throw std::runtime_error("JSON " + key + ": " + rule);
+    }
+
+    /// <summary>必須値の取得と正常性検証を一つの入力境界で行う。</summary>
+    /// <param name="data">読込対象。</param>
+    /// <param name="key">必須キー。</param>
+    /// <param name="predicate">値の正常性条件。</param>
+    /// <param name="rule">条件違反時の説明。</param>
+    /// <returns>検証済みの値。</returns>
+    template<class T, class Predicate>
+    T Read(const json& data, const std::string& key, Predicate predicate, const std::string& rule)
+    {
+        auto value = Read<T>(data, key);
+        Validate(value, key, predicate, rule);
+        return value;
+    }
+
+    /// <summary>省略可能値が存在する場合だけ正常性を検証する。</summary>
+    /// <param name="data">読込対象。</param>
+    /// <param name="key">省略可能キー。</param>
+    /// <param name="predicate">値の正常性条件。</param>
+    /// <param name="rule">条件違反時の説明。</param>
+    /// <returns>検証済みの値、または省略時のnullopt。</returns>
+    template<class T, class Predicate>
+    std::optional<T> ReadOptional(const json& data, const std::string& key, Predicate predicate, const std::string& rule)
+    {
+        auto value = ReadOptional<T>(data, key);
+        if (value) Validate(*value, key, predicate, rule);
+        return value;
+    }
+
+    /// <summary>空文字を許さない項目で共用する正常性条件。</summary>
+    /// <param name="value">取得文字列。</param>
+    /// <returns>一文字以上ならtrue。</returns>
+    inline bool NonEmpty(const std::string& value) { return !value.empty(); }
 }
