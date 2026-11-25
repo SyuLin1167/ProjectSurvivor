@@ -18,6 +18,9 @@ import MyLib.Shape.Rect;
 import Object.Enemy;
 import Object.Player;
 import Scene.StageConfig;
+import Expedition.ExpeditionState;
+import Scene.Relay;
+import Scene.LevelUp;
 import Quest.QuestCatalog;
 import Object.CombatDrops;
 import Object.ExperienceDrops;
@@ -1722,6 +1725,132 @@ void VerifyProgression()
     std::cout << "PASS: progression, ability updates, XP transfer and overlay layers/lifetime\n";
 }
 
+/// <summary>Start/Continue/Retryの実LoadingSceneを完了まで進める。</summary>
+/// <param name="command">LoadingSceneへの置換要求。</param>
+/// <returns>まだInitしていない新しいPlay。</returns>
+std::shared_ptr<scene::Play> LoadExpeditionPlay(scene::SceneCmd command)
+{
+    auto loading = std::get<scene::CmdReplace>(command).build();
+    command = std::monostate{};
+    scene::SceneCmd ready;
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+    auto& dt = const_cast<float&>(gameSystem::FrameRate::GetDeltaTime());
+    while (std::holds_alternative<std::monostate>(ready) && std::chrono::steady_clock::now() < deadline)
+    {
+        dt = 1.0f / 60;
+        ready = loading->Update();
+        std::this_thread::yield();
+    }
+    require(std::holds_alternative<scene::CmdReplace>(ready), "Expedition loading completes");
+    auto play = std::dynamic_pointer_cast<scene::Play>(std::get<scene::CmdReplace>(ready).build());
+    require(play != nullptr, "Expedition loading creates Play");
+    return play;
+}
+
+/// <summary>両依頼の遠征値・実シーン遷移・区間別敗北とRetryを既存の読込経路で確認する。</summary>
+void VerifyExpedition()
+{
+    gameSystem::AppCtx::Activate();
+    auto& files = gameSystem::AppCtx::FileSystem();
+    auto& dt = const_cast<float&>(gameSystem::FrameRate::GetDeltaTime());
+    const auto stagePath = files.GetDataDir() / "Phase1Config.json";
+    const auto original = files.jsonIO.Load(stagePath);
+    auto headless = original;
+    headless["alphaCombat"] = false; // 描画なしの既存テスト条件。配布設定は変更しない。
+    files.jsonIO.Write(stagePath, headless);
+    for (const auto id : {"pilgrim", "cargo"})
+    {
+        expedition::ExpeditionState initial(quest::FindQuest(id), progression::Config{});
+        initial.health -= 30;
+        initial.growth.AddExperience(8);
+        require(initial.growth.Select(progression::Upgrade::Damage) && initial.growth.Select(progression::Upgrade::AttackSpeed),
+            "Expedition fixture selects two upgrades");
+        auto play = std::make_shared<scene::Play>(initial);
+        play->Init();
+        require(play->Snapshot().section == 1 && play->Snapshot().health == initial.health,
+            "First section uses current health without full repair");
+
+        // 遷移テストだけdtを大きくして終端へ進める。実時間60秒の試遊や負荷測定ではない。
+        dt = 60.1f;
+        auto command = play->Update();
+        require(std::holds_alternative<scene::CmdReplace>(command), "First success requests relay");
+        auto relay = std::dynamic_pointer_cast<scene::Relay>(std::get<scene::CmdReplace>(command).build());
+        require(relay && relay->State().section == 1 && relay->State().health == initial.health,
+            "First success retains health in relay");
+        std::weak_ptr<scene::Play> oldPlay = play;
+        play.reset();
+        command = std::monostate{};
+        require(oldPlay.expired(), "Relay does not retain old Play or its objects");
+        gameSystem::Camera::Instance().Update(); // 古いPlayerのカメラ参照が解除済みであることも通す。
+        dt = 1.0f / 60;
+        for (int frame = 0; frame < 120; ++frame)
+            require(std::holds_alternative<std::monostate>(relay->Update()), "Relay waits for explicit input");
+        require(relay->State().health == initial.health && relay->State().growth.TotalXp() == 8,
+            "Relay wait does not advance combat or progression");
+        play = LoadExpeditionPlay(relay->Continue());
+        require(std::holds_alternative<std::monostate>(relay->Continue()), "Relay cannot start twice");
+        relay.reset();
+        play->Init();
+        const auto continued = play->Snapshot();
+        require(continued.section == 2 && continued.health == initial.health && continued.maxHealth == initial.maxHealth &&
+            continued.growth.Level() == 3 && continued.growth.Xp() == 1 && continued.growth.TotalXp() == 8 &&
+            continued.growth.Multiplier(progression::Upgrade::Damage) == initial.growth.Multiplier(progression::Upgrade::Damage),
+            "Second section preserves HP, XP and upgrades");
+        dt = 1.0f / 60;
+        require(std::holds_alternative<std::monostate>(play->Update()), "Second section starts unfinished with fresh clocks");
+        dt = 60.1f;
+        command = play->Update();
+        auto result = std::dynamic_pointer_cast<scene::Result>(std::get<scene::CmdReplace>(command).build());
+        require(result && result->ResultValue().outcome == scene::StageEnd::Success && result->State().section == 2,
+            "Second success completes expedition");
+        play.reset();
+        command = std::monostate{};
+        play = LoadExpeditionPlay(result->Retry());
+        result.reset();
+        play->Init();
+        const auto fresh = play->Snapshot();
+        require(fresh.section == 1 && fresh.growth.Level() == 1 && fresh.growth.Xp() == 0 && fresh.growth.TotalXp() == 0 &&
+            fresh.growth.Pending() == 0 && fresh.health == fresh.quest.initialHealth && fresh.maxHealth == fresh.quest.maxHealth,
+            "Retry starts new expedition with quest HP and no growth");
+        play.reset();
+
+        // 両区間とも実際の敵生成・接触で敗北させ、中継へ誤遷移しないことを確認する。
+        for (int section : {1,2})
+        {
+            auto vulnerable = initial;
+            vulnerable.section = section;
+            vulnerable.health = 1;
+            play = std::make_shared<scene::Play>(vulnerable);
+            play->Init();
+            dt = 1.0f / 60;
+            scene::SceneCmd ended;
+            for (int frame = 0; frame < 3600 && std::holds_alternative<std::monostate>(ended); ++frame) ended = play->Update();
+            require(std::holds_alternative<scene::CmdReplace>(ended), "Each section can reach defeat");
+            auto defeat = std::dynamic_pointer_cast<scene::Result>(std::get<scene::CmdReplace>(ended).build());
+            require(defeat && defeat->ResultValue().outcome == scene::StageEnd::Defeat && defeat->State().section == section &&
+                defeat->State().health == 0, "Defeat retains correct section and zero HP");
+            play.reset();
+        }
+        // 遠征値に未処理選択があっても捨てず、開始直後は戦闘より先にオーバーレイへ送る。
+        auto pending = initial;
+        pending.Advance();
+        pending.growth.AddExperience(4);
+        play = std::make_shared<scene::Play>(pending);
+        play->Init();
+        dt = 1.0f / 60;
+        auto choice = play->Update();
+        require(std::holds_alternative<scene::CmdPush>(choice) && play->Snapshot().growth.Pending() == 1,
+            "Pending selection survives continuation and pauses before simulation");
+        auto overlay = std::dynamic_pointer_cast<scene::LevelUp>(std::get<scene::CmdPush>(choice).build());
+        require(overlay && overlay->DrawsBelow(), "Continuation uses existing background overlay");
+        overlay.reset();
+        choice = std::monostate{};
+        play.reset();
+    }
+    files.jsonIO.Write(stagePath, original);
+    std::cout << "PASS: two-section expedition, relay, growth/HP carry, section defeats and fresh retry\n";
+}
+
 int main() try
 {
     VerifyCategoryLifetime();
@@ -1732,6 +1861,7 @@ int main() try
     VerifySimulationTime();
     VerifyFreshPlayObjects();
     VerifyStageEnd();
+    VerifyExpedition();
     VerifyStagedCount();
     VerifyBalanceSet();
     VerifyEnemySpawning();

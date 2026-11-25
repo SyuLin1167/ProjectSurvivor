@@ -632,6 +632,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\code\Progression\ProgressionState.ixx" />
+    <ClCompile Include="..\code\Expedition\ExpeditionState.ixx" />
+    <ClCompile Include="..\code\Scene\Relay\Relay.ixx" />
+    <ClCompile Include="..\code\Scene\Relay\Relay.cpp" />
     <ClCompile Include="..\code\Scene\LevelUp\LevelUp.ixx" />
     <ClCompile Include="..\code\Scene\LevelUp\LevelUp.cpp" />
   </ItemGroup>

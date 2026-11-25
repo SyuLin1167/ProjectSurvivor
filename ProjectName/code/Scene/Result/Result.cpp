@@ -16,16 +16,16 @@ import UI.DisplayElements;
 
 namespace scene
 {
-    Result::Result(StageResult result, quest::QuestConfig selected, float maxHealth)
-        : m_quest(selected), m_result(result)
+    Result::Result(StageResult result, expedition::ExpeditionState state)
+        : m_expedition(std::move(state)), m_result(result)
     {
         const float centerX = gameSystem::Window::GetWindowData()->SIZE.x / 2.0f;
         const float x = centerX - 160;
-        const auto name = m_hudManager.Create<ui::TextLabel>(quest::DisplayText(m_quest.name));
+        const auto name = m_hudManager.Create<ui::TextLabel>(quest::DisplayText(m_expedition.quest.name));
         m_hudManager.GetElement(name)->SetPosition({x, 350});
-        const auto heading = m_hudManager.Create<ui::TextLabel>(m_result.outcome == StageEnd::Success ? "SUCCESS" : "DEFEAT");
+        const auto heading = m_hudManager.Create<ui::TextLabel>(m_result.outcome == StageEnd::Success ? "EXPEDITION SUCCESS" : "EXPEDITION DEFEAT");
         m_hudManager.GetElement(heading)->SetPosition({x, 400});
-        const auto status = m_hudManager.Create<ui::StageStatus>(m_result.health, m_result.progress, maxHealth);
+        const auto status = m_hudManager.Create<ui::StageStatus>(m_result.health, m_result.progress, m_expedition.maxHealth);
         m_hudManager.GetElement(status)->SetPosition({x, 450});
         const auto controls = m_hudManager.Create<ui::TextLabel>("Click Retry or Title");
         m_hudManager.GetElement(controls)->SetPosition({x, 550});
@@ -59,11 +59,14 @@ namespace scene
 
     SceneCmd Result::Retry()
     {
-        return Play::Start(shared_from_this(), m_quest.id);
+        return Play::Start(shared_from_this(), m_expedition.quest.id);
     }
 
     void Result::Draw()
     {
         m_hudManager.Draw();
+        const int x = int(gameSystem::Window::GetWindowData()->SIZE.x / 2) - 160;
+        DrawFormatString(x, 525, GetColor(230,230,230), "Section %d / %d    Lv.%d",
+            m_expedition.section, m_expedition.SectionCount, m_expedition.growth.Level());
     }
 }

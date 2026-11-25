@@ -4,7 +4,6 @@ export module Object.ExperienceDrops;
 import MyLib.Math.Vector2;
 import MyLib.Shape.Circle;
 import GameSystem.Camera;
-import GameSystem.Window;
 import <vector>;
 import <algorithm>;
 import <cstdint>;
@@ -25,7 +24,7 @@ export namespace object
         std::vector<Drop> m_drops;
         uint64_t m_unclaimed = 0;
         float m_magnetRadius = MagnetRadius;
-        uint64_t m_total = 0; // この試行で取得済みのXP。新しいPlayで0に戻る。
+        uint64_t m_total = 0; // この区間で取得済みのXP。遠征累計はProgressionStateが管理する。
     public:
         static constexpr size_t Capacity = 256;
         static constexpr float MagnetRadius = 160, PickupRadius = 20, Speed = 480; // u、u、u/s。
@@ -93,12 +92,6 @@ export namespace object
             }
         }
 
-        /// <summary>特殊アイテム表示の上に、取得済み経験値を表示する。</summary>
-        void DrawStatus() const
-        {
-            const int y = int(gameSystem::Window::GetWindowData()->SIZE.y) - 58;
-            DrawFormatString(18, y, GetColor(90, 220, 255), "TOTAL XP: %llu", static_cast<unsigned long long>(m_total));
-        }
         /// <summary>今回の成長計算へ未受領XPを一度だけ渡す。</summary>
         /// <returns>前回受領以降の回収XP。</returns>
         uint64_t TakeExperience() { return std::exchange(m_unclaimed, 0); }
@@ -106,7 +99,7 @@ export namespace object
         /// <param name="radius">検証済み能力から計算した半径（u）。</param>
         void SetMagnetRadius(float radius) { m_magnetRadius = radius; }
         /// <summary>ドロップ取得の累計。成長側の残高とは異なり減らない。</summary>
-        /// <returns>この試行で拾った総XP。</returns>
+        /// <returns>この区間で拾った総XP。</returns>
         uint64_t Total() const { return m_total; }
         /// <summary>フィールドに残る粒の数を返す。</summary>
         /// <returns>合算後の表示個数。</returns>
