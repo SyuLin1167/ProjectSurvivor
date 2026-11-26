@@ -90,7 +90,7 @@ namespace scene
             DrawFormatString(640, 690, GetColor(255, 255, 255), "敵生成間隔：%.1f秒", *selected.spawnInterval);
         else DrawString(640, 690, "敵生成条件：基本設定を継承", GetColor(255, 255, 255));
         DrawFormatString(640, 730, GetColor(255, 238, 188), "遠征：全%d区間 / 中継でHP・成長を引き継ぎ",
-            expedition::ExpeditionState::SectionCount);
+            expedition::ExpeditionState::SectionCount());
         // このシーンが所有するボタンを最後に描画し、詳細表示の上から操作できるようにする。
         m_ui.Draw();
         // 条件名は読み込み済み一覧から取得し、毎フレームのJSON再読込を避ける。

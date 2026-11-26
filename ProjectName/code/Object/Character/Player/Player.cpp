@@ -69,10 +69,12 @@ namespace object
         ColMgr().AddMask(id, col2d::RECT, ObjectTag::BASE);
     }
 
-    void Player::ApplyProgression(const progression::ProgressionState& growth)
+    void Player::ApplyProgression(const progression::ProgressionState& growth, float routeMultiplier)
     {
         using progression::Upgrade;
-        m_attack.Damage = m_baseAttack.Damage * growth.Multiplier(Upgrade::Damage);
+        // 成長の再選択時にも基礎値から計算する。ルート倍率を成長状態に保存・累乗しない。
+        // ドロップ強化の1.5倍はAttackDamageで最後に適用し、時間切れでも区間倍率は残す。
+        m_attack.Damage = m_baseAttack.Damage * growth.Multiplier(Upgrade::Damage) * routeMultiplier;
         m_attack.Interval = m_baseAttack.Interval / growth.Multiplier(Upgrade::AttackSpeed);
         // 短縮後の間隔より長い待ち時間を残さず、即時追加攻撃も発生させない。
         m_attackRemaining = (std::min)(m_attackRemaining, double(m_attack.Interval));

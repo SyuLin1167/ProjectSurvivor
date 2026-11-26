@@ -55,15 +55,15 @@ namespace scene
 
         /// @brief ステージで使用する敵設定から試行専用の生成器を作る。
         /// @param world マップ寸法と戦闘モードを含む設定。
-        /// @param selected 生成間隔の任意上書きを持つ検証済み依頼。
+        /// @param state 検証済み依頼と選択ノードを持つ遠征状態。
         /// @return 初期状態の生成器。
-        object::EnemySpawner CreateSpawner(const stage::StageConfig& world, const quest::QuestConfig& selected)
+        object::EnemySpawner CreateSpawner(const stage::StageConfig& world, const expedition::ExpeditionState& state)
         {
             auto& files = AppCtx::FileSystem();
             const auto data = files.jsonIO.Load(files.GetDataDir() / "EnemyConfig");
             auto spawnData = files.jsonIO.Load(files.GetDataDir() / "EnemySpawnConfig");
             // 上書き後に既存比較モードとの組合せも検証する。
-            return object::EnemySpawner(selected.BuildSpawnConfig(spawnData),
+            return object::EnemySpawner(state.BuildSpawnConfig(spawnData),
                 combat::EnemyConfig::FromJson(data), {world.WorldWidth, world.WorldHeight},
                 world.alphaCombat ? &data.at("alphaTypes") : nullptr);
         }
@@ -74,7 +74,7 @@ namespace scene
     Play::Play(expedition::ExpeditionState state) : Play(LoadConfig<stage::StageConfig>("Phase1Config"), std::move(state)) {}
 
     Play::Play(const stage::StageConfig& world, expedition::ExpeditionState state)
-        : m_expedition(std::move(state)), m_stage(world.BaseCenter.x, world.TrialEndX), m_spawner(CreateSpawner(world, m_expedition.quest)),
+        : m_expedition(std::move(state)), m_stage(world.BaseCenter.x, world.TrialEndX), m_spawner(CreateSpawner(world, m_expedition)),
           m_showNearestEnemy(world.showNearestEnemy)
     {
         m_player = new object::Player(world, LoadConfig<combat::PlayerAttackConfig>("PlayerAttackConfig"));
@@ -125,7 +125,7 @@ namespace scene
     void Play::ApplyGrowth()
     {
         // Playerのコンポーネント生成後に適用し、区間再開でも基礎値から一度だけ計算する。
-        m_player->ApplyProgression(m_expedition.growth);
+        m_player->ApplyProgression(m_expedition.growth, m_expedition.CurrentNode().route.damageMultiplier);
         m_experience.SetMagnetRadius(object::ExperienceDrops::MagnetRadius *
             m_expedition.growth.Multiplier(progression::Upgrade::Magnet));
         m_growthDirty = false;
@@ -209,7 +209,7 @@ namespace scene
         DrawFormatString(18, growthY, GetColor(90,220,255), "TOTAL XP: %llu",
             static_cast<unsigned long long>(m_expedition.growth.TotalXp()));
         DrawFormatString(480, growthY, GetColor(230,230,230), "SECTION %d / %d",
-            m_expedition.section, m_expedition.SectionCount);
+            m_expedition.Section(), m_expedition.SectionCount());
         if (m_expedition.growth.Level() == 5)
             DrawString(180, growthY, "Lv.5 MAX", GetColor(90,220,255));
         else

@@ -81,8 +81,9 @@ export namespace object
 
         /// <summary>試行内強化から能力を基礎値に対して再計算する。累乗適用しない。</summary>
         /// <param name="growth">Playの強化回数。Init後のみ呼ぶ。</param>
-        void ApplyProgression(const progression::ProgressionState& growth);
-        /// <summary>成長とアイテム倍率を順番に反映した攻撃力。</summary>
+        /// <param name="routeMultiplier">検証済みの区間攻撃倍率。通常区間は1。</param>
+        void ApplyProgression(const progression::ProgressionState& growth, float routeMultiplier = 1);
+        /// <summary>基礎値×成長×ルート×アイテムの順に反映した攻撃力。</summary>
         /// <returns>現在のダメージ。</returns>
         float AttackDamage() const;
         /// <summary>成長後の攻撃間隔。</summary>

@@ -2,6 +2,9 @@
 import Scene.SceneBase;
 import UI.UIManager;
 import Expedition.ExpeditionState;
+import UI.Button;
+import <optional>;
+import <string>;
 
 export namespace scene
 {
@@ -22,12 +25,18 @@ export namespace scene
         /// <summary>次区間をLoadingScene経由で開始する。二重操作は無視する。</summary>
         /// <returns>初回のみLoadingSceneへの遷移。</returns>
         SceneCmd Continue();
+        /// <summary>接続先だけ選択する。選択だけではHPや遠征位置を変更しない。</summary>
+        /// <param name="id">現在地点から到達できるノードID。</param>
+        /// <returns>選択を受理した場合true。無効IDや遷移後はfalse。</returns>
+        bool SelectRoute(const std::string& id);
         /// <summary>ゲームオブジェクト参照を含まない遠征値を読む。</summary>
         /// <returns>中継地点が保持する不変の遠征状態。</returns>
         const expedition::ExpeditionState& State() const { return m_state; }
     private:
         const expedition::ExpeditionState m_state;
         ui::UIManager m_ui;
+        std::optional<std::string> m_selected; // UI上の仮選択。出発確定まで遠征値へ反映しない。
+        ui::Button* m_depart; // m_ui所有。構築時に必ず生成し、シーンより長生きしない。
         bool m_continue = false, m_title = false, m_leaving = false;
     };
 }
