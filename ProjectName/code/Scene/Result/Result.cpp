@@ -79,7 +79,7 @@ namespace scene
         m_hudManager.Draw();
         const int x = int(gameSystem::Window::GetWindowData()->SIZE.x / 2) - 160;
         DrawFormatString(x, 525, GetColor(230,230,230), "Section %d / %d    Lv.%d",
-            m_expedition.section, m_expedition.SectionCount, m_expedition.growth.Level());
+            m_expedition.Section(), m_expedition.SectionCount(), m_expedition.growth.Level());
         if (gameSystem::AppCtx::Campaign().Dirty())
             DrawString(500, 680, "未保存：終了すると今回の攻略記録が失われます。保存を再試行してください。", GetColor(255, 170, 140));
         else

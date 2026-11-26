@@ -20,6 +20,7 @@ import Object.Enemy;
 import Object.Player;
 import Scene.StageConfig;
 import Expedition.ExpeditionState;
+import Expedition.ExpeditionMap;
 import Scene.Relay;
 import Scene.LevelUp;
 import Quest.QuestCatalog;
@@ -1476,7 +1477,7 @@ void VerifyOffscreenSpawning()
     const float previousDt = dt;
     auto& camera = gameSystem::Camera::Instance();
     // 毎機会に敵を除去して上限見送りを避け、実生成時計の予約列を独立した期待値と照合する。
-    for (int fps : {30,60,120})
+    for (const auto route : {"safe", "danger"}) for (int fps : {30,60,120})
     {
         const std::vector<double> expected{3,5.5,8,10.5,13,15.5,18,20.5,22.5,24.5,26.5,28.5,
             30.5,32.5,34.5,36.5,38.5,40.5,42.5,44.5,46.5,48,49.5,51,52.5,54,55.5,57,58.5,60};
@@ -1487,7 +1488,9 @@ void VerifyOffscreenSpawning()
         scheduleWorld.TrialEndX = 15000;
         auto base = std::make_shared<object::MovingBase>(scheduleWorld);
         objects.AddInitializedObject(base);
-        object::EnemySpawner spawner(shipped, enemy, {world.WorldWidth, world.WorldHeight});
+        expedition::ExpeditionState routeState(quest::QuestConfig::FromJson(questData), progression::Config{});
+        routeState.Advance(route);
+        object::EnemySpawner spawner(routeState.BuildSpawnConfig(source), enemy, {world.WorldWidth, world.WorldHeight});
         auto tracking = base->Center();
         camera.SetWorldSize({world.WorldWidth, world.WorldHeight});
         camera.SetTarget(&tracking, true);
@@ -1688,6 +1691,11 @@ void VerifyProgression()
     player->BoostAttack();
     player->ApplyProgression(state);
     require(std::abs(player->AttackDamage() - baseDamage * 1.2f * 1.5f) < 0.001f, "Growth then temporary boost without compounding");
+    // 区間倍率は成長の再計算で累積せず、既存の10秒バフとは別に存続する。
+    player->ApplyProgression(state, 1.25f);
+    player->ApplyProgression(state, 1.25f);
+    require(std::abs(player->AttackDamage() - baseDamage * 1.2f * 1.25f * 1.5f) < 0.001f,
+        "Base times growth times route times item, without compounding");
     object::ExperienceDrops drops;
     drops.SetMagnetRadius(object::ExperienceDrops::MagnetRadius * state.Multiplier(Upgrade::Magnet));
     drops.Add({190, 0});
@@ -1765,10 +1773,79 @@ std::shared_ptr<scene::Play> LoadExpeditionPlay(scene::SceneCmd command)
 }
 
 /// <summary>両依頼の遠征値・実シーン遷移・区間別敗北とRetryを既存の読込経路で確認する。</summary>
+/// <summary>固定DAGと進入報酬の境界を確認する。経路探索や別テスト基盤は導入しない。</summary>
+void VerifyExpeditionMap()
+{
+    gameSystem::AppCtx::Activate();
+    using namespace expedition;
+    using enum NodeKind;
+    const auto& map = DefaultMap();
+    require(map.Find(map.Start()).next.size() == 2 && map.SectionCount() == 2, "Fixed branching map");
+    // ID順と配列順は独立。複数の親が同じ次ノードへ合流しても有効。
+    const ExpeditionMap merge({
+        {"end", Battle, 2, {}, "End", "", {}},
+        {"root", Battle, 0, {"left", "right"}, "Root", "", {}},
+        {"left", Battle, 1, {"end"}, "Left", "", {}},
+        {"right", Battle, 1, {"end"}, "Right", "", {}}
+    }, "root");
+    require(merge.SectionCount() == 3 && merge.Find("left").next[0] == "end", "DAG supports merge and unordered IDs");
+    for (int invalid = 0; invalid < 5; ++invalid)
+    {
+        std::vector<MapNode> nodes{
+            {"root", Battle, 0, {"end"}, "Root", "", {}},
+            {"end", Battle, 1, {}, "End", "", {}}
+        };
+        if (invalid == 0) nodes[0].next = {"missing"};
+        if (invalid == 1) nodes[1].next = {"root"};
+        if (invalid == 2) nodes[0].next.clear();
+        if (invalid == 3) nodes[1].id = "root";
+        if (invalid == 4) nodes[0].next = {"end", "end"};
+        bool rejected = false;
+        try { ExpeditionMap bad(nodes, "root"); }
+        catch (const std::runtime_error&) { rejected = true; }
+        require(rejected, "Invalid graph rejected at construction");
+    }
+    auto& files = gameSystem::AppCtx::FileSystem();
+    const auto source = files.jsonIO.Load(files.GetDataDir() / "EnemySpawnConfig");
+    for (const auto route : {"safe", "danger"})
+    {
+        ExpeditionState state(quest::QuestConfig::FromJson(files.jsonIO.Load("ProjectName/resources/data/Quests/Pilgrim.json")), progression::Config{});
+        state.health = state.maxHealth - 5;
+        const float originalHp = state.health;
+        bool rejected = false;
+        try { state.Advance("missing"); } catch (const std::logic_error&) { rejected = true; }
+        require(rejected && state.health == originalHp && state.Section() == 1, "Rejected route leaves state intact");
+        state.Advance(route);
+        const auto& effect = state.CurrentNode().route;
+        require(state.health == (std::min)(state.maxHealth, originalHp + effect.entryHeal), "Entry heal clamps to max HP");
+        const auto config = state.BuildSpawnConfig(source);
+        require(config.limit == *effect.enemyLimit && config.offscreen && config.LimitAt(0) == 6 &&
+            config.LimitAt(20) == 8 && config.LimitAt(45) == *effect.enemyLimit, "Route controls final cap only");
+        const float entered = state.health;
+        rejected = false;
+        try { state.Advance(route); } catch (const std::logic_error&) { rejected = true; }
+        require(rejected && state.health == entered, "Terminal route cannot grant reward twice");
+
+        // classic比較の個体値と上限をルートで上書きしない。
+        state.quest.spawnMode = "classic";
+        state.quest.spawnLimit.reset();
+        auto c1 = source;
+        c1["mode"] = "classic"; c1["limit"] = 8; c1["balanceSet"] = "candidate";
+        c1["candidate"] = {{"health",20}, {"stagedIntervals",false}, {"stagedCount",true},
+            {"randomDirections",true}, {"seed",1901}};
+        const auto baseline = state.BuildSpawnConfig(c1);
+        require(!baseline.offscreen && baseline.limit == 8 && baseline.healthOverride == 20 &&
+            baseline.stagedCount && baseline.IntervalAt(45) == 4, "C1 spawn configuration retained");
+    }
+    std::cout << "PASS: expedition DAG, route rewards/caps, invalid transitions and C1 compatibility\n";
+}
 void VerifyExpedition()
 {
     gameSystem::AppCtx::Activate();
     PrepareCampaignFixture();
+    // 先行するC1回帰は実行用依頼をclassicにするため、ここでは配布依頼から独立に準備する。
+    std::filesystem::copy("ProjectName/resources/data/Quests", gameSystem::AppCtx::FileSystem().GetDataDir() / "Quests",
+        std::filesystem::copy_options::overwrite_existing | std::filesystem::copy_options::recursive);
     auto& files = gameSystem::AppCtx::FileSystem();
     auto& dt = const_cast<float&>(gameSystem::FrameRate::GetDeltaTime());
     const auto stagePath = files.GetDataDir() / "Phase1Config.json";
@@ -1776,6 +1853,7 @@ void VerifyExpedition()
     auto headless = original;
     headless["alphaCombat"] = false; // 描画なしの既存テスト条件。配布設定は変更しない。
     files.jsonIO.Write(stagePath, headless);
+    for (const auto route : {"safe", "danger"})
     for (const auto id : {"pilgrim", "cargo"})
     {
         auto& campaign = gameSystem::AppCtx::Campaign();
@@ -1788,7 +1866,7 @@ void VerifyExpedition()
             "Expedition fixture selects two upgrades");
         auto play = std::make_shared<scene::Play>(initial);
         play->Init();
-        require(play->Snapshot().section == 1 && play->Snapshot().health == initial.health,
+        require(play->Snapshot().Section() == 1 && play->Snapshot().health == initial.health,
             "First section uses current health without full repair");
 
         // 遷移テストだけdtを大きくして終端へ進める。実時間60秒の試遊や負荷測定ではない。
@@ -1796,7 +1874,7 @@ void VerifyExpedition()
         auto command = play->Update();
         require(std::holds_alternative<scene::CmdReplace>(command), "First success requests relay");
         auto relay = std::dynamic_pointer_cast<scene::Relay>(std::get<scene::CmdReplace>(command).build());
-        require(relay && relay->State().section == 1 && relay->State().health == initial.health,
+        require(relay && relay->State().Section() == 1 && relay->State().health == initial.health,
             "First success retains health in relay");
         require(!campaign.Progress().Cleared(id), "First section does not record a campaign clear");
         std::weak_ptr<scene::Play> oldPlay = play;
@@ -1809,12 +1887,16 @@ void VerifyExpedition()
             require(std::holds_alternative<std::monostate>(relay->Update()), "Relay waits for explicit input");
         require(relay->State().health == initial.health && relay->State().growth.TotalXp() == 8,
             "Relay wait does not advance combat or progression");
+        require(std::holds_alternative<std::monostate>(relay->Continue()), "Relay waits for route selection");
+        require(!relay->SelectRoute("missing") && !relay->SelectRoute("departure"), "Relay rejects invalid edges");
+        require(relay->SelectRoute(route), "Relay accepts map connection");
+        require(relay->State().health == initial.health, "Selection alone grants no reward");
         play = LoadExpeditionPlay(relay->Continue());
         require(std::holds_alternative<std::monostate>(relay->Continue()), "Relay cannot start twice");
         relay.reset();
         play->Init();
         const auto continued = play->Snapshot();
-        require(continued.section == 2 && continued.health == initial.health && continued.maxHealth == initial.maxHealth &&
+        require(continued.Section() == 2 && continued.health == initial.health + expedition::DefaultMap().Find(route).route.entryHeal && continued.maxHealth == initial.maxHealth &&
             continued.growth.Level() == 3 && continued.growth.Xp() == 1 && continued.growth.TotalXp() == 8 &&
             continued.growth.Multiplier(progression::Upgrade::Damage) == initial.growth.Multiplier(progression::Upgrade::Damage),
             "Second section preserves HP, XP and upgrades");
@@ -1823,7 +1905,7 @@ void VerifyExpedition()
         dt = 60.1f;
         command = play->Update();
         auto result = std::dynamic_pointer_cast<scene::Result>(std::get<scene::CmdReplace>(command).build());
-        require(result && result->ResultValue().outcome == scene::StageEnd::Success && result->State().section == 2,
+        require(result && result->ResultValue().outcome == scene::StageEnd::Success && result->State().Section() == 2,
             "Second success completes expedition");
         require(campaign.Progress().Cleared(id) && !campaign.Dirty(), "Final success records and saves clear");
         play.reset();
@@ -1832,8 +1914,9 @@ void VerifyExpedition()
         result.reset();
         play->Init();
         const auto fresh = play->Snapshot();
+        require(fresh.CurrentNode().id == "departure" && fresh.CurrentNode().route.damageMultiplier == 1, "Retry clears route effects");
         require(campaign.Progress().Cleared(id), "Retry preserves campaign clear");
-        require(fresh.section == 1 && fresh.growth.Level() == 1 && fresh.growth.Xp() == 0 && fresh.growth.TotalXp() == 0 &&
+        require(fresh.Section() == 1 && fresh.growth.Level() == 1 && fresh.growth.Xp() == 0 && fresh.growth.TotalXp() == 0 &&
             fresh.growth.Pending() == 0 && fresh.health == fresh.quest.initialHealth && fresh.maxHealth == fresh.quest.maxHealth,
             "Retry starts new expedition with quest HP and no growth");
         play.reset();
@@ -1843,7 +1926,7 @@ void VerifyExpedition()
         {
             require(campaign.StartNew(), "Clear campaign before defeat case");
             auto vulnerable = initial;
-            vulnerable.section = section;
+            if (section == 2) vulnerable.Advance(route);
             vulnerable.health = 1;
             play = std::make_shared<scene::Play>(vulnerable);
             play->Init();
@@ -1852,14 +1935,14 @@ void VerifyExpedition()
             for (int frame = 0; frame < 3600 && std::holds_alternative<std::monostate>(ended); ++frame) ended = play->Update();
             require(std::holds_alternative<scene::CmdReplace>(ended), "Each section can reach defeat");
             auto defeat = std::dynamic_pointer_cast<scene::Result>(std::get<scene::CmdReplace>(ended).build());
-            require(defeat && defeat->ResultValue().outcome == scene::StageEnd::Defeat && defeat->State().section == section &&
+            require(defeat && defeat->ResultValue().outcome == scene::StageEnd::Defeat && defeat->State().Section() == section &&
                 defeat->State().health == 0, "Defeat retains correct section and zero HP");
             require(campaign.Progress().cleared.empty(), "Neither section defeat unlocks a quest");
             play.reset();
         }
         // 遠征値に未処理選択があっても捨てず、開始直後は戦闘より先にオーバーレイへ送る。
         auto pending = initial;
-        pending.Advance();
+        pending.Advance(route);
         pending.growth.AddExperience(4);
         play = std::make_shared<scene::Play>(pending);
         play->Init();
@@ -2028,6 +2111,7 @@ int main() try
     VerifySimulationTime();
     VerifyFreshPlayObjects();
     VerifyStageEnd();
+    VerifyExpeditionMap();
     VerifyExpedition();
     VerifyCampaign();
     VerifyStagedCount();
