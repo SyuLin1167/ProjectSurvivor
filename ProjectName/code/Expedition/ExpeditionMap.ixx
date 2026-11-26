@@ -105,14 +105,22 @@ export namespace expedition
         int m_sectionCount = 0;
     };
 
-    /// <summary>2区間試作の読み取り専用定義。接続と仮値の追加・調整箇所を一か所に限定する。</summary>
+    /// <summary>5区間試作の読み取り専用定義。接続と仮値の追加・調整箇所を一か所に限定する。</summary>
     /// <returns>アプリ存続中に有効な検証済み固定マップ。遠征状態は共有しない。</returns>
     inline const ExpeditionMap& DefaultMap()
     {
+        // 同じ階層の両ルートが次階層の2択へ合流する固定9ノード。分岐ごとに枝を複製しない。
+        static const RouteConditions safe{10, 20, 1}, danger{12, 0, 1.25f};
         static const ExpeditionMap map({
             {"departure", NodeKind::Battle, 0, {"safe", "danger"}, "出発", "通常戦闘", {}},
-            {"safe", NodeKind::Battle, 1, {}, "安全ルート", "低危険度 / 上限10体 / 進入時HP+20", {10, 20, 1}},
-            {"danger", NodeKind::Battle, 1, {}, "危険ルート", "高危険度 / 上限12体 / 攻撃+25% / 回復なし", {12, 0, 1.25f}}
+            {"safe", NodeKind::Battle, 1, {"safe3", "danger3"}, "安全ルート", "上限10体 / 進入時HP+20", safe},
+            {"danger", NodeKind::Battle, 1, {"safe3", "danger3"}, "危険ルート", "上限12体 / 攻撃+25% / 回復なし", danger},
+            {"safe3", NodeKind::Battle, 2, {"safe4", "danger4"}, "安全ルート", "上限10体 / 進入時HP+20", safe},
+            {"danger3", NodeKind::Battle, 2, {"safe4", "danger4"}, "危険ルート", "上限12体 / 攻撃+25% / 回復なし", danger},
+            {"safe4", NodeKind::Battle, 3, {"safe5", "danger5"}, "安全ルート", "上限10体 / 進入時HP+20", safe},
+            {"danger4", NodeKind::Battle, 3, {"safe5", "danger5"}, "危険ルート", "上限12体 / 攻撃+25% / 回復なし", danger},
+            {"safe5", NodeKind::Battle, 4, {}, "安全ルート", "上限10体 / 進入時HP+20", safe},
+            {"danger5", NodeKind::Battle, 4, {}, "危険ルート", "上限12体 / 攻撃+25% / 回復なし", danger}
         }, "departure");
         return map;
     }

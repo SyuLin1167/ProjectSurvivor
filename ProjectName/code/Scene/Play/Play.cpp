@@ -210,8 +210,8 @@ namespace scene
             static_cast<unsigned long long>(m_expedition.growth.TotalXp()));
         DrawFormatString(480, growthY, GetColor(230,230,230), "SECTION %d / %d",
             m_expedition.Section(), m_expedition.SectionCount());
-        if (m_expedition.growth.Level() == 5)
-            DrawString(180, growthY, "Lv.5 MAX", GetColor(90,220,255));
+        if (m_expedition.growth.Level() == progression::MaxLevel)
+            DrawFormatString(180, growthY, GetColor(90,220,255), "Lv.%d MAX", progression::MaxLevel);
         else
             DrawFormatString(180, growthY, GetColor(90,220,255), "Lv.%d  NEXT %llu / %llu",
                 m_expedition.growth.Level(), static_cast<unsigned long long>(m_expedition.growth.Xp()),

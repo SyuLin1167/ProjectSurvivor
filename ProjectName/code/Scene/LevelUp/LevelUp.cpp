@@ -34,6 +34,9 @@ namespace scene
         DrawBox(0,0,size.x,size.y,GetColor(0,0,0),TRUE);
         SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
         DrawString(size.x/2-200,size.y/2-110,"LEVEL UP / 強化を1つ選択",GetColor(255,255,255));
+        // 大量取得時も残り選択数を示し、同じ画面の繰り返しを停止と誤認させない。
+        DrawFormatString(size.x/2-200, size.y/2-85, GetColor(255,255,255),
+            "Lv.%d / %d   残り選択: %d", m_growth.Level(), progression::MaxLevel, m_growth.Pending());
         m_ui.Draw();
     }
 }

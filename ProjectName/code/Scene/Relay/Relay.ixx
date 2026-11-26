@@ -13,7 +13,7 @@ export namespace scene
     {
     public:
         /// <summary>成功区間の遠征値を受け取り、次区間へ進むUIを生成する。</summary>
-        /// <param name="state">第1区間成功時の成長とHP。</param>
+        /// <param name="state">成功した区間の成長とHP。</param>
         explicit Relay(expedition::ExpeditionState state);
         /// <summary>UIは構築時に登録済み。</summary>
         void Init() override {}
