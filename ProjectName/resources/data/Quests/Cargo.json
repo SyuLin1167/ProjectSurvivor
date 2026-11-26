@@ -1,13 +1,20 @@
-{
+﻿{
   "id": "cargo",
   "destinationId": "road",
   "requiredClear": "pilgrim",
   "name": "魔導物資の緊急輸送",
-  "description": "防衛を優先したい危険な輸送",
+  "description": "防衛を優先したい輸送。第3区間から紫の突進型も出現",
   "initialHealth": 80,
   "maxHealth": 80,
   "enemySpawn": {
     "mode": "offscreen",
     "limit": 12
-  }
+  },
+  "enemyRosters": [
+    ["normal", "normal", "normal", "runner", "heavy"],
+    ["normal", "runner", "runner", "runner", "heavy"],
+    ["normal", "runner", "heavy", "heavy", "charger"],
+    ["normal", "runner", "heavy", "charger"],
+    ["normal", "runner", "heavy", "charger", "charger"]
+  ]
 }

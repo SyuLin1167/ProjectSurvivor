@@ -4,6 +4,8 @@ import MyLib.File.JsonValue;
 import MyLib.File.JsonIO;
 import MyLib.Math.Vector2;
 import <array>;
+import <string>;
+import <unordered_map>;
 import MyLib.Shape.Rect;
 import <algorithm>;
 import <vector>;
@@ -18,8 +20,35 @@ export namespace combat
         float Health{};
         float Radius{}; // u
         float Speed{};  // u/s
-        enum class Look { Classic, Normal, Runner, Heavy };
+        enum class Look { Classic, Normal, Runner, Heavy, Charger };
         Look look{Look::Classic};
+        float chargeMultiplier = 1; // 通常速度に対する加速倍率。1なら従来の追跡のみ。
+        double chargeWait = 3, chargeDuration = 0.6; // 通常移動と加速を交互に繰り返すゲーム秒。
+
+        /// <summary>通常追跡と加速の境界を跨ぐフレームも、時間の割合どおりの移動量を返す。</summary>
+        /// <param name="elapsed">この個体が追跡した累積ゲーム秒。</param>
+        /// <param name="dt">今回の非負ゲーム経過秒。</param>
+        /// <returns>追跡方向へ進む距離（u）。Colliderによる押し戻し前の値。</returns>
+        float TravelDistance(double elapsed, float dt) const
+        {
+            if (chargeMultiplier == 1) return Speed * dt;
+            // 周期内の加速時間を積分し、30/60/120fpsで境界を丸めることによる距離差を避ける。
+            const double cycle = chargeWait + chargeDuration;
+            const auto acceleratedTime = [&](double time) {
+                return std::floor(time / cycle) * chargeDuration +
+                    (std::max)(0.0, std::fmod(time, cycle) - chargeWait);
+            };
+            const double burst = acceleratedTime(elapsed + dt) - acceleratedTime(elapsed);
+            return float(Speed * (dt + (chargeMultiplier - 1) * burst));
+        }
+
+        /// <summary>現在の加速表示を移動と同じ周期で判定する。</summary>
+        /// <param name="elapsed">個体の追跡経過秒。</param>
+        /// <returns>短時間加速中ならtrue。</returns>
+        bool IsCharging(double elapsed) const
+        {
+            return chargeMultiplier > 1 && std::fmod(elapsed, chargeWait + chargeDuration) >= chargeWait;
+        }
 
         /// <summary>敵本体と旧モードの名前表示を囲む描画範囲を求める。</summary>
         /// <param name="center">敵中心（u）。</param>
@@ -52,45 +81,63 @@ export namespace combat
 
 export namespace object
 {
-    /// <summary>敵の能力と外見を開始時に登録し、生成に成功した順で次の種類を選ぶ。</summary>
+    /// <summary>成功した生成だけで巡回を進める敵カタログ。区間開始時に設定を確定する。</summary>
     class EnemyCatalog
     {
         using Config = combat::EnemyConfig;
-        std::array<Config, 3> types{};
-        unsigned cursor{};
-        bool mixed{};
+        std::array<Config, 4> m_types{};
+        std::vector<size_t> m_order{0}; // 同じ種類の重複数が1巡の配分になる。
+        size_t m_cursor{};
     public:
-        /// <summary>通常敵を登録し、Alphaで使用する追加種だけをJSONから展開する。</summary>
-        /// <param name="base">比較用HPを反映した通常敵。</param>
-        /// <param name="variants">Alpha用の俊足・重装設定。通常モードでは空。</param>
-        EnemyCatalog(Config base, const json* variants)
+        /// <summary>外部の種類名を固定カタログの番号へ解決する。</summary>
+        /// <param name="name">JSONのnormal/runner/heavy/charger。</param>
+        /// <returns>能力表の番号。不明な種類は入力境界でout_of_range。</returns>
+        static size_t TypeIndex(const std::string& name)
         {
-            types[0] = base;
+            static const std::unordered_map<std::string, size_t> types{
+                {"normal", 0}, {"runner", 1}, {"heavy", 2}, {"charger", 3}};
+            return types.at(name);
+        }
+
+        /// <summary>Alphaの能力表と検証済み区間巡回を保持する。比較用モードは従来どおり。</summary>
+        /// <param name="base">比較用HPを反映した通常敵。</param>
+        /// <param name="variants">Alpha用の追加種JSON。非Alphaでは空。</param>
+        /// <param name="order">種類番号の巡回。空なら従来の通常・俊足・通常・重装。</param>
+        EnemyCatalog(Config base, const json* variants, const std::vector<size_t>& order = {})
+        {
+            m_types[0] = base;
             if (!variants) return;
-            mixed = true;
-            types[0].look = Config::Look::Normal;
-            auto read = [&](const char* key, Config::Look look)
-            {
+            m_types[0].look = Config::Look::Normal;
+            m_order = order;
+            if (m_order.empty()) m_order = {0, 1, 0, 2};
+            const auto read = [&](const char* key, Config::Look look) {
+                const auto& data = file::jsonValue::Member(*variants, key);
+                const auto positive = [](float value) { return std::isfinite(value) && value > 0; };
                 Config type = base;
                 type.look = look;
-                type.Health = file::jsonValue::Read<float>(file::jsonValue::Member(*variants, key), "health");
-                type.Speed = file::jsonValue::Read<float>(file::jsonValue::Member(*variants, key), "speed");
-                if (!std::isfinite(type.Health) || type.Health <= 0 ||
-                    !std::isfinite(type.Speed) || type.Speed <= 0)
-                    throw std::runtime_error("Invalid alpha enemy parameters");
+                type.Health = file::jsonValue::Read<float>(data, "health", positive, "must be positive and finite");
+                type.Speed = file::jsonValue::Read<float>(data, "speed", positive, "must be positive and finite");
                 return type;
             };
-            types[1] = read("runner", Config::Look::Runner);
-            types[2] = read("heavy", Config::Look::Heavy);
+            m_types[1] = read("runner", Config::Look::Runner);
+            m_types[2] = read("heavy", Config::Look::Heavy);
+            // 旧Alpha JSONは追加種を参照しない限り有効。突進型を使う区間だけ必須値を読み込む。
+            if (std::find(m_order.begin(), m_order.end(), 3) != m_order.end())
+            {
+                auto& charger = m_types[3];
+                charger = read("charger", Config::Look::Charger);
+                const auto& data = file::jsonValue::Member(*variants, "charger");
+                charger.chargeMultiplier = file::jsonValue::Read<float>(data, "chargeMultiplier",
+                    [](float value) { return std::isfinite(value) && value > 1 && value <= 3; }, "must be in (1, 3]");
+                const auto seconds = [](double value) { return std::isfinite(value) && value >= 0.1 && value <= 60; };
+                charger.chargeWait = file::jsonValue::Read<double>(data, "chargeWait", seconds, "must be 0.1..60 seconds");
+                charger.chargeDuration = file::jsonValue::Read<double>(data, "chargeDuration", seconds, "must be 0.1..60 seconds");
+            }
         }
-        /// <summary>安全位置の検査と生成で同じ敵設定を参照する。</summary>
+        /// <summary>安全位置の検査と実生成で同じ敵設定を参照する。</summary>
         /// <returns>次に生成する敵の能力・外見。</returns>
-        const Config& Next() const
-        {
-            constexpr std::array order{0, 1, 0, 2};
-            return types[mixed ? order[cursor] : 0];
-        }
-        /// <summary>登録成功時だけ通常・俊足・通常・重装の次枠へ進む。</summary>
-        void Registered() { cursor = (cursor + 1) % 4; }
+        const Config& Next() const { return m_types.at(m_order[m_cursor]); }
+        /// <summary>登録成功時だけ次の種類へ進む。見送りは配分を消費しない。</summary>
+        void Registered() { m_cursor = (m_cursor + 1) % m_order.size(); }
     };
 }

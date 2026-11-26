@@ -76,8 +76,8 @@ namespace object
         }
     }
 
-    EnemySpawner::EnemySpawner(EnemySpawnConfig config, combat::EnemyConfig enemy, math::Vector2f worldSize, const json* variants)
-        : m_config(config), m_catalog({config.healthOverride.value_or(enemy.Health), enemy.Radius, enemy.Speed}, variants), m_worldSize(worldSize), m_remaining(config.firstDelay), m_random(config.seed)
+    EnemySpawner::EnemySpawner(EnemySpawnConfig config, combat::EnemyConfig enemy, math::Vector2f worldSize, const json* variants, const std::vector<size_t>& order)
+        : m_config(config), m_catalog({config.healthOverride.value_or(enemy.Health), enemy.Radius, enemy.Speed}, variants, order), m_worldSize(worldSize), m_remaining(config.firstDelay), m_random(config.seed)
     {
         // JSON以外から構築された場合も、承認範囲外の値を開始前に拒否する。
         m_config.Validate();

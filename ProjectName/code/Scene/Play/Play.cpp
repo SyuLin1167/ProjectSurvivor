@@ -62,10 +62,12 @@ namespace scene
             auto& files = AppCtx::FileSystem();
             const auto data = files.jsonIO.Load(files.GetDataDir() / "EnemyConfig");
             auto spawnData = files.jsonIO.Load(files.GetDataDir() / "EnemySpawnConfig");
-            // 上書き後に既存比較モードとの組合せも検証する。
-            return object::EnemySpawner(state.BuildSpawnConfig(spawnData),
+            // classic/C1では配分を上書きしない。区間開始時だけ確定し、更新へ依頼判定を持ち込まない。
+            auto spawn = state.BuildSpawnConfig(spawnData);
+            const auto& order = state.EnemyRoster(world.alphaCombat, spawn);
+            return object::EnemySpawner(spawn,
                 combat::EnemyConfig::FromJson(data), {world.WorldWidth, world.WorldHeight},
-                world.alphaCombat ? &data.at("alphaTypes") : nullptr);
+                world.alphaCombat ? &data.at("alphaTypes") : nullptr, order);
         }
     }
 

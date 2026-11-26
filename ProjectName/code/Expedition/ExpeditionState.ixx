@@ -63,6 +63,17 @@ export namespace expedition
             return config;
         }
 
+        /// <summary>現在区間の敵巡回を選ぶ。旧比較は配布依頼の追加構成から分離する。</summary>
+        /// <param name="alphaCombat">Alphaの複数敵種を使用するか。</param>
+        /// <param name="spawn">ルート上限まで反映済みの生成設定。</param>
+        /// <returns>遠征所有の巡回。空なら従来カタログを使用する。</returns>
+        const std::vector<size_t>& EnemyRoster(bool alphaCombat, const object::EnemySpawnConfig& spawn) const
+        {
+            static const std::vector<size_t> legacy;
+            if (!alphaCombat || !spawn.offscreen || quest.enemyRosters.empty()) return legacy;
+            return quest.enemyRosters.at(Section() - 1);
+        }
+
     private:
         std::string m_currentNode; // 選択済みルートのID。区間番号や効果を重複保存しない。
     };

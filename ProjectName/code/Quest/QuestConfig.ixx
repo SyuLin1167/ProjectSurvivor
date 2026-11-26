@@ -8,6 +8,9 @@ import MyLib.File.JsonIO;
 import <string>;
 import <optional>;
 import Object.EnemySpawner;
+import Object.EnemyConfig;
+import Expedition.ExpeditionMap;
+import <vector>;
 
 export namespace quest
 {
@@ -20,6 +23,7 @@ export namespace quest
 
         std::optional<std::string> spawnMode; // classicなら基準比較、offscreenなら段階生成。
         std::optional<int> spawnLimit; // offscreenの生存上限（配布12体）。
+        std::vector<std::vector<size_t>> enemyRosters; // 区間順の敵巡回。省略時は従来構成。
         std::optional<std::string> requiredClear; // 解放に必要な全区間クリアID。省略時は初期解放。
 
         /// <summary>許可したモード・上限・基本間隔を重ね、最終設定を検証する。</summary>
@@ -79,6 +83,21 @@ export namespace quest
             c.requiredClear = jv::ReadOptional<std::string>(data, "requiredClear", jv::NonEmpty, "must not be empty");
             if (c.requiredClear && *c.requiredClear == c.id)
                 throw std::runtime_error("QuestConfig: invalid unlock requirement");
+            if (data.contains("enemyRosters"))
+            {
+                const auto& rosters = jv::Member(data, "enemyRosters");
+                if (!rosters.is_array() || rosters.size() != size_t(expedition::DefaultMap().SectionCount()))
+                    throw std::runtime_error("QuestConfig: enemyRosters requires one cycle per section");
+                for (const auto& cycle : rosters)
+                {
+                    if (!cycle.is_array() || cycle.empty())
+                        throw std::runtime_error("QuestConfig: enemy cycle must be a non-empty array");
+                    std::vector<size_t> order;
+                    for (const auto& type : cycle)
+                        order.push_back(object::EnemyCatalog::TypeIndex(jv::Convert<std::string>(type, "enemyRosters")));
+                    c.enemyRosters.push_back(std::move(order));
+                }
+            }
             return c;
         }
     };
