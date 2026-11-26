@@ -1,3 +1,4 @@
 {
-  "requiredXp": [3, 4, 5, 6]
+  "requiredXp": [3, 4, 5, 6],
+  "xpIncreasePerLevel": 1
 }

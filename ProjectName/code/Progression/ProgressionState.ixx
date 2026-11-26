@@ -4,16 +4,20 @@ import MyLib.File.JsonIO;
 import <array>;
 import <cstdint>;
 import <stdexcept>;
+import <limits>;
+import <algorithm>;
 
 export namespace progression
 {
+    inline constexpr int MaxLevel = 99; // 遠征内の上限。HUDと選択回数もこの値を参照する。
     /// <summary>試行内だけ有効な4種類の強化。</summary>
     enum class Upgrade { Damage, AttackSpeed, Movement, Magnet };
-    /// <summary>Lv2〜5までの追加必要XP。外部設定は開始時だけ検証する。</summary>
+    /// <summary>Lv2〜5の必要XPと、その後の線形増加量。外部設定は開始時だけ検証する。</summary>
     struct Config
     {
         std::array<uint64_t, 4> required{3,4,5,6};
-        /// <summary>4つの正の整数を読み、到達不能な設定を拒否する。</summary>
+        uint64_t xpIncreasePerLevel = 1; // Lv5以降の次レベル必要XPに毎段階加える量。0なら固定。
+        /// <summary>序盤4値と増加量を読む。旧JSONで増加量を省略した場合は1を採用する。</summary>
         /// <param name="data">ProgressionConfigのJSON。</param>
         /// <returns>検証済み必要XP。</returns>
         static Config FromJson(const json& data)
@@ -28,6 +32,11 @@ export namespace progression
                     throw std::runtime_error("Progression XP must be positive integers <= 1000000");
                 config.required[i] = file::jsonValue::Convert<uint64_t>(values[i], "requiredXp[]");
             }
+            const auto increase = file::jsonValue::ReadOr<json>(data, "xpIncreasePerLevel", json(1));
+            const auto amount = file::jsonValue::Convert<double>(increase, "xpIncreasePerLevel");
+            if (!increase.is_number_integer() || amount < 0 || amount > 1000000)
+                throw std::runtime_error("Progression xpIncreasePerLevel must be an integer in 0..1000000");
+            config.xpIncreasePerLevel = file::jsonValue::Convert<uint64_t>(increase, "xpIncreasePerLevel");
             return config;
         }
     };
@@ -35,10 +44,10 @@ export namespace progression
     class ProgressionState
     {
         Config m_config;
-        uint64_t m_xp = 0; // 次のレベルへ消費する残高。Lv5では余剰XP。
+        uint64_t m_xp = 0; // 次のレベルへ消費する残高。Lv99では余剰XP。
         uint64_t m_totalXp = 0; // 区間を跨ぐ取得累計。レベルアップで消費しない。
         int m_level = 1, m_pending = 0, m_selected = 0;
-        std::array<int, 4> m_ranks{}; // 各4回まで。全試行の選択自体も最大4回。
+        std::array<int, 4> m_ranks{}; // 個別の取得上限は設けない。遠征全体で最大98選択なので枯渇しない。
     public:
         /// <summary>検証済み設定で新規試行を開始する。</summary>
         /// <param name="config">必要XP。</param>
@@ -47,9 +56,12 @@ export namespace progression
         /// <param name="amount">未加算の取得XP。</param>
         void AddExperience(uint64_t amount)
         {
-            m_xp += amount;
-            m_totalXp += amount;
-            while (m_level < 5 && m_xp >= NextRequired())
+            // 加算前に残り容量を使い、極端な取得量でも桁あふれで巻き戻らない。
+            // Lv99以降も累計・余剰XPは記録するが、新しい選択は発生させない。
+            const auto maximum = (std::numeric_limits<uint64_t>::max)();
+            m_xp += (std::min)(amount, maximum - m_xp);
+            m_totalXp += (std::min)(amount, maximum - m_totalXp);
+            while (m_level < MaxLevel && m_xp >= NextRequired())
             {
                 m_xp -= NextRequired();
                 ++m_level;
@@ -57,7 +69,7 @@ export namespace progression
             }
         }
         /// <summary>選択回数ごとに開始位置をずらす固定巡回で、異なる3候補を提示する。</summary>
-        /// <returns>表示順の候補。最大4選択なので、選択待ち中は必ず3種類以上選択可能。</returns>
+        /// <returns>表示順の異なる3候補。4種類とも再取得可能なので、98回の選択中も枯渇しない。</returns>
         std::array<Upgrade, 3> Choices() const
         {
             std::array<Upgrade, 3> result{};
@@ -79,10 +91,10 @@ export namespace progression
             return true;
         }
         /// <summary>現在レベルを返す。</summary>
-        /// <returns>1〜5。</returns>
+        /// <returns>1〜99。</returns>
         int Level() const { return m_level; }
         /// <summary>未選択の回数を返す。</summary>
-        /// <returns>0〜4。</returns>
+        /// <returns>0〜98。</returns>
         int Pending() const { return m_pending; }
         /// <summary>次レベル用の残高を返す。</summary>
         /// <returns>消費後XP。</returns>
@@ -91,11 +103,15 @@ export namespace progression
         /// <returns>消費前の累計XP。</returns>
         uint64_t TotalXp() const { return m_totalXp; }
         /// <summary>次の必要XPを返す。</summary>
-        /// <returns>Lv5では0。</returns>
+        /// <returns>Lv99では0。それ以外は現在レベルから次への必要XP。</returns>
         uint64_t NextRequired() const
         {
-            if (m_level == 5) return 0;
-            return m_config.required[m_level-1];
+            if (m_level == MaxLevel) return 0;
+            const auto index = static_cast<size_t>(m_level - 1);
+            if (index < m_config.required.size()) return m_config.required[index];
+            // 既存4値の最後を起点とする。仮値ではLv5→6が7、Lv98→99が100。
+            return m_config.required.back() +
+                uint64_t(index - m_config.required.size() + 1) * m_config.xpIncreasePerLevel;
         }
         /// <summary>各強化の加算倍率を返す。</summary>
         /// <param name="upgrade">能力の種類。</param>
