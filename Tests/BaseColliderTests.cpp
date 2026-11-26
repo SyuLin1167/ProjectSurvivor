@@ -769,8 +769,17 @@ void VerifyStageEnd()
     require(incompatible, "Incompatible C1 override rejected");
     bool invalidQuestRejected = false;
     try { quest::FindQuest("missing"); }
-    catch (const std::invalid_argument&) { invalidQuestRejected = true; }
+    catch (const std::out_of_range&) { invalidQuestRejected = true; }
     require(invalidQuestRejected, "Unknown quest rejected before departure");
+    // 外部JSONの前提IDも一覧のatで拒否し、確認後は試験用コピーを元に戻す。
+    auto unknownRequirement = originalQuest;
+    unknownRequirement["requiredClear"] = "missing";
+    files.jsonIO.Write(pilgrimPath, unknownRequirement);
+    bool unknownRequirementRejected = false;
+    try { quest::FindQuest("pilgrim"); }
+    catch (const std::out_of_range&) { unknownRequirementRejected = true; }
+    files.jsonIO.Write(pilgrimPath, originalQuest);
+    require(unknownRequirementRejected, "Unknown unlock requirement uses standard lookup exception");
     for (const auto selection : {"baseline", "candidate", "countControl", "countCandidate"})
     {
         auto selected = spawnSource;
@@ -1781,6 +1790,18 @@ void VerifyExpeditionMap()
     using enum NodeKind;
     const auto& map = DefaultMap();
     require(map.Find(map.Start()).next.size() == 2 && map.SectionCount() == 2, "Fixed branching map");
+    // 不明IDと空マップはatの標準例外で拒否し、独自の空確認を追加しない。
+    for (bool emptyMap : {false, true})
+    {
+        bool rejected = false;
+        try
+        {
+            if (emptyMap) ExpeditionMap empty({}, "missing");
+            else (void)map.Find("missing");
+        }
+        catch (const std::out_of_range&) { rejected = true; }
+        require(rejected, "Map lookup uses standard bounds exception");
+    }
     // ID順と配列順は独立。複数の親が同じ次ノードへ合流しても有効。
     const ExpeditionMap merge({
         {"end", Battle, 2, {}, "End", "", {}},
@@ -1802,7 +1823,7 @@ void VerifyExpeditionMap()
         if (invalid == 4) nodes[0].next = {"end", "end"};
         bool rejected = false;
         try { ExpeditionMap bad(nodes, "root"); }
-        catch (const std::runtime_error&) { rejected = true; }
+        catch (const std::exception&) { rejected = true; }
         require(rejected, "Invalid graph rejected at construction");
     }
     auto& files = gameSystem::AppCtx::FileSystem();

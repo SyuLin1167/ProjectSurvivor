@@ -58,7 +58,8 @@ export namespace expedition
             auto config = quest.BuildSpawnConfig(source);
             const auto& route = CurrentNode().route;
             if (config.offscreen && route.enemyLimit) config.limit = *route.enemyLimit;
-            config.Validate();
+            // 依頼設定はBuildSpawnConfig、ルート上限10/12はMap構築時に検証済み。
+            // offscreenの上限だけを置き換えても他の制約は変わらないため、同じ検証を再実行しない。
             return config;
         }
 

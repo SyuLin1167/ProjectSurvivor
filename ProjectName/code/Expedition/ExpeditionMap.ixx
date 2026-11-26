@@ -3,6 +3,7 @@ import <vector>;
 import <string>;
 import <optional>;
 import <algorithm>;
+import <iterator>;
 import <stdexcept>;
 import <utility>;
 import <cmath>;
@@ -81,13 +82,14 @@ export namespace expedition
 
         /// <summary>IDから定義を取得する。外部からの不正な選択もここで拒否する。</summary>
         /// <param name="id">配列添字と無関係なノードID。</param>
-        /// <returns>マップの存続期間に有効な定義参照。不明IDは例外。</returns>
+        /// <returns>マップの存続期間に有効な定義参照。不明IDはatがout_of_rangeを通知する。</returns>
         const MapNode& Find(const std::string& id) const
         {
             const auto found = std::find_if(m_nodes.begin(), m_nodes.end(),
                 [&id](const MapNode& node) { return node.id == id; });
-            if (found == m_nodes.end()) throw std::runtime_error("ExpeditionMap: unknown node " + id);
-            return *found;
+            // 未発見ならindexはsize()になる。境界検証はatに任せ、endの参照や独自例外を重ねない。
+            const auto index = static_cast<size_t>(std::distance(m_nodes.begin(), found));
+            return m_nodes.at(index);
         }
 
         /// <summary>新規遠征の開始地点を返す。</summary>

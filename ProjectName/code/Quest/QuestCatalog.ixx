@@ -22,20 +22,18 @@ export namespace quest
 
     /// <summary>登録IDを解決し、最新のJSONを検証して読み込む。</summary>
     /// <param name="id">選択画面またはRetryから渡されたID。</param>
-    /// <returns>この読込時点の依頼のコピー。</returns>
+    /// <returns>この読込時点の依頼のコピー。不明ID・不明な前提IDはout_of_range。</returns>
     inline QuestConfig FindQuest(std::string_view id)
     {
         // 外部から渡されたIDを検索し、未登録ならファイル読込前に拒否する。
-        const auto entry = AvailableQuests.find(id);
-        if (entry == AvailableQuests.end())
-            throw std::invalid_argument("QuestCatalog: unknown quest ID");
+        const auto& entry = AvailableQuests.at(id);
 
         // JSONはキャッシュせず毎回読み直す。Retry時にも変更した設定を反映する。
         auto& files = gameSystem::AppCtx::FileSystem();
-        auto config = QuestConfig::FromJson(files.jsonIO.Load(files.GetDataDir() / entry->second.file));
+        auto config = QuestConfig::FromJson(files.jsonIO.Load(files.GetDataDir() / entry.file));
         if (config.id != id) throw std::runtime_error("QuestCatalog: ID differs from registered file");
-        if (config.requiredClear && !AvailableQuests.contains(*config.requiredClear))
-            throw std::runtime_error("QuestCatalog: unknown unlock requirement");
+        // 任意の前提IDも同じ一覧で解決する。不明キーの例外は標準コンテナへ任せる。
+        if (config.requiredClear) (void)AvailableQuests.at(*config.requiredClear);
         return config;
     }
 
