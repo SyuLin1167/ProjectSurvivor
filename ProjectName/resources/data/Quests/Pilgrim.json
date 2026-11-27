@@ -1,12 +1,19 @@
-{
+﻿{
   "id": "pilgrim",
   "destinationId": "road",
   "name": "巡礼者の護送",
-  "description": "探索にも余裕のある安全な護送",
+  "description": "探索にも余裕のある護送。通常・俊足・重装の構成が区間ごとに変化",
   "initialHealth": 120,
   "maxHealth": 120,
   "enemySpawn": {
     "mode": "offscreen",
     "limit": 12
-  }
+  },
+  "enemyRosters": [
+    ["normal", "normal", "normal", "runner", "heavy"],
+    ["normal", "runner", "runner", "runner", "heavy"],
+    ["normal", "runner", "heavy", "heavy", "heavy"],
+    ["normal", "runner", "normal", "heavy"],
+    ["normal", "runner", "heavy"]
+  ]
 }

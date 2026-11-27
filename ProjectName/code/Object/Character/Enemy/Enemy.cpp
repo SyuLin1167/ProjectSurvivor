@@ -13,14 +13,10 @@ using namespace math;
 
 namespace object
 {
-    Enemy::Enemy(Vector2f center, const combat::EnemyConfig& config) : id{}
+    Enemy::Enemy(Vector2f center, const combat::EnemyConfig& config) : m_config(config), id{}
     {
         m_pos = center;
         m_health = config.Health;
-        m_radius = config.Radius;
-        m_speed = config.Speed;
-        m_look = config.look;
-
     }
 
     void Enemy::GetReferenceObject(std::function<std::vector<std::shared_ptr<GameObject>>(uint32_t)> referenceObj)
@@ -47,7 +43,7 @@ namespace object
         def.isActive = true;
         def.isTrigger = false;
         def.contactAfterMove = true;
-        id = ColMgr().CreateCircleCollider(&def, m_radius, MyObjectTag());
+        id = ColMgr().CreateCircleCollider(&def, m_config.Radius, MyObjectTag());
         m_colliderCreated = true;
 
         // 敵から拠点への片方向マスク。P/敵同士は通過し、拠点側は押し戻さない。
@@ -93,8 +89,9 @@ namespace object
                 {
                     const auto direction = delta.Norm();
                     // Colliderへ渡す値はu/sではなく変位(u)。中心の通過による往復を防ぐ。
-                    const float step = m_speed * m_deltaTime;
+                    const float step = m_config.TravelDistance(m_moveTime, m_deltaTime);
                     m_velocity = direction * (std::min)(distance, step);
+                    m_moveTime += m_deltaTime;
                 }
             }
         // 円の座標更新は既存Stepで一度だけ行う。画面内外は参照しない。
@@ -126,18 +123,32 @@ namespace object
     {
         auto& camera = gameSystem::Camera::Instance();
         // 移動・衝突・攻撃は画面外でも更新し、完全に見えない個体の描画呼び出しだけを省く。
-        const combat::EnemyConfig appearance{m_health, m_radius, m_speed, m_look};
-        if (!appearance.VisualBounds(m_pos).AABB(camera.VisibleRect())) return;
+        if (!m_config.VisualBounds(m_pos).AABB(camera.VisibleRect())) return;
         const auto sp = camera.WorldToScreen(m_pos);
-        if (m_look != combat::EnemyConfig::Look::Classic)
+        if (m_config.look != combat::EnemyConfig::Look::Classic)
         {
-            auto sprite = alphaSprites::Sprite::Normal;
-            if (m_look == combat::EnemyConfig::Look::Runner) sprite = alphaSprites::Sprite::Runner;
-            if (m_look == combat::EnemyConfig::Look::Heavy) sprite = alphaSprites::Sprite::Heavy;
-            alphaSprites::Draw(sprite, int(sp.x) - 16, int(sp.y) - 16, 32);
+            if (m_config.look == combat::EnemyConfig::Look::Charger)
+            {
+                // 追加素材なしでも識別できる紫の菱形。加速中は中心を白くし、32px範囲を守る。
+                const int x = int(sp.x), y = int(sp.y);
+                const auto color = GetColor(210, 80, 245);
+                DrawTriangle(x, y - 16, x + 16, y, x, y + 16, color, TRUE);
+                DrawTriangle(x, y - 16, x - 16, y, x, y + 16, color, TRUE);
+                unsigned int core = GetColor(65, 25, 95);
+                if (m_config.IsCharging(m_moveTime)) core = GetColor(255, 255, 255);
+                DrawCircle(x, y, 5, core, TRUE);
+            }
+            else
+            {
+                // 既存3種は共有シートから描画し、突進型の図形描画とは同時に実行しない。
+                auto sprite = alphaSprites::Sprite::Normal;
+                if (m_config.look == combat::EnemyConfig::Look::Runner) sprite = alphaSprites::Sprite::Runner;
+                if (m_config.look == combat::EnemyConfig::Look::Heavy) sprite = alphaSprites::Sprite::Heavy;
+                alphaSprites::Draw(sprite, int(sp.x) - 16, int(sp.y) - 16, 32);
+            }
             return;
         }
-        DrawCircle(static_cast<int>(sp.x), static_cast<int>(sp.y), static_cast<int>(m_radius), GetColor(220, 60, 100), TRUE);
-        DrawString(static_cast<int>(sp.x - m_radius), static_cast<int>(sp.y - m_radius * 2), "ENEMY", GetColor(255, 255, 255));
+        DrawCircle(static_cast<int>(sp.x), static_cast<int>(sp.y), static_cast<int>(m_config.Radius), GetColor(220, 60, 100), TRUE);
+        DrawString(static_cast<int>(sp.x - m_config.Radius), static_cast<int>(sp.y - m_config.Radius * 2), "ENEMY", GetColor(255, 255, 255));
     }
 }

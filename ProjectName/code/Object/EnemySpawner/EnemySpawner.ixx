@@ -152,7 +152,8 @@ export namespace object
         /// <param name="enemy">既存の敵能力設定。</param>
         /// <param name="worldSize">マップの幅・高さ（u）。</param>
         /// <param name="variants">Alphaの敵種定義。構築中だけ使用する。</param>
-        EnemySpawner(EnemySpawnConfig config, combat::EnemyConfig enemy, math::Vector2f worldSize, const json* variants = nullptr);
+        /// <param name="order">区間の検証済み敵巡回。空なら従来構成。</param>
+        EnemySpawner(EnemySpawnConfig config, combat::EnemyConfig enemy, math::Vector2f worldSize, const json* variants = nullptr, const std::vector<size_t>& order = {});
         /// <summary>継続中のフレーム末尾で1機会を処理し、設定に応じ最大2体を生成する。見送り分は蓄積しない。</summary>
         /// <param name="dt">共通ゲーム経過秒数。停止中は0。</param>
         /// <param name="manager">更新・Stepが完了したシーンの管理。</param>

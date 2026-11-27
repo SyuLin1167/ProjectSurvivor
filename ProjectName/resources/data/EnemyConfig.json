@@ -4,6 +4,7 @@
     "speed": 120,
     "alphaTypes": {
         "runner": { "health": 10, "speed": 176 },
-        "heavy": { "health": 40, "speed": 94 }
+        "heavy": { "health": 40, "speed": 94 },
+        "charger": { "health": 50, "speed": 120, "chargeMultiplier": 2, "chargeWait": 3, "chargeDuration": 0.6 }
     }
 }

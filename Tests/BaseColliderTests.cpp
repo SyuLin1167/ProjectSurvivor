@@ -277,14 +277,17 @@ void VerifyAutoAttack()
         objects.InitBeforeUpdate();
         object::CombatDrops drops(objects.Colliders());
         const auto variants = comparisonData.at("alphaTypes");
-        object::EnemyCatalog catalog(comparison, &variants);
+        object::EnemyCatalog catalog(comparison, &variants, {0,1,2,3});
         dt = 0.5f;
         for (int i = 0; i < 48; ++i)
         {
-            auto enemy = std::make_shared<object::Enemy>(player->Center(), catalog.Next());
+            // 撃破通知の検証では標的を射程内に固定する。突進の移動・時間は別の実Enemy回帰で確認する。
+            auto target = catalog.Next();
+            target.Speed = 0;
+            auto enemy = std::make_shared<object::Enemy>(player->Center(), target);
             catalog.Registered();
             objects.AddInitializedObject(enemy);
-            for (int frame = 0; frame < 5 && enemy->Health() > 0; ++frame) objects.Update();
+            for (int frame = 0; frame < 6 && enemy->Health() > 0; ++frame) objects.Update();
             auto position = player->TakeKillPosition();
             require(position.has_value() && !player->TakeKillPosition(), "Single kill event for every alpha type");
             drops.Roll(*position);
@@ -2181,6 +2184,136 @@ void VerifyJsonValue()
     std::cout << "PASS: JSON typed reads, optional/default semantics and field diagnostics\n";
 }
 
+/// <summary>配布5区間の巡回を実Spawnerへ渡し、見送り・プール再利用・突進の時間積分を検証する。</summary>
+void VerifyQuestEnemyComposition()
+{
+    gameSystem::AppCtx::Activate();
+    auto& files = gameSystem::AppCtx::FileSystem();
+    const auto data = files.jsonIO.Load("ProjectName/resources/data/EnemyConfig.json");
+    const auto enemy = combat::EnemyConfig::FromJson(data);
+    const auto spawnData = files.jsonIO.Load("ProjectName/resources/data/EnemySpawnConfig.json");
+    auto world = stage::StageConfig::FromJson(files.jsonIO.Load("ProjectName/resources/data/Phase1Config.json"));
+    world.TrialEndX = 15000; // 終端への接近時間の見送りと、配分の検証を分離する。
+    auto& dt = const_cast<float&>(gameSystem::FrameRate::GetDeltaTime());
+    const auto previousDt = dt;
+    auto& camera = gameSystem::Camera::Instance();
+    const std::vector<std::vector<size_t>> pilgrim{{0,0,0,1,2},{0,1,1,1,2},{0,1,2,2,2},{0,1,0,2},{0,1,2}};
+    const std::vector<std::vector<size_t>> cargo{{0,0,0,1,2},{0,1,1,1,2},{0,1,2,2,3},{0,1,2,3},{0,1,2,3,3}};
+    const std::array<float,4> health{30,10,40,50};
+    for (const auto file : {"Pilgrim", "Cargo"})
+    {
+        auto questData = files.jsonIO.Load(std::string("ProjectName/resources/data/Quests/") + file + ".json");
+        const auto quest = quest::QuestConfig::FromJson(questData);
+        const auto& expected = quest.id == "pilgrim" ? pilgrim : cargo;
+        require(quest.enemyRosters == expected, "Shipped five-section composition matches Phase B");
+        // 項目省略は旧カタログへ戻り、空巡回・区間不足・不明種は入力境界で拒否する。
+        auto old = questData;
+        old.erase("enemyRosters");
+        require(quest::QuestConfig::FromJson(old).enemyRosters.empty(), "Old quest JSON retains default composition");
+        for (int invalid = 0; invalid < 3; ++invalid)
+        {
+            auto bad = questData;
+            if (invalid == 0) bad["enemyRosters"][0] = json::array();
+            if (invalid == 1) bad["enemyRosters"].erase(bad["enemyRosters"].begin());
+            if (invalid == 2) bad["enemyRosters"][0][0] = "unknown";
+            bool rejected = false;
+            try { quest::QuestConfig::FromJson(bad); }
+            catch (const std::exception&) { rejected = true; }
+            require(rejected, "Invalid roster rejected before Play");
+        }
+        for (int fps : {30,60,120})
+        {
+            expedition::ExpeditionState state(quest, progression::Config{});
+            for (int section = 0; section < 5; ++section)
+            {
+                if (section > 0) state.Advance(state.CurrentNode().next.at(section % 2));
+                const auto config = state.BuildSpawnConfig(spawnData);
+                require(state.EnemyRoster(true, config) == expected[section], "Current DAG layer selects its roster");
+                auto classic = config;
+                classic.offscreen = false;
+                require(state.EnemyRoster(true, classic).empty() && state.EnemyRoster(false, config).empty(),
+                    "C1 and non-alpha bypass new quest composition");
+                object::ObjectManager objects;
+                auto base = std::make_shared<object::MovingBase>(world, 1000, 1000);
+                objects.AddInitializedObject(base);
+                object::EnemySpawner spawner(config, enemy, {world.WorldWidth, world.WorldHeight},
+                    &data.at("alphaTypes"), state.EnemyRoster(true, config));
+                auto tracking = base->Center();
+                camera.SetWorldSize({world.WorldWidth, world.WorldHeight});
+                camera.SetTarget(&tracking, true);
+                camera.Update();
+                size_t registered = 0;
+                dt = 1.0f / fps;
+                for (int frame = 0; frame < fps * 35; ++frame)
+                {
+                    objects.Update();
+                    tracking = base->Center();
+                    camera.Update();
+                    spawner.Update(dt, objects, *base, tracking);
+                    const auto active = objects.GetObjForTag(object::ENEMY);
+                    for (const auto& object : active)
+                    {
+                        auto instance = std::dynamic_pointer_cast<object::Enemy>(object);
+                        require(instance->Health() == health.at(expected[section][registered % expected[section].size()]),
+                            "Successful spawn follows quest-section cycle across pool reuse");
+                        object::EnemyCatalog catalog(enemy, &data.at("alphaTypes"), {expected[section][registered % expected[section].size()]});
+                        require(spawnPosition::Outside(instance->Center(), catalog.Next(), camera.VisibleRect()),
+                            "All types spawn with their full drawing bounds outside camera");
+                        ++registered;
+                        instance->TakeDamage(1000);
+                    }
+                    objects.RefreshObjects();
+                }
+                require(registered >= expected[section].size() * 2, "Each section exercises at least two roster cycles");
+                require(spawner.OccupiedSlots() == 0, "Destroyed roster enemies release all pool slots");
+                camera.ClearTarget(&tracking);
+            }
+        }
+    }
+
+    object::EnemyCatalog catalog(enemy, &data.at("alphaTypes"), {3});
+    const auto charger = catalog.Next();
+    require(charger.Health == 50 && charger.Speed == 120 && charger.chargeMultiplier == 2,
+        "Charger provisional parameters loaded");
+    require(!charger.IsCharging(2.99) && charger.IsCharging(3.1) && !charger.IsCharging(3.7),
+        "Three seconds pursuit then short acceleration then recovery");
+    // 実Enemyを2回構築し、同じ追跡距離から時計初期化と速度反映を確認する。
+    for (int fps : {30,60,120}) for (int retry = 0; retry < 2; ++retry)
+    {
+        object::ObjectManager objects;
+        auto base = std::make_shared<object::MovingBase>(world);
+        objects.AddInitializedObject(base);
+        auto instance = std::make_shared<object::Enemy>(math::Vector2f{4000,2048}, charger);
+        objects.AddInitializedObject(instance);
+        dt = 1.0f / fps;
+        for (int frame = 0; frame < fps * 4; ++frame) objects.Update();
+        require(std::abs((4000 - instance->Center().x) - 552) < 0.3f,
+            "Actual charger travels 552u in four seconds at 30/60/120fps, including recycled timer");
+        objects.RemoveObject(base.get());
+        base.reset(); // テスト側の所有参照も解放して、実際の対象破棄を成立させる。
+        const auto stopped = instance->Center();
+        objects.Update();
+        require(instance->Center() == stopped, "Charger stops when caravan is destroyed");
+    }
+    auto invalid = data.at("alphaTypes");
+    invalid["charger"]["chargeWait"] = 0;
+    bool rejected = false;
+    try { object::EnemyCatalog bad(enemy, &invalid, {3}); }
+    catch (const std::exception&) { rejected = true; }
+    require(rejected, "Invalid charge timing rejected at construction");
+    // 旧3種JSONは従来巡回で読めるため、C1や既存の設定配布を壊さない。
+    auto oldTypes = data.at("alphaTypes");
+    oldTypes.erase("charger");
+    object::EnemyCatalog oldCatalog(enemy, &oldTypes);
+    for (auto expected : {30,10,30,40,30})
+    {
+        require(oldCatalog.Next().Health == expected, "Legacy alpha cycle unchanged");
+        oldCatalog.Registered();
+    }
+    dt = previousDt;
+    gameSystem::AppCtx::Deactivate();
+    std::cout << "PASS: five-section quest rosters, four-type lifecycle, charger timing and classic compatibility\n";
+}
 int main() try
 {
     VerifyJsonValue();
@@ -2199,6 +2332,7 @@ int main() try
     VerifyBalanceSet();
     VerifyEnemySpawning();
     VerifyOffscreenSpawning();
+    VerifyQuestEnemyComposition();
     VerifyExperienceDrops();
     VerifyProgression();
     // UIManager経由の再利用要素とClear後の値リセットを検証する。描画は手動確認する。
