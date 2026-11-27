@@ -137,12 +137,15 @@ namespace object
                 unsigned int core = GetColor(65, 25, 95);
                 if (m_config.IsCharging(m_moveTime)) core = GetColor(255, 255, 255);
                 DrawCircle(x, y, 5, core, TRUE);
-                return;
             }
-            auto sprite = alphaSprites::Sprite::Normal;
-            if (m_config.look == combat::EnemyConfig::Look::Runner) sprite = alphaSprites::Sprite::Runner;
-            if (m_config.look == combat::EnemyConfig::Look::Heavy) sprite = alphaSprites::Sprite::Heavy;
-            alphaSprites::Draw(sprite, int(sp.x) - 16, int(sp.y) - 16, 32);
+            else
+            {
+                // 既存3種は共有シートから描画し、突進型の図形描画とは同時に実行しない。
+                auto sprite = alphaSprites::Sprite::Normal;
+                if (m_config.look == combat::EnemyConfig::Look::Runner) sprite = alphaSprites::Sprite::Runner;
+                if (m_config.look == combat::EnemyConfig::Look::Heavy) sprite = alphaSprites::Sprite::Heavy;
+                alphaSprites::Draw(sprite, int(sp.x) - 16, int(sp.y) - 16, 32);
+            }
             return;
         }
         DrawCircle(static_cast<int>(sp.x), static_cast<int>(sp.y), static_cast<int>(m_config.Radius), GetColor(220, 60, 100), TRUE);
