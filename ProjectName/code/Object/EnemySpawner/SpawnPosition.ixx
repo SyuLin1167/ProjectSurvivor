@@ -57,13 +57,15 @@ export namespace spawnPosition
     /// <param name="base">拠点の矩形。</param>
     /// <param name="baseSpeed">拠点の+X方向速度（u/s）。</param>
     /// <param name="endX">試行終了の拠点中心X。</param>
-    /// <returns>15秒以内かつ終端前に接近する見込みがある場合true。</returns>
+    /// <returns>15秒以内かつ終端前に接近する見込みがある場合true。停止対象には終端時間の制限を付けない。</returns>
     inline bool CanApproach(math::Vector2f position, const combat::EnemyConfig& enemy,
         shape::Rect base, float baseSpeed, float endX)
     {
         constexpr float step = 0.25f; // 候補選定時だけの見積もり。ゲームのdtは変更しない。
-        const float remaining = (endX - base.Center().x) / baseSpeed;
-        const float duration = (std::min)(ApproachSeconds, remaining);
+        float duration = ApproachSeconds;
+        // 最終地点で停止した拠点にも同じ追跡見積もりを使い、ゼロ除算と残時間0での拒否を避ける。
+        if (baseSpeed > 0)
+            duration = (std::min)(ApproachSeconds, (endX - base.Center().x) / baseSpeed);
         for (float time = 0; time <= duration; time += step)
         {
             const math::Vector2f nearest{std::clamp(position.x, base.Left(), base.Right()),

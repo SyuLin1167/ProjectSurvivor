@@ -76,9 +76,15 @@ namespace scene
     Play::Play(expedition::ExpeditionState state) : Play(LoadConfig<stage::StageConfig>("Phase1Config"), std::move(state)) {}
 
     Play::Play(const stage::StageConfig& world, expedition::ExpeditionState state)
-        : m_expedition(std::move(state)), m_stage(world.BaseCenter.x, world.TrialEndX), m_spawner(CreateSpawner(world, m_expedition)),
+        : m_expedition(std::move(state)), m_stage(world.BaseCenter.x, world.TrialEndX, m_expedition.IsFinalSection()), m_spawner(CreateSpawner(world, m_expedition)),
           m_showNearestEnemy(world.showNearestEnemy)
     {
+        if (m_expedition.IsFinalSection())
+        {
+            auto& files = AppCtx::FileSystem();
+            m_boss.emplace(combat::EnemyConfig::BossFromJson(files.jsonIO.Load(files.GetDataDir() / "BossConfig")),
+                math::Vector2f{world.WorldWidth, world.WorldHeight});
+        }
         m_player = new object::Player(world, LoadConfig<combat::PlayerAttackConfig>("PlayerAttackConfig"));
         m_objManager->AddObject(m_player);
         m_objManager->AddObject(new object::Map(world));
@@ -137,6 +143,13 @@ namespace scene
     {
         // 結果確定後に再度Updateが呼ばれても、攻撃・移動・遷移を繰り返さない。
         if (m_stage.Finished()) return std::monostate{};
+        // 出現不能を戦闘や無期限待機へ紛れ込ませず、操作可能なTitle復帰を残す。
+        if (m_boss && m_boss->Failed())
+        {
+            if (input::KeyStatus::CheckKey(keyType.R, ON_PRESS))
+                return CmdReplace{ [] { return std::make_shared<Title>(); } };
+            return std::monostate{};
+        }
         // 複数レベルの未選択分はシミュレーションを挟まず順番に選ぶ。
         if (m_expedition.growth.Pending() > 0)
         {
@@ -152,7 +165,7 @@ namespace scene
 
         // Stepの接触被害とLateUpdateがすべて反映された後に判定する。
         const auto end = m_stage.Advance(m_base->Center().x, m_base->Health(),
-            input::KeyStatus::CheckKey(keyType.R, ON_PRESS));
+            input::KeyStatus::CheckKey(keyType.R, ON_PRESS), m_boss && m_boss->Defeated());
         if (end == StageEnd::Success && !m_expedition.IsFinalSection())
             return CmdReplace{ [state = Snapshot()] {
                 return std::make_shared<Relay>(state);
@@ -189,7 +202,20 @@ namespace scene
         }
         // Pushはフレーム終端に適用する。既に進めた移動と生成時計のdtを一致させる。
         m_base->CheckPickup(m_player->Center(), m_player->pData.size);
-        m_spawner.Update(FrameRate::GetDeltaTime(), *m_objManager, *m_base, m_player->Center());
+        if (m_boss && m_base->Center().x >= m_base->EndX())
+        {
+            // 到達フレームから通常生成を止め、既存敵・アイテム・成長の更新はそのまま続ける。
+            m_boss->Start(*m_objManager, *m_base, m_player->Center(), Camera::Instance().VisibleRect());
+            if (m_boss->Failed())
+            {
+                ErrorLogFmtAdd("Boss spawn failed: no safe offscreen candidate within approach time. R returns to Title.");
+                return std::monostate{};
+            }
+        }
+        else
+        {
+            m_spawner.Update(FrameRate::GetDeltaTime(), *m_objManager, *m_base, m_player->Center());
+        }
         return next;
     }
 
@@ -207,6 +233,25 @@ namespace scene
         if (m_drops) m_drops->DrawField();
         m_experience.DrawField();
         m_hud.Draw();
+        if (m_boss && m_boss->Started())
+        {
+            // 通常HUDの右側に専用表示。失敗時も同じ位置で復帰操作を知らせる。
+            const int x = int(Window::GetWindowData()->SIZE.x) - 600;
+            DrawBox(x - 12, 12, x + 580, 116, GetColor(30, 20, 25), TRUE);
+            if (m_boss->Failed())
+            {
+                DrawString(x, 24, "BOSS SPAWN FAILED", GetColor(255, 160, 100));
+                DrawString(x, 58, "No safe position. Press R to return to Title.", GetColor(255, 255, 255));
+            }
+            else
+            {
+                DrawString(x, 24, "BOSS BATTLE - DEFEND THE CARAVAN", GetColor(255, 180, 55));
+                DrawFormatString(x, 52, GetColor(255, 255, 255), "BOSS HP %.0f / %.0f", m_boss->Health(), m_boss->MaxHealth());
+                DrawBox(x, 82, x + 560, 104, GetColor(70, 40, 45), TRUE);
+                const int fill = int((m_boss->Health() / m_boss->MaxHealth()) * 560);
+                DrawBox(x, 82, x + fill, 104, GetColor(220, 55, 70), TRUE);
+            }
+        }
         const int growthY = int(Window::GetWindowData()->SIZE.y) - 58;
         DrawFormatString(18, growthY, GetColor(90,220,255), "TOTAL XP: %llu",
             static_cast<unsigned long long>(m_expedition.growth.TotalXp()));

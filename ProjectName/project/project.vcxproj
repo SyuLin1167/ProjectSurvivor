@@ -182,6 +182,7 @@
     <ClCompile Include="..\code\UI\DisplayElements\DisplayElements.ixx" />
     <ClCompile Include="..\code\UI\DisplayElements\DisplayElements.cpp" />
     <ClCompile Include="..\code\Object\EnemySpawner\SpawnPosition.ixx" />
+    <ClCompile Include="..\code\Object\BossEncounter\BossEncounter.ixx" />
     <ClCompile Include="..\code\Quest\QuestCatalog.ixx" />
     <ClCompile Include="..\code\Quest\QuestConfig.ixx" />
     <ClCompile Include="..\code\Quest\QuestText.ixx" />
@@ -616,6 +617,7 @@
   <ItemGroup>
     <None Include="..\resources\data\Phase1Config.json" />
     <None Include="..\resources\data\EnemyConfig.json" />
+    <None Include="..\resources\data\BossConfig.json" />
     <None Include="..\resources\data\PlayerAttackConfig.json" />
     <None Include="..\resources\data\MapData.json" />
     <None Include="..\resources\data\MapTip.csv" />

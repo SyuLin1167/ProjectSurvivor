@@ -75,6 +75,9 @@ export namespace object
         /// <summary>検証用の残HPを返す。</summary>
         /// <returns>残HP。</returns>
         float Health() const { return m_health; }
+        /// <summary>追加個体の安全な生成位置選定に使う当たり判定半径を返す。</summary>
+        /// <returns>ワールド単位の円半径。</returns>
+        float Radius() const { return m_config.Radius; }
     private:
         combat::EnemyConfig m_config; // 読込境界で検証した不変能力・外見。現在HPは別管理。
         double m_moveTime{}; // 追跡中のゲーム秒。新しいプール個体は0から開始する。
@@ -83,8 +86,6 @@ export namespace object
         bool m_touching{}; // この更新で接触通知を受けたか。
         double m_contactRemaining{}; // 秒。初回は即時、離脱しても残り時間は維持。
         bool m_wasTouching{}; // 再接触時に非接触時間の端数を次の攻撃へ繰り越さない。
-        static constexpr float CONTACT_DAMAGE = 10.0f; // DEC-02固定値。
-        static constexpr double CONTACT_INTERVAL = 1.0; // DEC-02固定値（秒）。
         std::weak_ptr<MovingBase> m_base; // 所有しない。対象破棄後は追跡を停止する。
         bool m_colliderCreated = false; // Init前や失敗時に、未取得IDで他個体を破棄しない。
         col2d::ColliderID id;   // コライダーID

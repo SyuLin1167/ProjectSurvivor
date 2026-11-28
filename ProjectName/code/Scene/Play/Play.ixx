@@ -13,6 +13,7 @@ import Object.ExperienceDrops;
 import Progression.ProgressionState;
 import Expedition.ExpeditionState;
 import Object.EnemySpawner;
+import Object.BossEncounter;
 import <optional>;
 
 /// <summary>
@@ -77,6 +78,7 @@ export namespace scene
         ui::PlayHud m_hud;
         StageState m_stage;
         object::EnemySpawner m_spawner;
+        std::optional<object::BossEncounter> m_boss; // 最終区間だけ存在。遠征値や保存へ持ち越さない。
         // Playerと拠点はPlayの終了までObjectManagerに登録され、途中除去されない。
         object::Player* m_player;
         object::MovingBase* m_base;
