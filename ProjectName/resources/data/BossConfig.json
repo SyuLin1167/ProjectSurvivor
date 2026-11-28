@@ -1,0 +1,7 @@
+﻿{
+    "health": 600,
+    "radius": 48,
+    "speed": 100,
+    "contactDamage": 10,
+    "contactInterval": 1
+}

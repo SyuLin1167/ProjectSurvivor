@@ -20,10 +20,13 @@ export namespace combat
         float Health{};
         float Radius{}; // u
         float Speed{};  // u/s
-        enum class Look { Classic, Normal, Runner, Heavy, Charger };
+        enum class Look { Classic, Normal, Runner, Heavy, Charger, Boss };
         Look look{Look::Classic};
         float chargeMultiplier = 1; // 通常速度に対する加速倍率。1なら従来の追跡のみ。
         double chargeWait = 3, chargeDuration = 0.6; // 通常移動と加速を交互に繰り返すゲーム秒。
+
+        float contactDamage = 10; // 通常敵は従来値。ボスのみJSONで変更する。
+        double contactInterval = 1; // 敵ごとの接触攻撃間隔（ゲーム秒）。
 
         /// <summary>通常追跡と加速の境界を跨ぐフレームも、時間の割合どおりの移動量を返す。</summary>
         /// <param name="elapsed">この個体が追跡した累積ゲーム秒。</param>
@@ -55,10 +58,30 @@ export namespace combat
         /// <returns>画面外判定に使用するワールド矩形。</returns>
         shape::Rect VisualBounds(math::Vector2f center) const
         {
+            if (look == Look::Boss) return {center - math::Vector2f{Radius, Radius}, {Radius * 2, Radius * 2}};
             if (look != Look::Classic) return {center - math::Vector2f{16, 16}, {32, 32}};
             // 旧ENEMYラベルは右と上へ張り出すため、本体円より広く確保する。
             return {center - math::Vector2f{Radius, Radius * 2},
                 {(std::max)(Radius * 2, 128.0f), (std::max)(Radius * 3, 64.0f)}};
+        }
+
+        /// <summary>共通ボスの能力を入力境界で検証する。通常敵の固定値制約とは分離する。</summary>
+        /// <param name="data">BossConfig.jsonの必須項目。</param>
+        /// <returns>追跡・Collider・接触攻撃で共用する検証済み設定。</returns>
+        static EnemyConfig BossFromJson(const json& data)
+        {
+            namespace jv = file::jsonValue;
+            const auto positive = [](float value) { return std::isfinite(value) && value > 0; };
+            EnemyConfig config;
+            config.look = Look::Boss;
+            config.Health = jv::Read<float>(data, "health", positive, "must be positive and finite");
+            config.Radius = jv::Read<float>(data, "radius",
+                [](float value) { return std::isfinite(value) && value >= 32 && value <= 96; }, "must be 32..96 units");
+            config.Speed = jv::Read<float>(data, "speed", positive, "must be positive and finite");
+            config.contactDamage = jv::Read<float>(data, "contactDamage", positive, "must be positive and finite");
+            config.contactInterval = jv::Read<double>(data, "contactInterval",
+                [](double value) { return std::isfinite(value) && value >= 0.1; }, "must be finite and at least 0.1 seconds");
+            return config;
         }
 
         /// <summary>DEC-02と#19比較試遊の許可値・速度範囲を確認する。不正時は例外を送出する。</summary>

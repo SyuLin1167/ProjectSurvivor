@@ -113,10 +113,10 @@ namespace object
         const auto base = m_base.lock();
         // 接触の事実はColliderイベントだけから受け取る。撃破済み/対象消失時は被害を出さない。
         if (!CanBeAttacked() || !base || (base->NowState() & MainState::DEAD)) return;
-        if (!base->TakeDamage(CONTACT_DAMAGE)) return;
+        if (!base->TakeDamage(m_config.contactDamage)) return;
         // 接触通知はLateUpdateで一度だけ消費し、連続接触の通常端数だけを持ち越す。
-        m_contactRemaining = CONTACT_INTERVAL +
-            (m_wasTouching && m_contactRemaining > -CONTACT_INTERVAL ? m_contactRemaining : 0.0);
+        m_contactRemaining = m_config.contactInterval +
+            (m_wasTouching && m_contactRemaining > -m_config.contactInterval ? m_contactRemaining : 0.0);
     }
 
     void Enemy::Draw()
@@ -127,7 +127,15 @@ namespace object
         const auto sp = camera.WorldToScreen(m_pos);
         if (m_config.look != combat::EnemyConfig::Look::Classic)
         {
-            if (m_config.look == combat::EnemyConfig::Look::Charger)
+            if (m_config.look == combat::EnemyConfig::Look::Boss)
+            {
+                // 通常敵より大きな赤い円と内側の標識。全体をVisualBounds内へ収める。
+                const int x = int(sp.x), y = int(sp.y), radius = int(m_config.Radius);
+                DrawCircle(x, y, radius, GetColor(165, 35, 45), TRUE);
+                DrawCircle(x, y, radius - 4, GetColor(255, 180, 55), FALSE);
+                DrawString(x - 16, y - 8, "BOSS", GetColor(255, 255, 255));
+            }
+            else if (m_config.look == combat::EnemyConfig::Look::Charger)
             {
                 // 追加素材なしでも識別できる紫の菱形。加速中は中心を白くし、32px範囲を守る。
                 const int x = int(sp.x), y = int(sp.y);

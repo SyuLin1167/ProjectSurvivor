@@ -31,6 +31,7 @@ import Object.PlayerAttackConfig;
 import <algorithm>;
 import Object.EnemyConfig;
 import Object.EnemySpawner;
+import Object.BossEncounter;
 import Object.SpawnPosition;
 import MyLib.File.FileSystem;
 import MyLib.File.JsonValue;
@@ -1926,6 +1927,14 @@ void VerifyExpedition()
     auto headless = original;
     headless["alphaCombat"] = false; // 実画面の300秒試遊ではなく、描画なしの遷移回帰。
     files.jsonIO.Write(stagePath, headless);
+    const auto bossPath = files.GetDataDir() / "BossConfig.json";
+    const auto bossSource = files.jsonIO.Load("ProjectName/resources/data/BossConfig.json");
+    auto quickBoss = bossSource;
+    quickBoss["health"] = 10; // 通し回帰ではバランスを測らず、自動攻撃から最終結果への経路を検証。
+    files.jsonIO.Write(bossPath, quickBoss);
+    headless["playerCenterX"] = headless.at("trialEndX");
+    headless["playerCenterY"] = headless.at("baseCenterY").get<float>() + 64;
+    files.jsonIO.Write(stagePath, headless);
     const std::array<int,4> routePattern{0,1,1,0}; // 両方向の切替と同じルートの連続を通す。
     for (int pattern : {0,1}) for (const auto id : {"pilgrim", "cargo"})
     {
@@ -1956,6 +1965,14 @@ void VerifyExpedition()
             // 終端だけ早送りする。敵の生成・接触の実動作は下の敗北と既存Spawner回帰で確認する。
             dt = 60.1f;
             auto command = play->Update();
+            if (section == 5)
+            {
+                require(std::holds_alternative<std::monostate>(command) && !campaign.Progress().Cleared(id),
+                    "Final arrival waits for boss and does not record a clear");
+                dt = 1.0f / 60;
+                for (int frame = 0; frame < 1200 && std::holds_alternative<std::monostate>(command); ++frame)
+                    command = play->Update();
+            }
             require(std::holds_alternative<scene::CmdReplace>(command), "Section success changes scene");
             auto next = std::get<scene::CmdReplace>(command).build();
             command = std::monostate{};
@@ -2014,10 +2031,18 @@ void VerifyExpedition()
             while (vulnerable.Section() < section)
                 vulnerable.Advance(vulnerable.CurrentNode().next[pattern]);
             vulnerable.health = 1;
+            if (section == 5) files.jsonIO.Write(bossPath, bossSource); // 実HPのボスで接触敗北まで通す。
             play = std::make_shared<scene::Play>(vulnerable);
             play->Init();
             dt = 1.0f / 60;
             scene::SceneCmd ended;
+            if (section == 5)
+            {
+                dt = 60.1f;
+                ended = play->Update();
+                require(std::holds_alternative<std::monostate>(ended), "Final defeat fixture enters boss battle first");
+                dt = 1.0f / 60;
+            }
             for (int frame = 0; frame < 3600 && std::holds_alternative<std::monostate>(ended); ++frame) ended = play->Update();
             require(std::holds_alternative<scene::CmdReplace>(ended), "Selected section reaches defeat");
             auto defeat = std::dynamic_pointer_cast<scene::Result>(std::get<scene::CmdReplace>(ended).build());
@@ -2025,6 +2050,7 @@ void VerifyExpedition()
                 defeat->State().Section() == section && defeat->State().health == 0 &&
                 campaign.Progress().cleared.empty(), "Failure at any section does not unlock quest");
             play.reset();
+            if (section == 5) files.jsonIO.Write(bossPath, quickBoss);
         }
         auto pending = initial;
         pending.Advance(pending.CurrentNode().next[pattern]);
@@ -2042,7 +2068,8 @@ void VerifyExpedition()
         play.reset();
     }
     files.jsonIO.Write(stagePath, original);
-    std::cout << "PASS: five-section expedition, branch transitions, HP/growth carry, defeats and fresh retry\n";
+    files.jsonIO.Write(bossPath, bossSource);
+    std::cout << "PASS: five-section expedition with final boss, branch transitions, HP/growth carry, defeats and fresh retry\n";
 }
 /// <summary>実保存・再読込とTitleの確認経路を検証し、利用者のLocalAppDataは使わない。</summary>
 void VerifyCampaign()
@@ -2314,6 +2341,131 @@ void VerifyQuestEnemyComposition()
     gameSystem::AppCtx::Deactivate();
     std::cout << "PASS: five-section quest rosters, four-type lifecycle, charger timing and classic compatibility\n";
 }
+/// <summary>停止対象へのボス出現・追跡・被弾・自動攻撃と終了条件を既存の実オブジェクトで検証する。</summary>
+void VerifyFinalBoss()
+{
+    gameSystem::AppCtx::Activate();
+    auto& files = gameSystem::AppCtx::FileSystem();
+    auto source = files.jsonIO.Load("ProjectName/resources/data/BossConfig.json");
+    const auto shipped = combat::EnemyConfig::BossFromJson(source);
+    require(shipped.Health == 600 && shipped.Radius == 48 && shipped.Speed == 100, "Shared boss provisional settings");
+    auto world = stage::StageConfig::FromJson(files.jsonIO.Load("ProjectName/resources/data/Phase1Config.json"));
+    world.alphaCombat = false; // 描画・入力デバイスなしで衝突と実攻撃を検証する。
+    world.BaseCenter.x = world.TrialEndX;
+    auto& dt = const_cast<float&>(gameSystem::FrameRate::GetDeltaTime());
+    const auto previousDt = dt;
+    auto& camera = gameSystem::Camera::Instance();
+    const auto attack = combat::PlayerAttackConfig::FromJson(files.jsonIO.Load("ProjectName/resources/data/PlayerAttackConfig.json"));
+    for (int fps : {30,60,120})
+    {
+        // 設定変更が実接触処理へ届くことも確認する。通常敵の10/1秒とは切り分ける。
+        source["contactDamage"] = 7;
+        source["contactInterval"] = 0.5;
+        const auto config = combat::EnemyConfig::BossFromJson(source);
+        object::ObjectManager objects;
+        auto base = std::make_shared<object::MovingBase>(world, 1000, 1000);
+        objects.AddInitializedObject(base);
+        const auto stationaryCenter = base->Center();
+        auto tracking = stationaryCenter + math::Vector2f{0,64};
+        camera.SetWorldSize({world.WorldWidth,world.WorldHeight});
+        camera.SetTarget(&tracking, true);
+        camera.Update();
+        // 通常敵を残しておき、ボス移行で削除されないことを確認する。
+        auto normal = std::make_shared<object::Enemy>(stationaryCenter + math::Vector2f{3000,0},
+            combat::EnemyConfig::FromJson(files.jsonIO.Load("ProjectName/resources/data/EnemyConfig.json")));
+        objects.AddInitializedObject(normal);
+        std::weak_ptr<object::Enemy> releasedBoss;
+        {
+            object::BossEncounter encounter(config, {world.WorldWidth,world.WorldHeight});
+            require(!encounter.Started() && !encounter.Defeated(), "Unspawned boss is not a victory");
+            encounter.Start(objects, *base, tracking, camera.VisibleRect());
+            require(encounter.Started() && !encounter.Failed() && encounter.Health() == 600, "Safe boss spawn succeeds");
+            auto boss = std::dynamic_pointer_cast<object::Enemy>(objects.GetObjForTag(object::ENEMY).back());
+            releasedBoss = boss;
+            const auto bounds = config.VisualBounds(boss->Center());
+            require(spawnPosition::Outside(boss->Center(), config, camera.VisibleRect()) &&
+                bounds.Left() >= 0 && bounds.Top() >= 0 && bounds.Right() <= world.WorldWidth && bounds.Bottom() <= world.WorldHeight,
+                "Whole boss is offscreen and inside world");
+            require(boss->Center().Distance(tracking) >= spawnPosition::PlayerClearance &&
+                boss->Center().Distance(normal->Center()) >= config.Radius + normal->Radius(),
+                "Boss does not overlap player or existing enemy");
+            encounter.Start(objects, *base, tracking, camera.VisibleRect());
+            require(objects.GetObjForTag(object::ENEMY).size() == 2 && normal->CanBeAttacked(),
+                "Repeated boss start is single-shot and keeps existing enemies");
+
+            // 拠点の移動は止まってもCollider/HPは有効なまま。15秒以内に追跡して接触する。
+            dt = 1.0f / fps;
+            for (int frame = 0; frame < fps * 15 && base->Health() == 1000; ++frame) objects.Update();
+            require(base->Health() == 993 && base->Center() == stationaryCenter,
+                "Stopped caravan receives configured boss damage");
+            for (int frame = 0; frame < fps / 2; ++frame) objects.Update();
+            require(base->Health() == 986, "Boss contact uses configured half-second interval");
+            dt = 0;
+            for (int frame = 0; frame < 10; ++frame) objects.Update();
+            require(base->Health() == 986, "Paused boss battle does not accrue contact attacks");
+
+            // 通常自動攻撃に成長・ルート・一時アイテムを重ね、ボスも同じ対象選択を使う。
+            auto playerWorld = world;
+            playerWorld.PlayerCenter = boss->Center();
+            auto player = std::make_shared<object::Player>(playerWorld, attack);
+            objects.AddInitializedObject(player);
+            progression::ProgressionState growth(progression::Config{});
+            growth.AddExperience(3);
+            require(growth.Select(progression::Upgrade::Damage), "Select damage growth for boss test");
+            player->ApplyProgression(growth, 1.25f);
+            player->BoostAttack();
+            const auto damage = player->AttackDamage();
+            objects.Update();
+            require(std::abs(encounter.Health() - (600 - damage)) < 0.01f && damage > attack.Damage,
+                "Automatic boss hit includes growth, route and item multipliers");
+            dt = 1.0f / fps;
+            for (int frame = 0; frame < fps * 30 && !encounter.Defeated(); ++frame) objects.Update();
+            require(encounter.Defeated() && !boss->CanBeAttacked() && player->TakeKillPosition().has_value(),
+                "Automatic attack kills boss, disables Collider and emits one kill event");
+            require(!player->TakeKillPosition(), "Boss kill event is consumed once");
+            require(objects.GetObjForTag(object::ENEMY).size() == 1, "Boss removed from active manager while normal enemy remains");
+            boss.reset();
+            require(!releasedBoss.expired(), "Encounter keeps defeated HP fact until result decision");
+        }
+        require(releasedBoss.expired(), "Encounter releases dead boss before ColliderManager destruction");
+        camera.ClearTarget(&tracking);
+    }
+    // 世界端や探索中のカメラでも、安全な候補がある場合だけ生成する。
+    for (const math::Vector2f player : {math::Vector2f{16,16}, {16368,4080}, {2368,2568}})
+    {
+        object::ObjectManager objects;
+        auto base = std::make_shared<object::MovingBase>(world);
+        objects.AddInitializedObject(base);
+        auto tracking = player;
+        camera.SetWorldSize({world.WorldWidth,world.WorldHeight});
+        camera.SetTarget(&tracking, true);
+        camera.Update();
+        object::BossEncounter encounter(shipped, {world.WorldWidth,world.WorldHeight});
+        encounter.Start(objects, *base, tracking, camera.VisibleRect());
+        require(encounter.Started() && !encounter.Failed(), "Boss approaches caravan when player camera is distant or at world edge");
+        camera.ClearTarget(&tracking);
+    }
+    {
+        object::ObjectManager objects;
+        auto base = std::make_shared<object::MovingBase>(world);
+        objects.AddInitializedObject(base);
+        object::BossEncounter blocked(shipped, {world.WorldWidth,world.WorldHeight});
+        blocked.Start(objects, *base, base->Center(), {{0,0},{world.WorldWidth,world.WorldHeight}});
+        require(blocked.Failed() && !blocked.Defeated() && objects.GetObjForTag(object::ENEMY).empty(),
+            "No safe candidate produces explicit recoverable failure, never forced onscreen spawn or success");
+    }
+    scene::StageState normal(768,5568), final(768,5568,true), simultaneous(768,5568,true), defeat(768,5568,true);
+    require(normal.Advance(5568,100,false) == scene::StageEnd::Success, "Sections one to four retain distance success");
+    require(final.Advance(5568,100,false) == scene::StageEnd::None && final.RemainingDistance() == 0,
+        "Final arrival stays active while boss lives");
+    require(final.Advance(5568,90,true,true) == scene::StageEnd::Success &&
+        final.Advance(5568,90,false,true) == scene::StageEnd::None, "Boss kill wins once and beats abort");
+    require(simultaneous.Advance(5568,0,true,true) == scene::StageEnd::Defeat, "HP zero beats boss kill and abort");
+    require(defeat.Advance(5568,0,false,false) == scene::StageEnd::Defeat, "Boss battle defeat does not require boss death");
+    dt = previousDt;
+    gameSystem::AppCtx::Deactivate();
+    std::cout << "PASS: final boss safety, stopped-base damage, growth/item attack, lifetime and defeat priority\n";
+}
 int main() try
 {
     VerifyJsonValue();
@@ -2333,6 +2485,7 @@ int main() try
     VerifyEnemySpawning();
     VerifyOffscreenSpawning();
     VerifyQuestEnemyComposition();
+    VerifyFinalBoss();
     VerifyExperienceDrops();
     VerifyProgression();
     // UIManager経由の再利用要素とClear後の値リセットを検証する。描画は手動確認する。

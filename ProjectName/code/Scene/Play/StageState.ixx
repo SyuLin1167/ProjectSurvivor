@@ -25,7 +25,8 @@ export namespace scene
         /// <summary>開始・終端座標から進行0、結果未決で生成する。</summary>
         /// <param name="startX">拠点中心の開始X（u）。</param>
         /// <param name="endX">開始Xより大きい有限の終端X（u）。</param>
-        StageState(float startX, float endX) : m_startX(startX), m_endX(endX)
+        /// <param name="requiresBoss">最終区間で距離に加えてボス撃破を必要とする場合true。</param>
+        StageState(float startX, float endX, bool requiresBoss = false) : m_requiresBoss(requiresBoss), m_startX(startX), m_endX(endX)
         {
             if (!std::isfinite(startX) || !std::isfinite(endX) || endX <= startX)
                 throw std::invalid_argument("StageState: invalid endpoints");
@@ -36,14 +37,15 @@ export namespace scene
         /// <param name="health">更新後の拠点HP。</param>
         /// <param name="abort">同フレームにRによる中断が要求された場合true。</param>
         /// <returns>今回初めて確定した終了要求。継続時と確定済みの再呼出しはNone。</returns>
-        StageEnd Advance(float centerX, float health, bool abort)
+        /// <param name="bossDefeated">生成済みのボスが撃破された事実。未生成や参照切れは含めない。</param>
+        StageEnd Advance(float centerX, float health, bool abort, bool bossDefeated = false)
         {
             if (Finished()) return StageEnd::None;
             m_distance = std::clamp(centerX - m_startX, 0.0f, m_endX - m_startX);
             m_result.progress = m_distance / (m_endX - m_startX);
             m_result.health = (std::max)(health, 0.0f);
             if (health <= 0) m_result.outcome = StageEnd::Defeat;
-            else if (centerX >= m_endX) m_result.outcome = StageEnd::Success;
+            else if (centerX >= m_endX && (!m_requiresBoss || bossDefeated)) m_result.outcome = StageEnd::Success;
             else if (abort) m_result.outcome = StageEnd::Aborted;
             return m_result.outcome;
         }
@@ -62,6 +64,7 @@ export namespace scene
         float RemainingDistance() const { return m_endX - m_startX - m_distance; }
 
     private:
+        bool m_requiresBoss; // 区間生成時に確定。途中で成功条件を変更しない。
         float m_startX;
         float m_endX;
         float m_distance = 0;
